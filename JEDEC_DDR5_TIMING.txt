@@ -1,0 +1,533 @@
+JEDEC DDR5 TIMING INFORMATION (JESD400-5C)
+================================================================================
+
+
+Page 6:
+--------------------------------------------------------------------------------
+JEDEC Standard No. 400-5C
+DDR5 SERIAL PRESENCE DETECT (SPD) CONTENTS
+Contents (cont’d)
+8.1.15 (DDR5): Byte 14 (0x00E): SDRAM Per Row Activation Counting, Fault
+Handling, and Temperature Sense ....................................................................28
+8.1.16 (DDR5): Byte 15 (0x00F): Reserved ..................................................................28
+8.1.17 (DDR5): Byte 16 (0x010): SDRAM Nominal Voltage, VDD ................................28
+8.1.18 (DDR5): Byte 17 (0x011): SDRAM Nominal Voltage, VDDQ .............................29
+8.1.19 (DDR5): Byte 18 (0x012): SDRAM Nominal Voltage, VPP ................................29
+8.1.20 (DDR5): Byte 19 (0x013): SDRAM Timing .........................................................29
+8.1.21 (DDR5): SDRAM Minimum Cycle Time (tCKAVGmin) .......................................35
+8.1.22 (DDR5): SDRAM Maximum Cycle Time (tCKAVGmax) .....................................35
+8.1.23 (DDR5): SDRAM CAS Latencies Supported ......................................................36
+n
+8.1.24 (DDR5): Byte 29 (0x01D) ...................................................................................37
+o
+8.1.25 (DDR5): SDRAM Read Command to First Data (tAA) .......................................37
+i
+8.1.26 (DDR5): SDRAM Activate to Read or Writet Command Delay (tRCD) ...............37
+u
+8.1.27 (DDR5): SDRAM Row Precharge Time (tRP) ....................................................37
+b
+8.1.28 (DDR5): SDRAM Activate to Precharge Command Period (tRAS) ....................38
+i
+8.1.29 (DDR5): SDRAM Activate to Actirvate or Refresh Command Period (tRC) ........38
+t
+8.1.30 (DDR5): SDRAM Write Recosvery Time (tWR) ...................................................38
+8.1.31 (DDR5): SDRAM Normal Riefresh Recovery Time (tRFC1, tRFC1_slr) .............39
+D
+8.1.32 (DDR5): SDRAM Fine Granularity Refresh Recovery Time (tRFC2, tRFC2_slr) 39
+8.1.33 (DDR5): SDRAM SSame Bank Refresh Recovery Time (tRFCsb, tRFCsb_slr) ..40
+8.1.34 (DDR5): SDRACM Normal Refresh Recovery Time, 3DS Different Logical
+Rank (tRFC1_dlr) ...............................................................................................40
+O
+8.1.35 (DDR5): SDRAM Fine Granularity Refresh Recovery Time, 3DS Different
+Logical Rank (tRFC2_dlr) ...................................................................................41
+8.1.36 (DDR5): SDRAM Same Bank Refresh Recovery Time, 3DS Different Logical
+Rank (tRFCsb_dlr) .............................................................................................41
+8.1.37 (DDR5): SDRAM Refresh Management, First SDRAM .....................................42
+8.1.38 (DDR5): SDRAM Refresh Management, Second SDRAM ................................43
+8.1.39 (DDR5): SDRAM Adaptive Refresh Management .............................................44
+8.1.40 (DDR5): SDRAM Activate to Activate Command Delay for Same Bank Group
+(tRRD_L) ............................................................................................................45
+8.1.41 (DDR5): SDRAM Read to Read Command Delay for Same Bank Group
+(tCCD_L) ............................................................................................................45
+8.1.42 (DDR5): SDRAM Write to Write Command Delay for Same Bank Group
+(tCCD_L_WR) ....................................................................................................46
+8.1.43 (DDR5): SDRAM Write to Write Command Delay for Same Bank Group,
+Second Write not RMW (tCCD_L_WR2) ............................................................46
+8.1.44 (DDR5): SDRAM Four Activate Window (tFAW) ................................................47
+
+
+Page 12:
+--------------------------------------------------------------------------------
+JEDEC Standard No. 400-5C
+DDR5 SERIAL PRESENCE DETECT (SPD) CONTENTS
+Contents (cont’d)
+Table 34 — SDRAM Nominal Voltage, VDDQ ...........................................................................29
+Table 35 — SDRAM Nominal Voltage, VPP ..............................................................................29
+Table 36 — SDRAM Timing .......................................................................................................29
+Table 37 — Example, using Round Down Only Integer Number Math ......................................33
+Table 38 — SDRAM Minimum Cycle Time (tCKAVGmin), ps ...................................................35
+Table 39 — SDRAM Maximum Cycle Time (tCKAVGmax), ps .................................................35
+Table 40 — SDRAM CAS Latencies Supported ........................................................................36
+Table 41 — Example 1: DDR5-4400A SDRAM .........................................................................36
+Table 42 — SDRAM Read Command to First Data (tAA), ps ....................................................37
+Table 43 — SDRAM Activate to Read or Write Command Delay (tRCD), ps ............................37
+n
+Table 44 — SDRAM Row Precharge Time (tRP), ps ................................................................37
+o
+Table 45 — SDRAM Activate to Precharge Command Period (tRAS), ps ................................38
+i
+t
+Table 46 — SDRAM Activate to Activate or Refresh Command Period (tRC), ps .....................38
+u
+Table 47 — SDRAM Write Recovery Time (tWR), ps ................................................................39
+b
+Table 48 — SDRAM Normal Refresh Recovery Time (tRFC1, tRFC1_slr), ns .........................39
+i
+r
+Table 49 — SDRAM Fine Granularity Refresh Recovery Time (tRFC2, tRFC2_slr), ns ...........39
+t
+s
+Table 50 — SDRAM Same Bank Refresh Recovery Time (tRFCsb, tRFCsb_slr), ns ...............40
+i
+Table 51 — SDRAM Normal Refresh RDecovery Time, 3DS Different Logical Rank
+(tRFC1_dlr), ns .......................................................................................................40
+Table 52 — SDRAM Fine GranulSarity Refresh Recovery Time (tRFC2_dlr), ns .......................41
+Table 53 — SDRAM Same BCank Refresh Recovery Time (tRFCsb_dlr), ns .............................41
+Table 54 — SDRAM RefrOesh Management (RFM), First Byte, Byte 54 (First SDRAM) ............42
+Table 55 — SDRAM Refresh Management (RFM), Second Byte,Byte 55 (First SDRAM) ........43
+Table 56 — SDRAM Refresh Management (RFM), First Byte, Byte 56 (Second SDRAM) .......43
+Table 57 — SDRAM Refresh Management (RFM), Second Byte,Byte 57 (Second SDRAM) ..44
+Table 58 — SDRAM Adaptive Refresh Management (ARFM) ..................................................44
+Table 59 — SDRAM Adaptive Refresh Management (ARFM), First Bytes ...............................44
+Table 60 — SDRAM Adaptive Refresh Management (ARFM), Second Bytes ..........................44
+Table 61 — SDRAM Activate to Activate Command Delay for Same Bank Group (tRRD_L) ...45
+Table 62 — SDRAM Read to Read Command Delay for Same Bank Group (tCCD_L) ...........45
+Table 63 — SDRAM Write to Write Command Delay for Same Bank Group (tCCD_L_WR) ....46
+Table 64 — SDRAM Write to Write Command Delay for Same Bank Group, ,Second Write
+not RMW (tCCD_L_WR2) ......................................................................................46
+Table 65 — SDRAM Four Activate Window (tFAW) ..................................................................47
+Table 66 — DDR5 SDRAM Write to Read Command Delay for Same Bank Group
+(tCCD_L_WTR) ......................................................................................................47
+
+
+Page 45:
+--------------------------------------------------------------------------------
+JEDEC Standard No. 400-5C
+Page 29
+8.1.18 (DDR5): Byte 17 (0x011): SDRAM Nominal Voltage, VDDQ
+This byte describes the voltage levels for the SDRAM VDDQ supply only.
+'Operable', 'Endurant': See byte 16.
+Table 34 — SDRAM Nominal Voltage, VDDQ
+Nominal Operable Endurant
+Bits 7~4 Bits 3~2 Bits 1~0
+0000: 1.1 V 00: 1.1 V 00: 1.1 V
+All others reserved All others reserved All others reserved
+8.1.19 (DDR5): Byte 18 (0x012): SDRAM Nominal Voltange, VPP
+o
+This byte describes the voltage levels for the SDRAM VPP supply only.
+i
+t
+'Operable', 'Endurant': See byte 16. u
+b
+i
+Table 35 — SDRAM Nrominal Voltage, VPP
+t
+Nominal sOperable Endurant
+i
+Bits 7~4 DBits 3~2 Bits 1~0
+0000: 1.8 V 00: 1.8 V 00: 1.8 V
+All othersS reserved All others reserved All others reserved
+C
+O
+8.1.20 (DDR5): Byte 19 (0x013): SDRAM Timing
+This byte describes whether the SDRAM uses only standard core timings per JESD79-5, or non-standard
+timings for markets such as overclocking systems. Core timings refer to tCKmin, tAAmin, tRCDmin, and
+tRPmin. This information assists in determining the most robust algorithm for calculating valid CAS latency
+settings.
+Table 36 — SDRAM Timing
+Reserved Non-Standard Core Timing
+Bits 7~1 Bit 0
+0 = SDRAM uses standard core timings per JESD79-5
+Reserved; must be coded as 0000000
+1 = SDRAM supports non-standard core timings
+Release 1.3
+Downloaded by Evgeniy Dementiev (idem-id@yandex.com) on Nov 22, 2024, 5:07 am PST
+
+
+Page 46:
+--------------------------------------------------------------------------------
+JEDEC Standard No. 400-5C
+Page 30
+Timebases
+Timebases in the DDR5 SPD are simplified compared to previous generations. Timing for parameters is
+expressed in either picosecond (ps) or nanosecond (ns) units. When programming memory controllers, it
+is often necessary to convert these timings to integer numbers of clocks (nCK) units. The algorithm for this
+conversion is described next.
+Algorithms for Converting Time-based Parameters to Clock Counts
+DDR5 SDRAM timing parameters are typically expressed in time units such as ns or ps, however digital
+logic design requires that these parameters be converted to a fixed number of clock periods “nCK” at the
+application frequency. The primary algorithm for this conversion is called the Rounding Algorithm, and it
+accounts for factors including errors caused by rounding and by digital integer expression or math
+calculation accuracy. The Rounding Algorithm is used for most parameters such as tRCDmin, tRCmin,
+tRFCmin, etc. A separate conversion called the CL Algorithm is defined specifically for determination of
+valid CAS Latency settings and accounts for factors including even latency requirements and unsupported
+CL settings. n
+o
+The DDR5 SDRAM data sheet, JESD79-5, defines a baseline sietting for timing that is common across
+t
+vendors. However, specific devices in the industry may exceed the baseline timings for target markets
+u
+such as point-to-point or overclocker systems. For these devices, the CL Algorithm may not apply, so
+b
+specific rules are defined for determining valid CL settings. For non-standard SDRAMs, the memory
+i
+supplier is expected to test for the additional boundary conditions created.
+r
+t
+The guidelines for calculating CAS Latency are sas follows:
+i
+D
+ If Non-standard Core Timing (SPD byte 19 bit 0) = 0 (i.e., the DRAM supports all JEDEC standard core
+timings), the preferred method for ca lculating valid CAS Latency settings is to use the CL Algorithm as
+S
+it accounts for operation across a broad range of data rates including full speed or downbinning.
+C
+ Systems may prefer to use other methods to calculate CAS Latency settings, including applying the
+Rounding Algorithm on tOAAmin (SPD bytes 30~31) to determine the desired CL setting, rounding up if
+necessary to ensure that only even nCK values are used, and applying the CAS Latency Mask (SPD
+bytes 24~28) to find a supported CL setting. If Non-standard Core Timing (SPD byte 19 bit 0) = 1, the
+DRAM may support one or more exceptions or extensions of JEDEC standard core timings in which
+case other methods such as the Rounding Algorithm method described here are preferred to the CL
+Algorithm. Contact the memory supplier for details on supported CAS Latency conditions and
+recommended practices.
+Rounding Algorithm
+Software algorithms for calculation of timing parameters are subject to rounding errors from many sources.
+For example, a system may use a memory clock with a nominal frequency of 2200 MHz (4400 MT/s) for
+the DDR5-4400 speed bin, which mathematically yields a nominal clock period tCK(AVG) of
+0.454545... ns. In most cases, it is impossible to express all digits after the decimal point exactly, and
+rounding must be used. The DDR5 SDRAM specification establishes a minimum granularity for timing
+
+
+Page 47:
+--------------------------------------------------------------------------------
+JEDEC Standard No. 400-5C
+Page 31
+Rounding Algorithm (cont’d)
+Rules for rounding must be defined to allow optimization of device performance without violating device
+parameters. All timing parameters specified in the time domain (ns, ps, etc.) which must then be converted
+to the clock domain (nCK units) shall be defined to align with these rules. The key point is, minimum and
+maximum timing parameter values shall generally use the same rounding rules used to define
+tCK(AVG)min and tCK(AVG)max. The resulting rounding algorithms rely on results that are within
+correction factors of device testing and specification to avoid losing performance due to rounding errors.
+These rules are:
+ DEFINING TIMING PARAMETER VALUES: Minimum and maximum timing parameter values,
+including tCK(AVG)min and tCK(AVG)max, are to be rounded down and defined to 1 ps of
+accuracy in the DDR5 SDRAM specification based on the non-rounded nominal tCK(AVG) for a
+given speed bin. If the nominal timing parameter values require more than 1 ps of accuracy, they
+can be rounded down (faster) to the next 1 ps according to the rounding algorithms, and the
+DDR5 SDRAM is responsible for absorbing this the resulting small parameter extensions. In
+other words, the DDR5 SDRAM specification only lists the nominal parameter values rounded
+down to the next 1 ps. For example, this extends the DDR5-n4400 tCK(AVG)min definition to be
+exactly 0.454 ns which is slightly smaller (faster) thano the nominal memory clock period of
+0.454545... ns by less than 1 ps.
+i
+t
+ CALCULATING THE REAL MINIMUM TIMING PARAMETER VALUES: For minimum timing
+u
+parameters, other than tCK(AVG)min, to avoid losing performance due to additional erroneous
+b
+nCKs and to calculate the true real minimum values, their nominal values listed in the DDR5
+SDRAM specification must be reduced (fasteir) by the maximum %error (correction factor) used
+r
+to define tCK(AVG)min. The DDR5 SDRAM is responsible for absorbing the resulting small
+t
+parameter extensions. For examples, tWRmin has a nominal value of 30.000 ns, however,
+applying the 0.30% correction factori allows a more aggressive timing (for example, 29.910 ns) to
+be supported, which allows theD intended smaller (faster) nCK value to be maintained when
+rounding tCK(AVG)min down to the next 1 ps. Note, parameter values defined to be 0 ps do not
+need to be reduced by Sa correction factor, and therefore do not require these rounding
+algorithms.
+C
+ CALCULATING THE REAL MAXIMUM TIMING PARAMETER VALUES: For maximum timing
+O
+parameters, including tCK(AVG)max, to avoid losing performance due to excluding erroneous
+nCKs and to calculate the true real maximum values, their nominal values listed in the DDR5
+SDRAM specification must be increased (slower) by the maximum %error caused by rounding
+tCK(AVG) down to the next 1 ps. The DDR5 SDRAM is responsible for absorbing the resulting
+small parameter extensions. For example, tREFImax has a nominal value of 3.9 µs. And the
+DDR5-8400 speed bin mathematically yields a nominal clock period tCK(AVG) of 0.238095... ns,
+resulting in a theoretical maximum %error of 0.42% (0.239 ns/0.238 ns-100%). So the true real
+tREFImax value is 3.916386... µs (3.9 µs*0.239 ns/0.238 ns) for the DDR5-8400 speed bin.
+ ROUNDING ALGORITHM FOR MINIMUM TIMING PARAMETER VALUES: Round down only
+integer number math is commonly used in the industry to calculate nCK values. This rounding
+
+
+Page 48:
+--------------------------------------------------------------------------------
+JEDEC Standard No. 400-5C
+Page 32
+Rounding Algorithm (cont’d)
+To address this, the maximum 0.28% correction factor needed for 3600 MHz (0.277 ns/
+0.277777...ns-100%) operation has been increased slightly to 0.30% in this rounding algorithm.
+This accounts for all integer boundary conditions, except for the specific case when the nominal
+minimum timing parameter value is defined to be 0 ps. No rounding is required for parameter
+values equal to 0 ps. This rounding algorithm is not optimized for parameter values that are less
+than or equal to 0 ps, and may result in unintended lost performance if used for parameter
+values that are less than or equal to 0 ps.
+t --- r -- u ---- n --- c ---- a --- t -- e ---- [ -- n --- o --- m ----- i -- n --- a ---- l - _ --- m ----- i -- n --- _ --- p ---- a --- r -- a --- m ----- e ---- t - e ---- r -- _ --- i - n ---- _ --- p --- s --- ] ----  ---- 9 ---- 9 --- 7 -- +1000
+ truncate[tCK(AVG)real_in_ps]  
+nCK[min_parameter] = truncate--------------------------------------------------------------------------------------------------------------------------------------------------------
+ 1000 
+ 
+ ROUNDING ALGORITHM FOR MAXIMUM TIMING PARAMETER VALUES: Round down only
+n
+integer number math is commonly used in the industry to calculate nCK values. This rounding
+algorithm is used for maximum timing parameters. Nomoinal maximum timing parameters like
+tREFImax, etc., which programmed in systems in numibers of clocks (nCK) but expressed in
+units of time (ps), are rounded down to the next 1 ps tprior to division by the application memory
+u
+clock period rounded down to the next 1 ps, resulting in a number of clocks as the final answer
+which is rounded down to the next 1 nCK. No rbounding is required for parameter values equal to
+0 ps, but this rounding algorithm can still bei used for parameter values equal to 0ps and no
+r
+performance will be lost. This rounding algorithm is not optimized for parameter values that are
+t
+less than 0 ps (negative parameter values), and may result in violating the parameter
+s
+specification if used for parameter values that are less than 0 ps.
+i
+D
+nCK[max_parameter] S= tr uncate
+t
+--
+r
+---
+u
+----
+n
+---
+c
+----
+a
+---
+t
+--
+e
+----
+
+
+Page 49:
+--------------------------------------------------------------------------------
+JEDEC Standard No. 400-5C
+Page 33
+Rounding Algorithm (cont’d)
+Example, using round down only integer number math to convert t from ps to nCK:
+WR(min)
+// This algorithm reduces the nominal minimum timing parameter value by a 0.30% correction factor,
+// rounds tCK(AVG) down, calculates nCK, adds 1 nCK, and rounds nCK down to the next integer value
+int TwrMin, Correction, ClockPeriod, TempTwr, TempNck, TwrInNck;
+TwrMin = 30000; // tWRmin in ps
+Correction = 3; // 0.30% per the rounding algorithm
+ClockPeriod = ApplicationTck; // Clock period in ps is application specific
+TempTwr = TwrMin * (1000 - Correction); // Apply correction factor, scaled by 1000
+TempNck = TempTwr / ClockPeriod; // Initial nCK calculation, scaled by 1000
+TempNck = TempNck + 1000; // Add 1, scaled by 1000, to effectively round up
+TwrInNck = (int)(TempNck / 1000); // Round down to next integer
+n
+Table 37 — Example, using Round Down Only Integer Number Math
+o
+DDR5 Device Operating at Standard Applicaition Frequencies
+t
+Timing Parameter: tWR(min) = 30u.000 ns = 30000 ps
+Application Device Application Device tWR / Application tCK Device tWR * Truncate
+b
+Speed tWR (1000 - Correc- Corrected nCK /
+tCK
+Grade i tion) / Applica- 1000
+r
+tion tCK + 1000
+t
+s
+MT/s ps ps nCK (real) scaled nCK nCK (integer)
+i (corrected)
+D
+3200 30000 625 48.00 48856 48
+3600 30000 555 S 54.05 54891 54
+4000 30000 500 60.00 60820 60
+C
+4400 30000 454 66.08 66881 66
+O
+4800 30000 416 72.12 72899 72
+CL Algorithm
+The CL Algorithm specifically determines the valid CAS latency settings for SDRAMs with standard core
+timing values. This includes “downbinning”, i.e., operating the SDRAMs at data rates below the maximum
+data rate supported by a specific device bin. This algorithm selects up to four valid CAS Latency values
+based on the combination of the tAAmin value for the installed SDRAM, the actual clock period tCKreal for
+the application data rate, and the valid CAS Latencies for standard JEDEC speeds. Some returned values
+may be RESERVED in which case a higher CAS Latency returned must be used – typically, the next
+higher CL value returned, though other values may be used to coordinate timing among various modules
+or memory channels. If no valid CL values are returned, i.e., all values are RESERVED, the algorithm has
+failed and other means must be used to determine a CAS Latency setting; contact your memory supplier
+
+
+Page 50:
+--------------------------------------------------------------------------------
+JEDEC Standard No. 400-5C
+Page 34
+CL Algorithm (cont’d)
+In pseudocode, the CL Algorithm is:
+// Variables defined in the DDR5 SDRAM specification, JESD79-5
+CorrFact = 0.30 // (%) Rounding Algorithm correction factor
+ScaledCorrFact = 997 // Scaled correction factor (1000*(1-0.30%))
+tCKreal =1011-952, 682-238 // (ps) Real application tCK(AVG) (1980-2100MT/s, 2933-9200MT/s)
+tAAmin MONO=14000-17500, 3DS=16000-20000 // (ps) From Speed Bin Tables and DIMM SPD bytes 30-31
+tRCDtRPmin MONO=14000-17500, 3DS=14000-17500 // (ps) From Speed Bin Tables and DIMM SPD bytes 32-33 (tRCD=tRP)
+tAAcorr = TRUNC(tAAmin*ScaledCorrFactor/1000) // (ps) Corrected tAA(min) per the Rounding Algorithm rules
+tRCDtRPcorr = TRUNC(tRCDtRPmin*ScaledCorrFactor/1000) // (ps) Corrected tRCD(min), tRP(min) per the Rounding Algorithm
+FUNC RA(targ) = TRUNC((targ*ScaledCorrFact/tCKstd+1000)/1000) // (nCK) Use Rounding Algorithm to convert bin target timing to nCK
+// Round tCKreal down to the next faster standard frequency (tCK in ps)
+IF (TRUNC(2000000/(2000*99%))>=TRUNC(tCKreal)>=TRUNC(2000000/(2000*105%))) // Check for 1980-2100 nominal data rates
+tCKstd=TRUNC(2000000/2000) // Assign standard 2000 tCK (ps)
+ELSE IF (TRUNC(2000000/(2000+7*(133+(1/3))))>=TRUNC(tCKreal)>=TRUNC(2000000/3200)) // Check for 2933-3200 nominal data rates
+tCKstd=TRUNC(2000000/3200) // Assign standard 3200 tCK (ps)
+ELSE
+FOR (DataRateNom=3200; DataRateNom<=8400; DataRateNom=DataRateNom+400) // Check for >3200-9200 nominal data rates
+IF (TRUNC(2000000/DataRateNom)>TRUNC(tCKreal)>=TRUNC(2000000/(DataRateNonm+400)))
+tCKstd=TRUNC(2000000/(DataRateNom+400)) // Assign standard 3600-9600 tCK (ps)
+ELSE o
+tCKstd=RESERVED // No valid data rate found
+i
+t
+// Timing targets (ps) that have been used to define the Speed Bin Tables u
+// MONO targets // 3DS targets
+BinAN_tAAtarg = 14000 BinAN_tAAtarg = 16000 // tAA targebt for AN bins
+BinB__tAAtarg = 16000 BinB__tAAtarg = 18500 // tAA target for AN, B bins
+BinBN_tAAtarg = 16000 BinBN_tAAtarg = 18500 // tAA tariget for AN, B, BN bins
+r
+BinC__tAAtarg = 17500 BinC__tAAtarg = 20000 // tAA target for AN, B, BN, C bins
+t
+BinAN_tRCDtRPtarg = 14000 BinAN_tRCDtRPtarg = 14000 // tRCD, tRP target for AN bins
+s
+BinBN_tRCDtRPtarg = 16000 BinBN_tRCDtRPtarg = 16000 // tRCD, tRP target for AN, B, BN bins
+BinC__tRCDtRPtarg = 17500 BinC__tRCDtRPtarg = 17500i// tRCD, tRP target for AN, B, BN, C bins
+IF (TRUNC(2000000/3600)>tCKstd) D// tRCD, tRP target for B bins is frequency dependent
+BinB__tRCDtRPtarg = 16000 BinB__tRCDtRPtarg = 16000 // tRCD, tRP target for AN, B bins data rates faster than 3600
+ELSE
+// 16250=(2000000/3200)*EVEN(TRUNC((BinSB__tRCDtRPtarg*ScaledCorrFact/(2000000/3200)+1000)/1000))
+BinB__tRCDtRPtarg = 16250 BinB__tRCDtRPtarg = 16250 // tRCD, tRP target for AN, B bins for data rates 3600 and slower
+C
+// CL Algorithm using variables defined above
+// Up to four valid CL’s can be returned Ofor a specific freq: CL(AN), CL(B), CL(BN), CL(C), depending on tAAmin, tRCDmin, tRPmin
+// The B and BN bins return the same CL
+// Only even CL’s (not odd CL’s) are valid per the DDR5 SDRAM specification
+// nRCD, nRP are only even at standard native frequencies for the AN, BN bins (can be even or odd at intermediate frequencies)
+// nRCD, nRP may be even or odd at standard native frequencies for the B, C bins (can be even or odd at intermediate frequencies)
+
+
+Page 51:
+--------------------------------------------------------------------------------
+JEDEC Standard No. 400-5C
+Page 35
+CL Algorithm (cont’d)
+CL(C )=EVEN(RA(BinC__tAAtarg)) // Valid even CL for AN, B, BN, C bins
+ELSE // No valid CL found (tAAmin, tRCDmin, tRPmin are too slow)
+CL(AN)=RESERVED // Valid even CL for AN bins
+CL(B )=RESERVED // Valid even CL for AN, B bins
+CL(BN)=RESERVED // Valid even CL for AN, B, BN bins
+CL(C )=RESERVED // Valid even CL for AN, B, BN, C bins
+ELSE // No valid data rate found
+CL(AN)=RESERVED // Valid even CL for AN bins
+CL(B )=RESERVED // Valid even CL for AN, B bins
+CL(BN)=RESERVED // Valid even CL for AN, B, BN bins
+CL(C )=RESERVED // Valid even CL for AN, B, BN, C bins
+8.1.21 (DDR5): SDRAM Minimum Cycle Time (t min)
+CKAVG
+Byte 20 (0x014): Least Significant Byte
+Byte 21 (0x015): Most Significant Byte n
+o
+This 16-bit word defines the minimum cycle time for the SDRAM module, in picoseconds (ps). This number
+i
+applies to all applicable components on the module. This byte atpplies to SDRAM and support components
+as well as the overall capability of the DIMM. Theses valueus come from the DDR5 SDRAM data sheet,
+JESD79-5, and support component data sheets. b
+i
+r
+t
+Table 38 — SDRAM Minimum Cycle Time (t min), ps
+s CKAVG
+i
+Byte 21 Byte 20
+D
+Bits 15~8 Bits 7~0
+S
+Values defined from 1 to 65535 ps
+0x0000: Reserved C
+O
+8.1.22 (DDR5): SDRAM Maximum Cycle Time (t max)
+CKAVG
+Byte 22 (0x016): Least Significant Byte
+Byte 23 (0x017): Most Significant Byte
+This 16-bit word defines the minimum cycle time for the SDRAM module, in picoseconds (ps). This number
+applies to all applicable components on the module. This byte applies to SDRAM and support components
+as well as the overall capability of the DIMM. These values come from the DDR5 SDRAM data sheet,
+JESD79-5, and support component data sheets.
+Table 39 — SDRAM Maximum Cycle Time (t max), ps
+CKAVG
+Byte 23 Byte 22
+Bits 15~8 Bits 7~0
+Values defined from 1 to 65535 ps
+
+
+Page 68:
+--------------------------------------------------------------------------------
+JEDEC Standard No. 400-5C
+Page 52
+9 Example SPD Codes
+The following tables show example codes for the SPD contents. These calculations account for the 0.3%
+correction factor allowed for digital math inaccuracies.
+The clock periods for each standard speed grade used for these calculations are:
+Table 72 — Clock Periods Used for Standard Speed Grade Calculations
+tCK
+Grade tCKmin tCKmax
+3200 0.625 1.010
+3600 0.555 1.010
+4000 0.500 1.010
+4400 0.454 1.010
+n
+4800 0.416 1.010
+o
+5200 0.384 1.010
+i
+5600 0.357 1.010
+t
+6000 0.333 u1.010
+6400 0.312 b1.010
+6800 0.294 1.010
+i
+7200 0.r277 1.010
+t
+7600 s0.263 1.010
+8000 i0.250 1.010
+84 D 00 0.238 1.010
+8800 0.227 1.010
+S
+9200 0.217 1.010
+C
+O
+9.1 Core Parameters, DDR5 Monolithic Single Die Package (SDP) SDRAMs
+Table 73 — Example 1: Core Parameters, DDR5 Monolithic Single Die Package SDRAMs
+3200AN 3200B 3200BN 3200C 3600AN 3600B 3600BN 3600C 4000AN 4000B 4000BN 4000C
+Mono Mono Mono Mono Mono Mono Mono Mono Mono Mono Mono Mono
+tCKmin 0.625 0.625 0.625 0.625 0.555 0.555 0.555 0.555 0.500 0.500 0.500 0.500
+tCKmax 1.010 1.010 1.010 1.010 1.010 1.010 1.010 1.010 1.010 1.010 1.010 1.010
+tAA 15.000 16.250 16.250 17.500 14.444 16.250 16.666 17.500 14.000 16.000 16.000 17.500
+tRCD 15.000 16.250 16.250 17.500 14.444 16.250 16.666 17.500 14.000 16.000 16.000 17.500
+tRP 15.000 16.250 16.250 17.500 14.444 16.250 16.666 17.500 14.000 16.000 16.000 17.500
+tRAS 32.000 32.000 32.000 32.000 32.000 32.000 32.000 32.000 32.000 32.000 32.000 32.000
+tRC 47.000 48.250 48.250 49.500 46.444 48.250 48.666 49.500 46.000 48.000 48.000 49.500
+tWR 30.000 30.000 30.000 30.000 30.000 30.000 30.000 30.000 30.000 30.000 30.000 30.000
+SPD # tCKmin (ps) 625 625 625 625 555 555 555 555 500 500 500 500
+20 tCKmin low 0x71 0x71 0x71 0x71 0x2B 0x2B 0x2B 0x2B 0xF4 0xF4 0xF4 0xF4
+21 tCKmin high 0x02 0x02 0x02 0x02 0x02 0x02 0x02 0x02 0x01 0x01 0x01 0x01
+Release 1.3
+

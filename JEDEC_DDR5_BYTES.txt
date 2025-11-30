@@ -1,0 +1,468 @@
+JEDEC DDR5 SPD BYTE DEFINITIONS (JESD400-5C)
+================================================================================
+
+Byte   0 (0x000): Number of Bytes in SPsD Device and Beta Level
+  Page: 31
+
+Byte   1 (0x001): SPD Revision for Baise Configuration Parameters
+  Page: 31
+
+Byte   2 (0x002): Key Byte / Host Bus Command Protocol Type
+  Page: 31
+
+Byte   3 (0x003): Key Byte / M odule Type
+  Page: 31
+
+Byte   4 (0x004): First SDRAM Density and Package 1
+  Page: 31
+
+Byte   5 (0x005): First SDRAM Addressing 1
+  Page: 31
+
+Byte   6 (0x006): First SDRAM I/O Width 1
+  Page: 31
+
+Byte   7 (0x007): First SDRAM Bank Groups and Banks Per Bank Group 1
+  Page: 31
+
+Byte   8 (0x008): Second SDRAM Density and Package 1
+  Page: 31
+
+Byte   9 (0x009): Second SDRAM Addressing 1
+  Page: 31
+
+Byte  10 (0x00A): Second SDRAM I/O Width 1
+  Page: 31
+
+Byte  11 (0x00B): Second SDRAM Bank Groups and Banks Per Bank Group 1
+  Page: 31
+
+Byte  12 (0x00C): SDRAM BL32 and Post Package Repair 1
+  Page: 31
+
+Byte  13 (0x00D): SDRAM Duty Cycle Adjuster and Partial Array Self Refresh 1
+  Page: 31
+
+Byte  14 (0x00E): 1
+  Page: 31
+
+Byte  15 (0x00F): Reserved
+  Page: 31
+
+Byte  16 (0x010): SDRAM Nominal Voltage, VDD 1
+  Page: 31
+
+Byte  17 (0x011): SDRAM Nominal Voltage, VDDQ 1
+  Page: 31
+
+Byte  18 (0x012): SDRAM Nominal Voltage, VPP 1
+  Page: 31
+
+Byte  19 (0x013): SDRAM Timing 1
+  Page: 31
+
+Byte  20 (0x014): SDRAM Minimum Cycle Time (t CKAVG min), Least Significant Byte 1
+  Page: 31
+
+Byte  21 (0x015): SDRAM Minimum Cycle Time (t CKAVG min), Most Significant Byte 1
+  Page: 31
+
+Byte  22 (0x016): SDRAM Maximum Cycle Time (t CKAVG max), Least Significant Byte 1
+  Page: 32
+
+Byte  23 (0x017): SDRAM Maximum Cycle Time (t CKAVG max), Most Significant Byte 1
+  Page: 32
+
+Byte  24 (0x018): CAS Latencies Supported, First Byte 1
+  Page: 32
+
+Byte  25 (0x019): CAS Latencies Supported, Second Byte 1
+  Page: 32
+
+Byte  26 (0x01A): CAS Latencies Supported, Third Byte 1
+  Page: 32
+
+Byte  27 (0x01B): CAS Latencies Supported, Fourth Byte 1
+  Page: 32
+
+Byte  28 (0x01C): CAS Latencies Supported, Fifth Byte 1
+  Page: 32
+
+Byte  29 (0x01D): Reserved 1
+  Page: 32
+
+Byte  30 (0x01E): SDRAM Read Command to First Data (t AA ), Least Significant Byte 1
+  Page: 32
+
+Byte  31 (0x01F): SDRAM Read Command to First Data (t AA ), Most Significant Byte 1
+  Page: 32
+
+Byte  32 (0x020): RCD 1
+  Page: 32
+
+Byte  33 (0x021): oRCD 1
+  Page: 32
+
+Byte  34 (0x022): SDRAM Row Precharge Time (t RP ), Leastt Significant Byte 1
+  Page: 32
+
+Byte  35 (0x023): SDRAM Row Precharge Time (t RP ), Most Significant Byte 1
+  Page: 32
+
+Byte  36 (0x024): i RAS 1
+  Page: 32
+
+Byte  37 (0x025): SDRAM Activate to Prechtarge Command Period (t RAS ), Most Significant Byte 1
+  Page: 32
+
+Byte  38 (0x026): i RC 1
+  Page: 32
+
+Byte  39 (0x027): RC 1
+  Page: 32
+
+Byte  44 (0x02C): RFC2 RFC2 1
+  Page: 32
+
+Byte  45 (0x02D): RFC2 RFC2 1
+  Page: 32
+
+Byte  46 (0x02E): RFCsb RFCsb 1
+  Page: 32
+
+Byte  47 (0x02F): RFCsb 1
+  Page: 32
+
+Byte  48 (0x030): 1
+  Page: 32
+
+Byte  49 (0x031): 1
+  Page: 32
+
+Byte  50 (0x032): 1
+  Page: 32
+
+Byte  51 (0x033): 1
+  Page: 33
+
+Byte  52 (0x034): 1
+  Page: 33
+
+Byte  53 (0x035): 1
+  Page: 33
+
+Byte  54 (0x036): SDRAM Refresh Management, First Byte, First SDRAM 1
+  Page: 33
+
+Byte  55 (0x037): SDRAM Refresh Management, Second Byte, First SDRAM 1
+  Page: 33
+
+Byte  56 (0x038): SDRAM Refresh Management, First Byte, Second SDRAM 1
+  Page: 33
+
+Byte  57 (0x039): SDRAM Refresh Management, Second Byte, Second SDRAM 1
+  Page: 33
+
+Byte  58 (0x03A): SDRAM Adaptive Refresh Management Level A, First Byte, First SDRAM 1
+  Page: 33
+
+Byte  59 (0x03B): SDRAM Adaptive Refresh Management Level A, Second Byte, First SDRAM 1
+  Page: 33
+
+Byte  60 (0x03C): SDRAM Adaptive Refresh Management Level A, Fnirst Byte, Second SDRAM 1
+  Page: 33
+
+Byte  62 (0x03E): SDRAM Adaptive Refresh Management Ltevel B, First Byte, First SDRAM 1
+  Page: 33
+
+Byte  63 (0x03F): SDRAM Adaptive Refresh Management Level B, Second Byte, First SDRAM 1
+  Page: 33
+
+Byte  64 (0x040): SDRAM Adaptive Refresh Management Level B, First Byte, Second SDRAM 1
+  Page: 33
+
+Byte  65 (0x041): r 1
+  Page: 33
+
+Byte  66 (0x042): SDRAM Adaptive Refrsesh Management Level C, First Byte, First SDRAM 1
+  Page: 33
+
+Byte  67 (0x043): SDRAM Adaptive Refresh Management Level C, Second Byte, First SDRAM 1
+  Page: 33
+
+Byte  68 (0x044): SDRAM Adaptive Refresh Management Level C, First Byte, Second SDRAM 1
+  Page: 33
+
+Byte  69 (0x045): 1
+  Page: 33
+
+Byte  70 (0x046): RRD_L 1
+  Page: 33
+
+Byte  71 (0x047): RRD_L 1
+  Page: 33
+
+Byte  72 (0x048): RRD_L 1
+  Page: 33
+
+Byte  73 (0x049): CCD_L 1
+  Page: 33
+
+Byte  74 (0x04A): CCD_L 1
+  Page: 33
+
+Byte  75 (0x04B): CCD_L 1
+  Page: 33
+
+Byte  76 (0x04C): CCD_L_WR 1
+  Page: 33
+
+Byte  77 (0x04D): CCD_L_WR 1
+  Page: 33
+
+Byte  78 (0x04E): CCD_L_WR 1
+  Page: 33
+
+Byte  79 (0x04F): 1
+  Page: 33
+
+Byte  80 (0x050): 1
+  Page: 34
+
+Byte  81 (0x051): 1
+  Page: 34
+
+Byte  82 (0x052): SDRAM Four Activate Window (t FAW ), Least Significant Byte 1
+  Page: 34
+
+Byte  83 (0x053): SDRAM Four Activate Window (t FAW ), Most Significant Byte 1
+  Page: 34
+
+Byte  84 (0x054): SDRAM Four Activate Window (t FAW ), Lower Clock Limit 1
+  Page: 34
+
+Byte  85 (0x055): CCD_L_WTR 1
+  Page: 34
+
+Byte  86 (0x056): 1
+  Page: 34
+
+Byte  87 (0x057): CCD_L_WTR 1
+  Page: 34
+
+Byte  88 (0x058): o 1
+  Page: 34
+
+Byte  90 (0x05A): 1
+  Page: 34
+
+Byte  91 (0x05B): cant Byte t RTP RTP 1
+  Page: 34
+
+Byte  92 (0x05C): i RTP RTP 1
+  Page: 34
+
+Byte  93 (0x05D): RTP RTP 1
+  Page: 34
+
+Byte  94 (0x05E): C 1
+  Page: 34
+
+Byte  95 (0x05F): 1
+  Page: 34
+
+Byte  96 (0x060): 1
+  Page: 34
+
+Byte  97 (0x061): 1
+  Page: 34
+
+Byte  98 (0x062): 1
+  Page: 34
+
+Byte  99 (0x063): 1
+  Page: 34
+
+Byte 100 (0x064): CCD_M_WTR 1
+  Page: 34
+
+Byte 101 (0x065): CCD_M_WTR 1
+  Page: 34
+
+Byte 102 (0x066): CCD_M_WTR 1
+  Page: 34
+
+Byte 192 (0x0C0): SPD Revision for SPD bytes 192~447
+  Page: 88
+
+Byte 193 (0x0C1): Hashing Sequencer
+  Page: 88
+
+Byte 194 (0x0C2): SPD Manufascturer ID Code, First Byte
+  Page: 88
+
+Byte 195 (0x0C3): SPD Manuifacturer ID Code, Second Byte
+  Page: 88
+
+Byte 196 (0x0C4): SPD Device Type
+  Page: 88
+
+Byte 197 (0x0C5): SPD Device Revision Number
+  Page: 88
+
+Byte 198 (0x0C6): PMIC 0 Manufacturer ID Code, First Byte
+  Page: 88
+
+Byte 199 (0x0C7): PMIC 0 Manufacturer ID Code, Second Byte
+  Page: 88
+
+Byte 200 (0x0C8): PMIC 0 Device Type
+  Page: 88
+
+Byte 201 (0x0C9): PMIC 0 Revision Number
+  Page: 88
+
+Byte 202 (0x0CA): PMIC 1 Manufacturer ID Code, First Byte
+  Page: 88
+
+Byte 203 (0x0CB): PMIC 1 Manufacturer ID Code, Second Byte
+  Page: 88
+
+Byte 204 (0x0CC): PMIC 1 Device Type
+  Page: 88
+
+Byte 205 (0x0CD): PMIC 1 Revision Number
+  Page: 88
+
+Byte 206 (0x0CE): PMIC 2 Manufacturer ID Code, First Byte
+  Page: 88
+
+Byte 207 (0x0CF): PMIC 2 Manufacturer ID Code, Second Byte
+  Page: 88
+
+Byte 208 (0x0D0): PMIC 2 Device Type
+  Page: 88
+
+Byte 209 (0x0D1): PMIC 2 Revision Number
+  Page: 88
+
+Byte 210 (0x0D2): Thermal Sensor Manufacturer ID Code, First Byte
+  Page: 88
+
+Byte 211 (0x0D3): Thermal Sensor Manufacturer ID Code, Second Byte
+  Page: 88
+
+Byte 212 (0x0D4): Thermal Sensor Device Type
+  Page: 88
+
+Byte 213 (0x0D5): Thermal Sensor Revision Number
+  Page: 88
+
+Byte 229 (0x0E5): Additional Support Devices
+  Page: 88
+
+Byte 230 (0x0E6): Module Nominal Height
+  Page: 88
+
+Byte 231 (0x0E7): Module Maximum Thickness
+  Page: 88
+
+Byte 232 (0x0E8): Reference Raw Card Used
+  Page: 89
+
+Byte 233 (0x0E9): DIMM Attributes
+  Page: 89
+
+Byte 234 (0x0EA): Module Organization
+  Page: 89
+
+Byte 235 (0x0EB): Memory Channel Bus Width
+  Page: 89
+
+Byte 240 (0x0F0): Clock Driver Manufacturer ID Code, First Byte
+  Page: 101
+
+Byte 241 (0x0F1): ClockD Driver Manufacturer ID Code, Second Byte
+  Page: 101
+
+Byte 242 (0x0F2): Clock Driver Device Type
+  Page: 101
+
+Byte 243 (0x0F3): SClock Driver Revision Number
+  Page: 101
+
+Byte 244 (0x0F4): CCKD-RW00 CKD Configuration
+  Page: 101
+
+Byte 245 (0x0F5): CKD-RW02 QCK Signals Driver Characteristics
+  Page: 101
+
+Byte 246 (0x0F6): CKD-RW03 QCK Output Differential Slew Rate
+  Page: 101
+
+Byte 247 (0x0F7): Data Buffer Revision Number n
+  Page: 105
+
+Byte 248 (0x0F8): RCD-RW08 Clock Driver Enable
+  Page: 105
+
+Byte 249 (0x0F9): RCD-RW09 Output Address and Control Enable
+  Page: 105
+
+Byte 250 (0x0FA): RCD-RW0A QCK Driver Characteristics
+  Page: 105
+
+Byte 251 (0x0FB): RCD-RW0B
+  Page: 105
+
+Byte 252 (0x0FC): RCD-RW0C QxCA and QxCS_n Driver Characteristics
+  Page: 105
+
+Byte 253 (0x0FD): RCD-RW0D Data Burffer Interface Driver Characteristics
+  Page: 105
+
+Byte 254 (0x0FE): RCD-RW0E QsCK, QCA and QCS Output Slew Rate
+  Page: 105
+
+Byte 255 (0x0FF): RCD-RW0Fi BCK, BCOM, and BCS Output Slew Rate
+  Page: 105
+
+Byte 256 (0x100): DB-RW86 DQS RTT Park Termination
+  Page: 105
+
+Byte 257 (0x101): MDB-PG[70]RWE1 DRAM Interface Receiver Type
+  Page: 112
+
+Byte 258 (0x102): Clock Driver 0 RW03 QCK Output Differential Slew Rate
+  Page: 127
+
+Byte 259 (0x103): Clock Driver 1 RW00 Configuration
+  Page: 127
+
+Byte 260 (0x104): Clock Driver 1 RW02 QCK Driver Characteristics
+  Page: 127
+
+Byte 261 (0x105): Clock Driver 1 RW03 QCK Output Differential Slew Rate
+  Page: 127
+
+Byte 512 (0x200): Module Manufacturer’s ID Code, First Byte 1
+  Page: 30
+
+Byte 513 (0x201): Module Manufacturer’s ID Code, Second Byte 1
+  Page: 30
+
+Byte 514 (0x202): Module Manufacturing Location 1
+  Page: 30
+
+Byte 551 (0x227): Module Revision Code
+  Page: 30
+
+Byte 552 (0x228): DRAM Manufacturer’s ID Code, First Byte 1
+  Page: 30
+
+Byte 553 (0x229): DRAM Manufacturer’s ID Code, Second Byte 1
+  Page: 30
+
+Byte 554 (0x22A): DRAM Stepping
+  Page: 30
+

@@ -1,0 +1,81 @@
+<UserControl x:Class="HexEditor.SpdDecoder.PartNumberDecoder"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             mc:Ignorable="d"
+             d:DesignHeight="600" d:DesignWidth="800"
+             HorizontalAlignment="Stretch"
+             VerticalAlignment="Stretch">
+    <Grid Margin="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Input Section -->
+        <Border Grid.Row="0"
+                Style="{StaticResource CardStyle}"
+                Margin="0,0,0,12">
+            <StackPanel>
+                <TextBlock Text="Part Number Decoder"
+                           Style="{StaticResource CardTitleStyle}"
+                           Margin="0,0,0,12"/>
+                
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <TextBlock Text="Part Number:"
+                               Grid.Column="0"
+                               VerticalAlignment="Center"
+                               Margin="0,0,12,0"
+                               FontSize="13"
+                               Foreground="{StaticResource PrimaryTextBrush}"/>
+                    
+                    <TextBox x:Name="PartNumberTextBox"
+                             Grid.Column="1"
+                             FontSize="14"
+                             FontFamily="Consolas"
+                             Padding="8,6"
+                             VerticalContentAlignment="Center"
+                             TextChanged="PartNumberTextBox_TextChanged"
+                             KeyDown="PartNumberTextBox_KeyDown"/>
+                    
+                    <Button x:Name="DecodeButton"
+                            Grid.Column="2"
+                            Content="Decode"
+                            Style="{StaticResource SuccessButtonStyle}"
+                            Margin="12,0,0,0"
+                            Padding="16,6"
+                            Click="DecodeButton_Click"
+                            IsDefault="True"/>
+                </Grid>
+            </StackPanel>
+        </Border>
+
+        <!-- Results Section -->
+        <ScrollViewer Grid.Row="1"
+                      VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Disabled">
+            <Border Style="{StaticResource CardStyle}">
+                <StackPanel x:Name="ResultsContainer">
+                    <TextBlock Text="Decoded Information"
+                               Style="{StaticResource CardTitleStyle}"
+                               Margin="0,0,0,12"/>
+                    
+                    <TextBlock x:Name="NoResultsText"
+                               Text="Enter a part number to decode it..."
+                               Foreground="{StaticResource MutedTextBrush}"
+                               FontSize="13"
+                               TextWrapping="Wrap"
+                               Margin="0,8"/>
+                </StackPanel>
+            </Border>
+        </ScrollViewer>
+    </Grid>
+</UserControl>
+

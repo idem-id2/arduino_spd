@@ -1,0 +1,17 @@
+[
+  {
+    "type": 50,
+    "revision": 134,
+    "manufacturer": "Montage Technology",
+    "model": "M88DR4RCD02-PH1",
+    "notes": "Встречается в RDIMM модулях Micron/Samsung (type=0x32, rev=0x86)"
+  },
+  {
+    "type": 179,
+    "revision": 128,
+    "manufacturer": "IDT (Renesas)",
+    "model": "4RCD0232KC1ATG8",
+    "notes": "Встречается в LRDIMM модулях Samsung (type=0xB3, rev=0x80)"
+  }
+]
+
