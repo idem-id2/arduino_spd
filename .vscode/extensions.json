@@ -6,7 +6,7 @@
     "github.vscode-pull-request-github",
     "github.copilot",
     "ms-dotnettools.csharp",
-    "ms-dotnettools.csdevkit"
+    "ms-dotnettools.csdevkit",
+    "emeraldwalk.RunOnSave"
   ]
 }
-

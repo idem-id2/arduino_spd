@@ -82,6 +82,25 @@
             "presentation": {
                 "reveal": "always"
             }
+        },
+        {
+            "label": "Git: Auto Save & Push",
+            "type": "shell",
+            "command": "powershell",
+            "args": [
+                "-ExecutionPolicy",
+                "Bypass",
+                "-File",
+                "${workspaceFolder}/.vscode/auto-commit.ps1"
+            ],
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "silent",
+                "panel": "shared"
+            },
+            "runOptions": {
+                "runOn": "folderOpen"
+            }
         }
     ],
     "inputs": [

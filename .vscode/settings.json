@@ -7,12 +7,7 @@
   "git.suggestSmartCommit": true,
   "git.autoRepositoryDetection": true,
   
-  // Автоматический commit при сохранении (опционально)
-  "git.postSaveCommands": {
-    "commit": "git add . && git commit -m 'Auto-save'"
-  },
-  
-  // Автоматический push после commit (опционально)
+  // Автоматический push после commit
   "git.pushAfterCommit": true,
   
   // Показывать изменения в редакторе
@@ -31,6 +26,24 @@
     "source.fixAll": "explicit"
   },
   
+  // Автоматическое сохранение
+  "files.autoSave": "afterDelay",
+  "files.autoSaveDelay": 2000,
+  
+  // Автоматический commit и push при сохранении (через расширение RunOnSave)
+  "emeraldwalk.RunOnSave": {
+    "commands": [
+      {
+        "match": ".*",
+        "notMatch": "\\.(dll|exe|pdb|cache|bin|obj|so|dylib)$",
+        "cmd": "powershell -ExecutionPolicy Bypass -File ${workspaceFolder}/.vscode/auto-commit.ps1",
+        "runIn": "terminal",
+        "runningStatusMessage": "Автоматическое сохранение в Git...",
+        "finishStatusMessage": "✓ Сохранено в Git"
+      }
+    ]
+  },
+  
   // Исключения для Git
   "files.exclude": {
     "**/.git": false,
@@ -39,4 +52,3 @@
     "**/.vs": true
   }
 }
-
