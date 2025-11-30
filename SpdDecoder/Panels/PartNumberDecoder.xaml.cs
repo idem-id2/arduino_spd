@@ -1802,61 +1802,53 @@ namespace HexEditor.SpdDecoder
             }
             spdBytes[13] = (byte13, "Module Memory Bus Width Extension & ECC (bit 3: ECC)");
 
-            // Byte 12: Fine Timebase (FTB) for speed
+            // Byte 17-18: Fine Timebase (FTB) and Medium Timebase (MTB)
             int speedMhz = ExtractSpeedMhz(result.DecodedFields);
             if (speedMhz > 0)
             {
-                // Speed bin codes for DDR4:
-                // 3200 MHz = 0x2C, 2933 MHz = 0x25, 2666 MHz = 0x1F, 2400 MHz = 0x19
-                byte speedBin = speedMhz switch
+                // Byte 17: Fine Timebase Dividend (FTB Dividend)
+                // Byte 18: Fine Timebase Divisor (FTB Divisor) or tCK MTB
+                // For DDR4-3200: tCK = 1000/3200 = 0.3125 ns
+                // MTB = 0.125 ns, so tCK_MTB = 0.3125 / 0.125 = 2.5 ≈ 3
+                // FTB = 1 ps, but typically not used for standard speeds
+                // For standard speeds, we use MTB only
+                int tckMtb = (int)Math.Round(8000.0 / speedMhz);
+                if (tckMtb > 0 && tckMtb <= 255)
                 {
-                    3200 => 0x2C,
-                    2933 => 0x25,
-                    2666 => 0x1F,
-                    2400 => 0x19,
-                    _ => (byte)0x2C // Default to 3200
-                };
-                spdBytes[12] = (speedBin, $"Fine Timebase (FTB) = 0x{speedBin:X2} (for {speedMhz} MHz)");
+                    // Byte 17: Medium Timebase (MTB) Dividend = 1 (0x01)
+                    spdBytes[17] = (0x01, "Medium Timebase (MTB) Dividend = 1");
+                    // Byte 18: tCK Medium Timebase (MTB) = tCK / MTB
+                    spdBytes[18] = ((byte)tckMtb, $"tCK Medium Timebase (MTB) = {tckMtb} (for {speedMhz} MHz, tCK = {1000.0/speedMhz:F3} ns)");
+                }
             }
-            
-            // Byte 18: tCK Medium Timebase (MTB) and CAS Latency
-            if (speedMhz > 0)
+
+            // Byte 117-118: Manufacturer ID
+            if (isHynix)
             {
-                // For SK Hynix 32Gb chips at DDR4-3200, CL22 is common
-                if (speedMhz == 3200 && isHynix)
-                {
-                    // For HMAA8GR7CJR4N-XN: CL22 = 0x16
-                    spdBytes[18] = (0x16, "CAS Latency = 22 (0x16) for DDR4-3200 with 32Gb density");
-                }
-                else
-                {
-                    // tCK in nanoseconds = 1000 / speedMhz
-                    // MTB = 0.125 ns, so tCK_MTB = (1000 / speedMhz) / 0.125 = 8000 / speedMhz
-                    int tckMtb = (int)Math.Round(8000.0 / speedMhz);
-                    if (tckMtb > 0 && tckMtb <= 255)
-                    {
-                        spdBytes[18] = ((byte)tckMtb, $"tCK Medium Timebase (MTB) = {tckMtb} (for {speedMhz} MHz)");
-                    }
-                }
+                // SK Hynix = 0xAD
+                spdBytes[117] = (0xAD, "Manufacturer ID (0xAD = SK Hynix)");
+                spdBytes[118] = (0x00, "Manufacturer ID continuation (SK Hynix)");
+            }
+            else if (isSamsung)
+            {
+                // Samsung = 0xCE
+                spdBytes[117] = (0xCE, "Manufacturer ID (0xCE = Samsung)");
+                spdBytes[118] = (0x00, "Manufacturer ID continuation (Samsung)");
             }
 
-            // Byte 117: Manufacturer ID (Samsung = 0xCE)
-            spdBytes[117] = (0xCE, "Manufacturer ID (0xCE = Samsung)");
-
-            // Byte 118: Manufacturer ID continuation (Samsung = 0x00)
-            spdBytes[118] = (0x00, "Manufacturer ID continuation (Samsung)");
-
-            // Bytes 119-126: Part Number (ASCII, 8 bytes)
+            // Bytes 329-348: Part Number (ASCII, 20 bytes for DDR4)
+            // DDR4 uses bytes 329-348 (0x149-0x15C) for part number
             string partNumber = result.OriginalPartNumber;
-            for (int i = 0; i < 8 && i < partNumber.Length; i++)
+            int partNumberStart = 329;
+            for (int i = 0; i < 20 && i < partNumber.Length; i++)
             {
                 byte asciiByte = (byte)partNumber[i];
-                spdBytes[119 + i] = (asciiByte, $"Part Number byte {i + 1} (ASCII: '{(char)asciiByte}')");
+                spdBytes[partNumberStart + i] = (asciiByte, $"Part Number byte {i + 1} (ASCII: '{(char)asciiByte}')");
             }
             // Fill remaining bytes with 0x00
-            for (int i = partNumber.Length; i < 8; i++)
+            for (int i = partNumber.Length; i < 20; i++)
             {
-                spdBytes[119 + i] = (0x00, $"Part Number byte {i + 1} (padding)");
+                spdBytes[partNumberStart + i] = (0x00, $"Part Number byte {i + 1} (padding)");
             }
 
             // Byte 128: Module Height
@@ -1921,25 +1913,54 @@ namespace HexEditor.SpdDecoder
             
             // Bits 5-3: Number of ranks (0-7, actual ranks = value + 1)
             int ranks = 1; // Default: 1 rank
-            string configDesc = decodedFields.GetValueOrDefault("Configuration Description", "");
-            if (configDesc.Contains("2R", StringComparison.OrdinalIgnoreCase) || 
-                configDesc.Contains("2 ranks", StringComparison.OrdinalIgnoreCase))
-                ranks = 2;
-            else if (configDesc.Contains("4R", StringComparison.OrdinalIgnoreCase) || 
-                     configDesc.Contains("4 ranks", StringComparison.OrdinalIgnoreCase) ||
-                     configDesc.Contains("4DR", StringComparison.OrdinalIgnoreCase))
-                ranks = 4;
+            
+            // Try to extract from "Ranks" field first (e.g., "8 Ranks", "4 Ranks")
+            string ranksField = decodedFields.GetValueOrDefault("Ranks", "");
+            if (!string.IsNullOrEmpty(ranksField))
+            {
+                var ranksMatch = System.Text.RegularExpressions.Regex.Match(ranksField, @"(\d+)\s*Rank");
+                if (ranksMatch.Success && int.TryParse(ranksMatch.Groups[1].Value, out int extractedRanks))
+                {
+                    ranks = extractedRanks;
+                }
+            }
+            
+            // Fallback to configuration description
+            if (ranks == 1)
+            {
+                string configDesc = decodedFields.GetValueOrDefault("Configuration Description", "");
+                if (configDesc.Contains("2R", StringComparison.OrdinalIgnoreCase) || 
+                    configDesc.Contains("2 ranks", StringComparison.OrdinalIgnoreCase))
+                    ranks = 2;
+                else if (configDesc.Contains("4R", StringComparison.OrdinalIgnoreCase) || 
+                         configDesc.Contains("4 ranks", StringComparison.OrdinalIgnoreCase) ||
+                         configDesc.Contains("4DR", StringComparison.OrdinalIgnoreCase))
+                    ranks = 4;
+                else if (configDesc.Contains("8R", StringComparison.OrdinalIgnoreCase) || 
+                         configDesc.Contains("8 ranks", StringComparison.OrdinalIgnoreCase))
+                    ranks = 8;
+            }
+            
+            // Limit ranks to valid range (1-8, encoded as 0-7)
+            if (ranks < 1) ranks = 1;
+            if (ranks > 8) ranks = 8;
             
             byte12 |= (byte)(((ranks - 1) & 0x7) << 3);
             
             // Bits 2-0: Device width
             // 0 = x4, 1 = x8, 2 = x16, 3 = x32
             int deviceWidth = 1; // Default: x8
-            if (configDesc.Contains("x4", StringComparison.OrdinalIgnoreCase))
+            string interfaceField = decodedFields.GetValueOrDefault("Interface", "");
+            string configDesc2 = decodedFields.GetValueOrDefault("Configuration Description", "");
+            
+            if (interfaceField.Contains("x4", StringComparison.OrdinalIgnoreCase) ||
+                configDesc2.Contains("x4", StringComparison.OrdinalIgnoreCase))
                 deviceWidth = 0;
-            else if (configDesc.Contains("x8", StringComparison.OrdinalIgnoreCase))
+            else if (interfaceField.Contains("x8", StringComparison.OrdinalIgnoreCase) ||
+                     configDesc2.Contains("x8", StringComparison.OrdinalIgnoreCase))
                 deviceWidth = 1;
-            else if (configDesc.Contains("x16", StringComparison.OrdinalIgnoreCase))
+            else if (interfaceField.Contains("x16", StringComparison.OrdinalIgnoreCase) ||
+                     configDesc2.Contains("x16", StringComparison.OrdinalIgnoreCase))
                 deviceWidth = 2;
             
             byte12 |= (byte)(deviceWidth & 0x7);
