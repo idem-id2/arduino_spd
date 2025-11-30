@@ -732,7 +732,7 @@ namespace HexEditor.SpdDecoder
                 // 16GB UDIMM with 8 chips × 16Gb = typically Single Rank
                 // 16GB UDIMM with 16 chips × 8Gb = typically Dual Rank
                 string capacityCode = result.DecodedFields.GetValueOrDefault("Density Code 2", "");
-                string dieDensity = result.DecodedFields.GetValueOrDefault("Die Density", "");
+                string dieDensityStr = result.DecodedFields.GetValueOrDefault("Die Density", "");
                 
                 int ranks = 1; // Default: Single Rank for UDIMM
                 
@@ -769,7 +769,7 @@ namespace HexEditor.SpdDecoder
                     else if (capacityCode == "A8" || capacityCode == "16")
                     {
                         // 16GB could be Single (16Gb chips) or Dual (8Gb chips)
-                        if (dieDensity.Contains("16Gb") || dieDensity.Contains("32Gb"))
+                        if (dieDensityStr.Contains("16Gb") || dieDensityStr.Contains("32Gb"))
                             ranks = 1; // Single Rank with high-density chips
                         else
                             ranks = 2; // Dual Rank with 8Gb chips
