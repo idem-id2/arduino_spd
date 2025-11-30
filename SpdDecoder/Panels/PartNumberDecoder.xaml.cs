@@ -139,17 +139,17 @@ namespace HexEditor.SpdDecoder
             // Try pattern with config code that can contain digits: M393A8G40CB4-CWE
             // Pattern: M + series(digits) + config(letter + optional digit) + voltage(letter) + speed(digits) + formFactor(letter) + revision(letter+digit) + optional suffix
             var match = Regex.Match(partNumber, @"^M(\d+)([A-Z]\d?)([A-Z])(\d+)([A-Z])([A-Z]\d+)(?:-([A-Z0-9]+))?$", RegexOptions.IgnoreCase);
-            
+
             if (!match.Success)
             {
                 // Try pattern with config code that's only letters: M386AAG40BM3-CWE
                 match = Regex.Match(partNumber, @"^M(\d+)([A-Z]+)([A-Z])(\d+)([A-Z])([A-Z0-9]+)(?:-([A-Z0-9]+))?$", RegexOptions.IgnoreCase);
             }
-            
+
             if (match.Success)
             {
                 result.DecodedFields["Format"] = "Samsung Memory Module";
-                
+
                 // Series/Family
                 string series = match.Groups[1].Value;
                 result.DecodedFields["Series"] = series;
@@ -161,14 +161,14 @@ namespace HexEditor.SpdDecoder
                 {
                     result.DecodedFields["Memory Type"] = "DDR5";
                 }
-                
+
                 // Загружаем базу данных один раз для всех операций
                 var data = PartNumberDecoderDatabase.LoadDatabase();
-                
+
                 // Configuration code (AA, A2, etc.)
                 string configCode = match.Groups[2].Value;
                 result.DecodedFields["Configuration Code"] = configCode;
-                
+
                 // Попытаемся найти описание конфигурации в базе данных
                 if (data.Manufacturers?.TryGetValue("Samsung", out var samsungInfo) == true &&
                     samsungInfo.ConfigCodeExamples?.TryGetValue(configCode, out var configDesc) == true)
@@ -179,7 +179,7 @@ namespace HexEditor.SpdDecoder
                 {
                     result.DecodedFields["Configuration Note"] = "Capacity and organization code (varies by model)";
                 }
-                
+
                 // Voltage code
                 string voltageCode = match.Groups[3].Value;
                 string voltageDesc = voltageCode.ToUpperInvariant() switch
@@ -190,24 +190,24 @@ namespace HexEditor.SpdDecoder
                     _ => $"Unknown voltage code ({voltageCode})"
                 };
                 result.DecodedFields["Voltage Code"] = $"{voltageCode} = {voltageDesc}";
-                
+
                 // Speed code decoding - используем базу данных и реальные данные
                 string speedCode = match.Groups[4].Value;
                 string memoryType = series.StartsWith("3") ? "DDR4" : (series.StartsWith("4") ? "DDR5" : "Unknown");
-                
+
                 if (int.TryParse(speedCode, out int speedNum))
                 {
                     // Используем только документацию и эвристические правила (без примеров из дампов)
                     int? exactMhz = null;
                     string? speedBinCode = null;
                     string? speedWarning = null;
-                    
+
                     if (memoryType == "DDR4")
                     {
                         // Получаем информацию о Samsung из базы данных (data уже загружена выше)
                         // Используем новое имя переменной, чтобы избежать конфликта с samsungInfo выше
                         var samsungInfoForSpeed = data.Manufacturers?.TryGetValue("Samsung", out var info) == true ? info : null;
-                        
+
                         // Проверяем известные соответствия из документации (speedCodeMapping)
                         if (samsungInfoForSpeed?.Patterns != null && samsungInfoForSpeed.Patterns.Count > 0)
                         {
@@ -235,7 +235,7 @@ namespace HexEditor.SpdDecoder
                                     speedWarning = mapping43.Note;
                                 }
                             }
-                            
+
                             // Если не нашли в известных соответствиях, используем формулу
                             if (!exactMhz.HasValue && pattern.SpeedCodeMapping?.Formula != null)
                             {
@@ -255,7 +255,7 @@ namespace HexEditor.SpdDecoder
                             speedWarning = "⚠ Approximate calculation (speedNum * 80). Real speed may vary. Check SPD data for exact value.";
                         }
                     }
-                    
+
                     string speedDesc = $"Speed Code {speedCode}";
                     if (exactMhz.HasValue)
                     {
@@ -272,9 +272,9 @@ namespace HexEditor.SpdDecoder
                         {
                             speedDesc += $" (PC5-{exactMhz.Value})";
                         }
-                        
+
                         result.DecodedFields["Speed"] = speedDesc;
-                        
+
                         // Добавляем предупреждение, если есть
                         if (!string.IsNullOrEmpty(speedWarning))
                         {
@@ -292,11 +292,11 @@ namespace HexEditor.SpdDecoder
                 {
                     result.DecodedFields["Speed Code"] = speedCode;
                 }
-                
+
                 // Form factor code
                 string formFactorCode = match.Groups[5].Value;
                 result.DecodedFields["Form Factor Code"] = formFactorCode;
-                
+
                 // Расшифровка form factor кода
                 string formFactorDesc = formFactorCode.ToUpperInvariant() switch
                 {
@@ -308,24 +308,24 @@ namespace HexEditor.SpdDecoder
                     _ => $"Unknown form factor code ({formFactorCode})"
                 };
                 result.DecodedFields["Form Factor"] = formFactorDesc;
-                
+
                 // Revision/Variant
                 string revision = match.Groups[6].Value;
                 result.DecodedFields["Revision/Variant"] = revision;
-                
+
                 // Suffix (batch/revision code) - детальная расшифровка
                 if (match.Groups[7].Success)
                 {
                     string suffix = match.Groups[7].Value;
                     result.DecodedFields["Suffix"] = suffix;
-                    
+
                     // Расшифровка трехбуквенного суффикса (например, CWE)
                     if (suffix.Length == 3)
                     {
                         char revChar = suffix[0];
                         char tempChar = suffix[1];
                         char finishChar = suffix[2];
-                        
+
                         string revDesc = revChar switch
                         {
                             'C' => "3rd revision",
@@ -333,7 +333,7 @@ namespace HexEditor.SpdDecoder
                             'E' => "5th revision",
                             _ => $"Revision {revChar}"
                         };
-                        
+
                         string tempDesc = tempChar switch
                         {
                             'W' => "Commercial grade (0°C to 95°C)",
@@ -341,7 +341,7 @@ namespace HexEditor.SpdDecoder
                             'I' => "Industrial grade (-40°C to 85°C)",
                             _ => $"Temperature code {tempChar}"
                         };
-                        
+
                         string finishDesc = finishChar switch
                         {
                             'E' => "Halogen Free",
@@ -349,7 +349,7 @@ namespace HexEditor.SpdDecoder
                             'G' => "Other finish",
                             _ => $"Lead finish {finishChar}"
                         };
-                        
+
                         result.DecodedFields["Suffix Breakdown"] = $"{revChar} = {revDesc}, {tempChar} = {tempDesc}, {finishChar} = {finishDesc}";
                     }
                     else
@@ -368,7 +368,7 @@ namespace HexEditor.SpdDecoder
                     result.DecodedFields["Format"] = "Samsung Memory Module";
                     result.DecodedFields["Series"] = match.Groups[1].Value;
                     result.DecodedFields["Configuration Code"] = match.Groups[2].Value;
-                    
+
                     string voltageCode = match.Groups[3].Value;
                     string voltageDesc = voltageCode.ToUpperInvariant() switch
                     {
@@ -377,14 +377,14 @@ namespace HexEditor.SpdDecoder
                         _ => $"Unknown voltage code ({voltageCode})"
                     };
                     result.DecodedFields["Voltage Code"] = $"{voltageCode} = {voltageDesc}";
-                    
+
                     string speedCode = match.Groups[4].Value;
                     if (int.TryParse(speedCode, out int speedNum))
                     {
                         int mhz = speedNum * 80;
                         result.DecodedFields["Speed"] = $"Speed Code {speedCode} = {mhz} MHz";
                     }
-                    
+
                     result.DecodedFields["Form Factor Code"] = match.Groups[5].Value;
                     result.DecodedFields["Revision/Variant"] = match.Groups[6].Value;
                 }
@@ -404,13 +404,13 @@ namespace HexEditor.SpdDecoder
             // 144ASQ16G72LSZ-2S9E1 (Server module format)
             // MT40A512M16LY-075 (Standard format)
             // MTA18ASF2G72PDZ-2G3B1 (MTA format)
-            
+
             // Try server module format: 144ASQ16G72LSZ-2S9E1
             var serverMatch = Regex.Match(partNumber, @"^(\d+)([A-Z]+)(\d+)([A-Z])(\d+)([A-Z]+)(?:-([A-Z0-9]+))?$", RegexOptions.IgnoreCase);
             if (serverMatch.Success)
             {
                 result.DecodedFields["Format"] = "Micron Server Module Format";
-                
+
                 string packageCode = serverMatch.Groups[1].Value;
                 string familyCode = serverMatch.Groups[2].Value;
                 string densityCode = serverMatch.Groups[3].Value;
@@ -418,7 +418,7 @@ namespace HexEditor.SpdDecoder
                 string busWidthCode = serverMatch.Groups[5].Value;
                 string featuresCode = serverMatch.Groups[6].Value;
                 string suffix = serverMatch.Groups[7].Success ? serverMatch.Groups[7].Value : "";
-                
+
                 // Package
                 if (packageCode == "144")
                 {
@@ -428,7 +428,7 @@ namespace HexEditor.SpdDecoder
                 {
                     result.DecodedFields["Package"] = $"{packageCode}-pin package";
                 }
-                
+
                 // Product Family
                 if (familyCode == "ASQ")
                 {
@@ -438,21 +438,21 @@ namespace HexEditor.SpdDecoder
                 {
                     result.DecodedFields["Product Family"] = $"Product Family: {familyCode}";
                 }
-                
+
                 // Density
                 if (int.TryParse(densityCode, out int density))
                 {
                     result.DecodedFields["Density"] = $"{density}Gb per component";
                     result.DecodedFields["Density Description"] = $"Each DRAM component has {density}Gb capacity";
                 }
-                
+
                 // Generation
                 if (generationCode == "G")
                 {
                     result.DecodedFields["Memory Type"] = "DDR4";
                     result.DecodedFields["Generation"] = "DDR4 (G = DDR4 generation)";
                 }
-                
+
                 // Bus Width
                 if (int.TryParse(busWidthCode, out int busWidth))
                 {
@@ -466,7 +466,7 @@ namespace HexEditor.SpdDecoder
                         result.DecodedFields["Bus Width"] = $"{busWidth}-bit module";
                     }
                 }
-                
+
                 // Features
                 if (featuresCode.Length >= 1)
                 {
@@ -476,7 +476,7 @@ namespace HexEditor.SpdDecoder
                         result.DecodedFields["Halogen"] = "Low Halogen (environmentally friendly, RoHS compliant)";
                     }
                 }
-                
+
                 if (featuresCode.Length >= 2)
                 {
                     string packageDetail = featuresCode.Substring(1);
@@ -489,7 +489,7 @@ namespace HexEditor.SpdDecoder
                         result.DecodedFields["Package Details"] = $"Package: {packageDetail}";
                     }
                 }
-                
+
                 // Suffix decoding: -2S9E1
                 if (!string.IsNullOrEmpty(suffix) && suffix.Length >= 4)
                 {
@@ -499,19 +499,19 @@ namespace HexEditor.SpdDecoder
                     char speedCode = suffix.Length > 2 ? suffix[2] : ' ';
                     char tempCode = suffix.Length > 3 ? suffix[3] : ' ';
                     char revisionCode = suffix.Length > 4 ? suffix[4] : ' ';
-                    
+
                     // Density from suffix
                     if (densitySuffix == '2')
                     {
                         result.DecodedFields["Suffix Density"] = "16Gb density per die (from suffix)";
                     }
-                    
+
                     // Power
                     if (powerCode == 'S')
                     {
                         result.DecodedFields["Power"] = "Standard Power (1.2V DDR4)";
                     }
-                    
+
                     // Speed
                     if (char.IsDigit(speedCode))
                     {
@@ -526,7 +526,7 @@ namespace HexEditor.SpdDecoder
                         result.DecodedFields["Speed"] = $"DDR4-{mhz} (PC4-{mhz * 8})";
                         result.DecodedFields["Speed Code"] = $"Speed code {speedCode} = {mhz} MHz";
                     }
-                    
+
                     // Temperature
                     string tempDesc = tempCode switch
                     {
@@ -536,14 +536,14 @@ namespace HexEditor.SpdDecoder
                         _ => $"Temperature code: {tempCode}"
                     };
                     result.DecodedFields["Temperature Range"] = tempDesc;
-                    
+
                     // Revision
                     if (char.IsDigit(revisionCode))
                     {
                         result.DecodedFields["Revision"] = $"Revision {revisionCode}";
                     }
                 }
-                
+
                 // Additional notes
                 result.DecodedFields["Application"] = "Server/Enterprise memory modules";
                 result.DecodedFields["Note"] = "Micron server modules typically support ECC, extended temperature ranges, and optimized timing for server platforms.";
@@ -563,9 +563,9 @@ namespace HexEditor.SpdDecoder
             // HMAA8GR7CJR4N-XN (HMA format - Module part number)
             // H5ANAG4NCJR-XNC (H5 format - DRAM component part number)
             // HMC format (other variants)
-            
+
             string upperPart = partNumber.ToUpperInvariant();
-            
+
             // Try HMA format: HMAA8GR7CJR4N-XN or HMA81GU6DJR8N-XN
             // Structure analysis based on examples:
             // HMA81GU6DJR8N-XN = 8GB UDIMM DDR4-3200AA, 1 rank, D-die
@@ -580,15 +580,15 @@ namespace HexEditor.SpdDecoder
             // Ranks: R8 = 8 ranks?, R4 = 4 ranks?, R1 = 1 rank?
             // Voltage: N = 1.2V DDR4
             // Suffix: -XN = temperature + lead finish
-            
+
             var hmaMatch = Regex.Match(partNumber, @"^HMA([A-Z0-9]+)(?:-([A-Z0-9]+))?$", RegexOptions.IgnoreCase);
             if (hmaMatch.Success)
             {
                 result.DecodedFields["Format"] = "SK Hynix HMA Format (Module Part Number)";
-                
+
                 string code = hmaMatch.Groups[1].Value;
                 string suffix = hmaMatch.Groups[2].Success ? hmaMatch.Groups[2].Value : "";
-                
+
                 // Generation code (usually G for DDR4, H for DDR5)
                 if (code.Contains("G"))
                 {
@@ -600,14 +600,14 @@ namespace HexEditor.SpdDecoder
                     result.DecodedFields["Memory Type"] = "DDR5";
                     result.DecodedFields["Generation"] = "DDR5 (H = DDR5 generation)";
                 }
-                
+
                 // Voltage code (usually N for 1.2V DDR4, appears before suffix)
                 if (code.EndsWith("N") && !string.IsNullOrEmpty(suffix))
                 {
                     result.DecodedFields["Voltage Code"] = "N = 1.2V (DDR4 standard)";
                     result.DecodedFields["Voltage"] = "1.2V (DDR4 standard)";
                 }
-                
+
                 // Extract architecture and density codes
                 // Pattern: AA8, 81, etc.
                 var archDensityMatch = Regex.Match(code, @"^([A-Z]{1,2})(\d+)", RegexOptions.IgnoreCase);
@@ -615,10 +615,10 @@ namespace HexEditor.SpdDecoder
                 {
                     string archCode = archDensityMatch.Groups[1].Value;
                     string density1Code = archDensityMatch.Groups[2].Value;
-                    
+
                     result.DecodedFields["Architecture Code"] = archCode;
                     result.DecodedFields["Density Code 1"] = density1Code;
-                    
+
                     // Architecture
                     if (archCode == "AA")
                     {
@@ -628,14 +628,14 @@ namespace HexEditor.SpdDecoder
                     {
                         result.DecodedFields["Architecture"] = "Monolithic (A = Monolithic architecture)";
                     }
-                    
+
                     // Density per chip (first density code)
                     if (int.TryParse(density1Code, out int chipDensity))
                     {
                         result.DecodedFields["Chip Density"] = $"{chipDensity}GB per chip";
                     }
                 }
-                
+
                 // Extract second density code (after die revision, before voltage N)
                 // Pattern: ...JR4N where 4 = 32Gb density
                 var density2Match = Regex.Match(code, @"[JCDM]R(\d+)N", RegexOptions.IgnoreCase);
@@ -643,7 +643,7 @@ namespace HexEditor.SpdDecoder
                 {
                     string density2Code = density2Match.Groups[1].Value;
                     result.DecodedFields["Density Code 2"] = density2Code;
-                    
+
                     // Density per die in Gb
                     if (int.TryParse(density2Code, out int dieDensity))
                     {
@@ -658,7 +658,7 @@ namespace HexEditor.SpdDecoder
                         result.DecodedFields["Die Density Note"] = "This is the actual DRAM die density. Critical for SPD programming!";
                     }
                 }
-                
+
                 // Form factor and prefetch code (R7, U6, etc.)
                 // Pattern: After generation code G, we look for U or R followed by digit
                 // R = RDIMM?, U = UDIMM?, number = Prefetch (7 = 8n, 6 = 8n)
@@ -667,7 +667,7 @@ namespace HexEditor.SpdDecoder
                 {
                     string formFactorCode = formFactorMatch.Groups[1].Value;
                     string prefetchCode = formFactorMatch.Groups[2].Value;
-                    
+
                     // Form factor
                     if (formFactorCode == "U")
                     {
@@ -679,7 +679,7 @@ namespace HexEditor.SpdDecoder
                         result.DecodedFields["Form Factor"] = "RDIMM (Registered DIMM) or LRDIMM";
                         result.DecodedFields["Form Factor Code"] = "R";
                     }
-                    
+
                     // Prefetch code
                     if (int.TryParse(prefetchCode, out int prefetch))
                     {
@@ -687,21 +687,21 @@ namespace HexEditor.SpdDecoder
                         result.DecodedFields["Prefetch"] = "8n (standard DDR4 prefetch)";
                     }
                 }
-                
+
                 // Interface code (C, etc.) - appears after prefetch
                 var interfaceMatch = Regex.Match(code, @"[UR]\d+([A-Z])", RegexOptions.IgnoreCase);
                 if (interfaceMatch.Success)
                 {
                     string interfaceCode = interfaceMatch.Groups[1].Value;
                     result.DecodedFields["Interface Code"] = interfaceCode;
-                    
+
                     if (interfaceCode == "C")
                     {
                         result.DecodedFields["Interface"] = "x4 or x8 organization";
                         result.DecodedFields["Interface Note"] = "C code indicates x4/x8 interface. Verify from SPD data for exact organization.";
                     }
                 }
-                
+
                 // Die revision (J, C, D, M, etc.) - usually appears after speed code
                 if (code.Contains("J"))
                 {
@@ -719,38 +719,69 @@ namespace HexEditor.SpdDecoder
                 {
                     result.DecodedFields["Die Revision"] = "M-die (SK Hynix M-die revision)";
                 }
-                
+
                 // Ranks (R8, R4, R1, etc.) - appears after die code
-                // Note: This might conflict with form factor R code, so we check position
-                // Pattern: After die code (J, C, D, M), look for R followed by digit
+                // IMPORTANT: For UDIMM modules, "R8" in HMA81GU6DJR8N-XN does NOT mean 8 ranks!
+                // For 8GB UDIMM with 8 chips × 8Gb = Single Rank (1 rank)
+                // R8 might be revision code or other identifier, not ranks count
+                string formFactor = result.DecodedFields.GetValueOrDefault("Form Factor", "");
+                bool isUDIMM = formFactor.Contains("UDIMM", StringComparison.OrdinalIgnoreCase);
+                
+                // For UDIMM, determine ranks based on capacity and chip count
+                // 8GB UDIMM with 8 chips × 8Gb = typically Single Rank
+                // 16GB UDIMM with 8 chips × 16Gb = typically Single Rank
+                // 16GB UDIMM with 16 chips × 8Gb = typically Dual Rank
+                string capacityCode = result.DecodedFields.GetValueOrDefault("Density Code 2", "");
+                string dieDensity = result.DecodedFields.GetValueOrDefault("Die Density", "");
+                
+                int ranks = 1; // Default: Single Rank for UDIMM
+                
+                // Try to extract from pattern, but validate for UDIMM
                 var ranksMatch = Regex.Match(code, @"[JCDM]R(\d+)", RegexOptions.IgnoreCase);
                 if (ranksMatch.Success && ranksMatch.Groups.Count > 1)
                 {
                     string ranksCode = ranksMatch.Groups[1].Value;
-                    if (int.TryParse(ranksCode, out int ranks) && ranks >= 1 && ranks <= 8)
+                    if (int.TryParse(ranksCode, out int extractedRanks) && extractedRanks >= 1 && extractedRanks <= 8)
                     {
-                        result.DecodedFields["Ranks"] = $"{ranks} Rank{(ranks > 1 ? "s" : "")} ({(ranks == 1 ? "Single" : ranks == 2 ? "Dual" : ranks == 4 ? "Quad" : "Multi")} Rank)";
-                    }
-                }
-                else
-                {
-                    // Fallback: look for any R followed by digit that's not part of form factor code
-                    var allRMatches = Regex.Matches(code, @"R(\d+)", RegexOptions.IgnoreCase);
-                    if (allRMatches.Count > 1)
-                    {
-                        // If multiple R codes, the last one (before N) is likely ranks
-                        var lastRMatch = allRMatches[allRMatches.Count - 1];
-                        if (lastRMatch.Success && lastRMatch.Groups.Count > 1)
+                        // For UDIMM, R8 likely means revision, not 8 ranks
+                        // Only use if it makes sense (1-2 ranks for typical UDIMM)
+                        if (isUDIMM && extractedRanks <= 2)
                         {
-                            string ranksCode = lastRMatch.Groups[1].Value;
-                            if (int.TryParse(ranksCode, out int ranks) && ranks >= 1 && ranks <= 8)
-                            {
-                                result.DecodedFields["Ranks"] = $"{ranks} Rank{(ranks > 1 ? "s" : "")} ({(ranks == 1 ? "Single" : ranks == 2 ? "Dual" : ranks == 4 ? "Quad" : "Multi")} Rank)";
-                            }
+                            ranks = extractedRanks;
+                        }
+                        else if (!isUDIMM)
+                        {
+                            // For RDIMM/LRDIMM, R8 could mean 8 ranks
+                            ranks = extractedRanks;
                         }
                     }
                 }
                 
+                // Smart detection for UDIMM based on capacity
+                if (isUDIMM && ranks == 1)
+                {
+                    // 8GB UDIMM = typically Single Rank
+                    // 16GB UDIMM = could be Single or Dual Rank depending on chip density
+                    if (capacityCode == "81" || capacityCode == "8")
+                    {
+                        ranks = 1; // 8GB = Single Rank
+                    }
+                    else if (capacityCode == "A8" || capacityCode == "16")
+                    {
+                        // 16GB could be Single (16Gb chips) or Dual (8Gb chips)
+                        if (dieDensity.Contains("16Gb") || dieDensity.Contains("32Gb"))
+                            ranks = 1; // Single Rank with high-density chips
+                        else
+                            ranks = 2; // Dual Rank with 8Gb chips
+                    }
+                }
+                
+                result.DecodedFields["Ranks"] = $"{ranks} Rank{(ranks > 1 ? "s" : "")} ({(ranks == 1 ? "Single" : ranks == 2 ? "Dual" : ranks == 4 ? "Quad" : "Multi")} Rank)";
+                if (isUDIMM && code.Contains("R8"))
+                {
+                    result.DecodedFields["Ranks Note"] = "Note: 'R8' in part number may indicate revision, not ranks. For 8GB UDIMM, typically Single Rank.";
+                }
+
                 // Suffix decoding (-XN)
                 // Format: [Revision/Process][Speed Grade]
                 // -XN = Revision X, Speed Grade N (DDR4-3200)
@@ -760,10 +791,10 @@ namespace HexEditor.SpdDecoder
                 {
                     char revisionCode = suffix[0];
                     char speedGradeCode = suffix[1];
-                    
+
                     // Revision/Process
                     result.DecodedFields["Revision/Process"] = $"Revision {revisionCode}";
-                    
+
                     // Speed Grade (second character in suffix)
                     string speedDesc = speedGradeCode switch
                     {
@@ -773,7 +804,7 @@ namespace HexEditor.SpdDecoder
                         _ => $"Speed Grade: {speedGradeCode}"
                     };
                     result.DecodedFields["Speed Grade"] = speedDesc;
-                    
+
                     // Extract MHz from speed grade
                     int speedMhz = speedGradeCode switch
                     {
@@ -782,7 +813,7 @@ namespace HexEditor.SpdDecoder
                         'U' => 2666,
                         _ => 0
                     };
-                    
+
                     if (speedMhz > 0)
                     {
                         result.DecodedFields["Speed"] = $"{speedMhz} MHz ({speedDesc})";
@@ -792,11 +823,11 @@ namespace HexEditor.SpdDecoder
                             result.DecodedFields["Speed Bin"] = speedBin;
                         }
                     }
-                    
+
                     result.DecodedFields["Suffix"] = suffix;
                     result.DecodedFields["Suffix Breakdown"] = $"{revisionCode} = Revision/Process, {speedGradeCode} = {speedDesc}";
                 }
-                
+
                 result.DecodedFields["Note"] = "SK Hynix HMA format uses compact encoding. Some parameters are estimated based on common patterns. Verify from SPD data for exact values.";
             }
             else
@@ -823,15 +854,15 @@ namespace HexEditor.SpdDecoder
             // HP32D4R2D4HCI-64 (HP Series Server format)
             // KVR24N17S8/8 (ValueRAM format)
             // KF552C40-16 (Fury format)
-            
+
             string upperPart = partNumber.ToUpperInvariant();
-            
+
             // Try HP Series format: HP32D4R2D4HCI-64
             var hpMatch = Regex.Match(partNumber, @"^HP(\d+)([A-Z])(\d+)([A-Z])(\d+)([A-Z])(\d+)([A-Z]+)([A-Z])(?:-(\d+))?$", RegexOptions.IgnoreCase);
             if (hpMatch.Success)
             {
                 result.DecodedFields["Format"] = "Kingston HP Series (Server/Enterprise)";
-                
+
                 string speedCode = hpMatch.Groups[1].Value;
                 string d4_1 = hpMatch.Groups[2].Value;
                 string voltageCode = hpMatch.Groups[3].Value;
@@ -842,11 +873,11 @@ namespace HexEditor.SpdDecoder
                 string controllerCode = hpMatch.Groups[8].Value;
                 string interfaceCode = hpMatch.Groups[9].Value;
                 string capacityCode = hpMatch.Groups[10].Success ? hpMatch.Groups[10].Value : "";
-                
+
                 // Series
                 result.DecodedFields["Series"] = "HP";
                 result.DecodedFields["Series Description"] = "HP Series - Server memory for HP ProLiant and similar servers";
-                
+
                 // Speed
                 if (int.TryParse(speedCode, out int speedNum))
                 {
@@ -855,45 +886,45 @@ namespace HexEditor.SpdDecoder
                     result.DecodedFields["Speed Code"] = speedCode;
                     result.DecodedFields["Speed"] = $"Speed Code {speedCode} = {mhz} MHz (PC4-{mhz})";
                 }
-                
+
                 // Generation
                 if (d4_1 == "D" && voltageCode == "4")
                 {
                     result.DecodedFields["Memory Type"] = "DDR4";
                     result.DecodedFields["Voltage"] = "1.2V (DDR4 standard)";
                 }
-                
+
                 // Type
                 if (typeCode == "R")
                 {
                     result.DecodedFields["Form Factor"] = "RDIMM (Registered DIMM)";
                 }
-                
+
                 // Ranks
                 if (int.TryParse(ranksCode, out int ranks))
                 {
                     result.DecodedFields["Ranks"] = $"{ranks} Rank{(ranks > 1 ? "s" : "")} ({(ranks == 1 ? "Single" : ranks == 2 ? "Dual" : "Multi")} Rank)";
                 }
-                
+
                 // Organization
                 if (orgCode == "4")
                 {
                     result.DecodedFields["Organization"] = "x4 (server architecture)";
                 }
-                
+
                 // Controller
                 if (controllerCode == "HC")
                 {
                     result.DecodedFields["Controller"] = "Hybrid Controller (possibly LRDIMM variant)";
                 }
-                
+
                 // Capacity
                 if (!string.IsNullOrEmpty(capacityCode) && int.TryParse(capacityCode, out int capacity))
                 {
                     result.DecodedFields["Capacity"] = $"{capacity} GB";
                     result.DecodedFields["Capacity Note"] = $"High-density module. Likely uses {(capacity >= 64 ? "32Gb" : "16Gb")} chips per component.";
                 }
-                
+
                 // Additional notes
                 result.DecodedFields["Application"] = "HP ProLiant servers and compatible platforms";
                 result.DecodedFields["Note"] = "HP series modules may have HP-specific timing and register settings for optimal compatibility.";
@@ -920,12 +951,12 @@ namespace HexEditor.SpdDecoder
             // 3200 = Speed in MHz
             // C16 = CAS Latency 16
             // W = Optional variant (W = White, B = Black, etc.)
-            
+
             var match = Regex.Match(partNumber, @"^CM([A-Z])(\d+)GX(\d+)M(\d+)([A-Z])(\d+)([A-Z])(\d+)(?:([A-Z]))?$", RegexOptions.IgnoreCase);
             if (match.Success)
             {
                 result.DecodedFields["Format"] = "Corsair Memory Module";
-                
+
                 string seriesCode = match.Groups[1].Value;
                 string capacityCode = match.Groups[2].Value;
                 string generationCode = match.Groups[3].Value;
@@ -935,7 +966,7 @@ namespace HexEditor.SpdDecoder
                 string casCode = match.Groups[7].Value;
                 string casLatency = match.Groups[8].Value;
                 string variantCode = match.Groups[9].Success ? match.Groups[9].Value : "";
-                
+
                 // Series
                 string seriesName = seriesCode.ToUpperInvariant() switch
                 {
@@ -945,14 +976,14 @@ namespace HexEditor.SpdDecoder
                     _ => $"Series {seriesCode}"
                 };
                 result.DecodedFields["Series"] = seriesName;
-                
+
                 // Capacity
                 if (int.TryParse(capacityCode, out int capacity))
                 {
                     result.DecodedFields["Capacity"] = $"{capacity} GB";
                     result.DecodedFields["Capacity Note"] = $"Per-module capacity. Kit contains {kitSizeCode} modules = {capacity * int.Parse(kitSizeCode)} GB total.";
                 }
-                
+
                 // Generation
                 if (generationCode == "4")
                 {
@@ -962,14 +993,14 @@ namespace HexEditor.SpdDecoder
                 {
                     result.DecodedFields["Memory Type"] = "DDR5";
                 }
-                
+
                 // Kit information
                 result.DecodedFields["Kit Type"] = kitTypeCode == "M" ? "Multi-module kit" : "Single module";
                 if (int.TryParse(kitSizeCode, out int kitSize))
                 {
                     result.DecodedFields["Kit Size"] = $"{kitSize} modules";
                 }
-                
+
                 // Form factor
                 string formFactor = kitTypeCode.ToUpperInvariant() switch
                 {
@@ -978,7 +1009,7 @@ namespace HexEditor.SpdDecoder
                     _ => "Unknown"
                 };
                 result.DecodedFields["Form Factor"] = formFactor;
-                
+
                 // Speed
                 if (int.TryParse(speedCode, out int speed))
                 {
@@ -992,13 +1023,13 @@ namespace HexEditor.SpdDecoder
                         result.DecodedFields["Speed Label"] = $"PC5-{speed}";
                     }
                 }
-                
+
                 // CAS Latency
                 if (int.TryParse(casLatency, out int cas))
                 {
                     result.DecodedFields["CAS Latency"] = $"CL{cas}";
                 }
-                
+
                 // Variant
                 if (!string.IsNullOrEmpty(variantCode))
                 {
@@ -1011,7 +1042,7 @@ namespace HexEditor.SpdDecoder
                     };
                     result.DecodedFields["Variant"] = variantName;
                 }
-                
+
                 result.DecodedFields["Application"] = "Gaming/Enthusiast";
                 result.DecodedFields["Note"] = "Corsair modules typically include XMP profiles for overclocking.";
             }
@@ -1034,12 +1065,12 @@ namespace HexEditor.SpdDecoder
             // 16 = Total kit capacity in GB
             // G = Gaming series (R = Ripjaws, T = Trident)
             // VK = Variant code
-            
+
             var match = Regex.Match(partNumber, @"^F(\d+)-(\d+)([A-Z])(\d+)([A-Z])-(\d+)([A-Z]+)$", RegexOptions.IgnoreCase);
             if (match.Success)
             {
                 result.DecodedFields["Format"] = "G.Skill Memory Module";
-                
+
                 string generationCode = match.Groups[1].Value;
                 string speedCode = match.Groups[2].Value;
                 string casPrefix = match.Groups[3].Value;
@@ -1047,7 +1078,7 @@ namespace HexEditor.SpdDecoder
                 string kitTypeCode = match.Groups[5].Value;
                 string capacityCode = match.Groups[6].Value;
                 string seriesVariant = match.Groups[7].Value;
-                
+
                 // Generation
                 if (generationCode == "4")
                 {
@@ -1057,22 +1088,22 @@ namespace HexEditor.SpdDecoder
                 {
                     result.DecodedFields["Memory Type"] = "DDR5";
                 }
-                
+
                 // Speed
                 if (int.TryParse(speedCode, out int speed))
                 {
                     result.DecodedFields["Speed"] = $"{speed} MHz";
                 }
-                
+
                 // CAS Latency
                 if (int.TryParse(casLatency, out int cas))
                 {
                     result.DecodedFields["CAS Latency"] = $"CL{cas}";
                 }
-                
+
                 // Kit type
                 result.DecodedFields["Kit Type"] = kitTypeCode == "D" ? "Dual channel kit" : "Single module";
-                
+
                 // Capacity
                 if (int.TryParse(capacityCode, out int totalCapacity))
                 {
@@ -1080,7 +1111,7 @@ namespace HexEditor.SpdDecoder
                     int perModule = totalCapacity / modulesPerKit;
                     result.DecodedFields["Capacity"] = $"{perModule} GB per module ({totalCapacity} GB total kit)";
                 }
-                
+
                 // Series
                 if (seriesVariant.Length > 0)
                 {
@@ -1095,7 +1126,7 @@ namespace HexEditor.SpdDecoder
                     };
                     result.DecodedFields["Series"] = seriesName;
                 }
-                
+
                 result.DecodedFields["Application"] = "Gaming/Overclocking";
                 result.DecodedFields["Note"] = "G.Skill specializes in high-performance, overclocking-oriented memory modules.";
             }
@@ -1117,24 +1148,24 @@ namespace HexEditor.SpdDecoder
             // D = Additional code
             // 832 = Speed code (encoded, 832 ≈ 3200 MHz)
             // A = Variant
-            
+
             var match = Regex.Match(partNumber, @"^CT(\d+)G(\d+)([A-Z]+)(\d+)([A-Z])$", RegexOptions.IgnoreCase);
             if (match.Success)
             {
                 result.DecodedFields["Format"] = "Crucial Technology Memory Module";
-                
+
                 string capacityCode = match.Groups[1].Value;
                 string generationCode = match.Groups[2].Value;
                 string formFactorCode = match.Groups[3].Value;
                 string speedCode = match.Groups[4].Value;
                 string variantCode = match.Groups[5].Value;
-                
+
                 // Capacity
                 if (int.TryParse(capacityCode, out int capacity))
                 {
                     result.DecodedFields["Capacity"] = $"{capacity} GB";
                 }
-                
+
                 // Generation
                 if (generationCode == "4")
                 {
@@ -1144,7 +1175,7 @@ namespace HexEditor.SpdDecoder
                 {
                     result.DecodedFields["Memory Type"] = "DDR5";
                 }
-                
+
                 // Form factor
                 if (formFactorCode.Contains("DF"))
                 {
@@ -1154,7 +1185,7 @@ namespace HexEditor.SpdDecoder
                 {
                     result.DecodedFields["Form Factor"] = "SO-DIMM (Laptop)";
                 }
-                
+
                 // Speed (encoded, approximate)
                 if (int.TryParse(speedCode, out int speedEncoded))
                 {
@@ -1164,7 +1195,7 @@ namespace HexEditor.SpdDecoder
                     result.DecodedFields["Speed"] = $"~{approximateSpeed} MHz (encoded code: {speedCode})";
                     result.DecodedFields["Speed Note"] = "Crucial speed codes use encoding. Verify from SPD data for exact speed.";
                 }
-                
+
                 result.DecodedFields["Application"] = "Desktop/Laptop";
                 result.DecodedFields["Note"] = "Crucial is Micron's consumer brand. Known for reliability and compatibility.";
             }
@@ -1196,12 +1227,12 @@ namespace HexEditor.SpdDecoder
             // 16 = CAS Latency
             // A = Variant
             // -DT60 = Additional suffix
-            
+
             var match = Regex.Match(partNumber, @"^AX(\d+)([A-Z]+)(\d+)(\d+)([A-Z]+)(\d+)([A-Z])(?:-([A-Z0-9]+))?$", RegexOptions.IgnoreCase);
             if (match.Success)
             {
                 result.DecodedFields["Format"] = "ADATA XPG Memory Module";
-                
+
                 string generationCode = match.Groups[1].Value;
                 string seriesCode = match.Groups[2].Value;
                 string speedCode = match.Groups[3].Value;
@@ -1210,7 +1241,7 @@ namespace HexEditor.SpdDecoder
                 string casLatency = match.Groups[6].Value;
                 string variantCode = match.Groups[7].Value;
                 string suffix = match.Groups[8].Success ? match.Groups[8].Value : "";
-                
+
                 // Generation
                 if (generationCode == "4")
                 {
@@ -1220,25 +1251,25 @@ namespace HexEditor.SpdDecoder
                 {
                     result.DecodedFields["Memory Type"] = "DDR5";
                 }
-                
+
                 // Speed
                 if (int.TryParse(speedCode, out int speed))
                 {
                     result.DecodedFields["Speed"] = $"{speed} MHz";
                 }
-                
+
                 // Capacity
                 if (int.TryParse(capacityCode, out int capacity))
                 {
                     result.DecodedFields["Capacity"] = $"{capacity} GB";
                 }
-                
+
                 // CAS Latency
                 if (int.TryParse(casLatency, out int cas))
                 {
                     result.DecodedFields["CAS Latency"] = $"CL{cas}";
                 }
-                
+
                 result.DecodedFields["Series"] = "XPG (Gaming)";
                 result.DecodedFields["Application"] = "Gaming/Enthusiast";
             }
@@ -1358,7 +1389,7 @@ namespace HexEditor.SpdDecoder
                     // Header row
                     int row = 0;
                     table.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-                    
+
                     var header1 = new TextBlock
                     {
                         Text = "Position",
@@ -1733,11 +1764,11 @@ namespace HexEditor.SpdDecoder
             string memoryType = result.DecodedFields.GetValueOrDefault("Memory Type", "");
             if (memoryType != "DDR4")
                 return null; // DDR5 support can be added later
-            
+
             // Support Samsung and SK Hynix
             bool isSamsung = result.Manufacturer == "Samsung";
             bool isHynix = result.Manufacturer == "SK Hynix";
-            
+
             if (!isSamsung && !isHynix)
                 return null;
 
@@ -1753,14 +1784,19 @@ namespace HexEditor.SpdDecoder
             spdBytes[2] = (0x0C, "DRAM Device Type (0x0C = DDR4 SDRAM)");
 
             // Byte 3: Module Type
+            // DDR4 Module Type encoding (bits 3-0):
+            // 0x00 = Extended DIMM, 0x01 = RDIMM, 0x02 = UDIMM, 0x03 = SO-DIMM, 0x04 = LRDIMM
             byte moduleType = 0x02; // Default: UDIMM
             string formFactor = result.DecodedFields.GetValueOrDefault("Form Factor", "");
             if (formFactor.Contains("LRDIMM", StringComparison.OrdinalIgnoreCase))
                 moduleType = 0x04; // LRDIMM
             else if (formFactor.Contains("RDIMM", StringComparison.OrdinalIgnoreCase))
                 moduleType = 0x01; // RDIMM
+            else if (formFactor.Contains("SO-DIMM", StringComparison.OrdinalIgnoreCase) || 
+                     formFactor.Contains("SODIMM", StringComparison.OrdinalIgnoreCase))
+                moduleType = 0x03; // SO-DIMM
             else if (formFactor.Contains("UDIMM", StringComparison.OrdinalIgnoreCase))
-                moduleType = 0x02; // UDIMM
+                moduleType = 0x02; // UDIMM (standard desktop memory)
             spdBytes[3] = (moduleType, $"Module Type (0x{moduleType:X2} = {GetModuleTypeName(moduleType)})");
 
             // Byte 4: SDRAM Density and Banks
@@ -1795,7 +1831,7 @@ namespace HexEditor.SpdDecoder
 
             // Byte 13: Module Memory Bus Width Extension & ECC
             byte byte13 = 0x00; // Default: no extension, ECC depends on module
-            if (formFactor.Contains("RDIMM", StringComparison.OrdinalIgnoreCase) || 
+            if (formFactor.Contains("RDIMM", StringComparison.OrdinalIgnoreCase) ||
                 formFactor.Contains("LRDIMM", StringComparison.OrdinalIgnoreCase))
             {
                 byte13 |= 0x08; // ECC typically present on server modules
@@ -1818,7 +1854,7 @@ namespace HexEditor.SpdDecoder
                     // Byte 17: Medium Timebase (MTB) Dividend = 1 (0x01)
                     spdBytes[17] = (0x01, "Medium Timebase (MTB) Dividend = 1");
                     // Byte 18: tCK Medium Timebase (MTB) = tCK / MTB
-                    spdBytes[18] = ((byte)tckMtb, $"tCK Medium Timebase (MTB) = {tckMtb} (for {speedMhz} MHz, tCK = {1000.0/speedMhz:F3} ns)");
+                    spdBytes[18] = ((byte)tckMtb, $"tCK Medium Timebase (MTB) = {tckMtb} (for {speedMhz} MHz, tCK = {1000.0 / speedMhz:F3} ns)");
                 }
             }
 
@@ -1866,7 +1902,7 @@ namespace HexEditor.SpdDecoder
             // Common density codes for DDR4:
             // 0x0B = 8Gb, 0x0C = 16Gb, 0x0D = 32Gb
             // Banks: bits 5-4, typically 0x00 = 4 bank groups, 4 banks per group
-            
+
             // For SK Hynix, use die density if available
             if (isHynix && !string.IsNullOrEmpty(dieDensity))
             {
@@ -1878,7 +1914,7 @@ namespace HexEditor.SpdDecoder
                 else if (dieDensity.Contains("8Gb", StringComparison.OrdinalIgnoreCase))
                     return 0x0B; // 8Gb, 4 bank groups, 4 banks
             }
-            
+
             // Estimate based on config code patterns (for Samsung and others)
             if (configCode.StartsWith("A", StringComparison.OrdinalIgnoreCase))
             {
@@ -1888,7 +1924,7 @@ namespace HexEditor.SpdDecoder
                 else if (configCode == "A2")
                     return 0x0B; // 8Gb, 4 bank groups, 4 banks
             }
-            
+
             return 0x0B; // Default: 8Gb
         }
 
@@ -1898,22 +1934,22 @@ namespace HexEditor.SpdDecoder
             // Common values:
             // 0x08 = x8 organization (common for UDIMM)
             // 0x0A = x4 organization (common for RDIMM/LRDIMM)
-            
+
             if (configCode == "AA" || configCode.Contains("A8"))
                 return 0x0A; // x4 organization (common for high-capacity modules)
             else if (configCode == "A2")
                 return 0x08; // x8 organization (common for desktop modules)
-            
+
             return 0x08; // Default: x8
         }
 
         private byte CalculateModuleBusWidthByte(Dictionary<string, string> decodedFields)
         {
             byte byte12 = 0x00;
-            
+
             // Bits 5-3: Number of ranks (0-7, actual ranks = value + 1)
             int ranks = 1; // Default: 1 rank
-            
+
             // Try to extract from "Ranks" field first (e.g., "8 Ranks", "4 Ranks")
             string ranksField = decodedFields.GetValueOrDefault("Ranks", "");
             if (!string.IsNullOrEmpty(ranksField))
@@ -1924,35 +1960,35 @@ namespace HexEditor.SpdDecoder
                     ranks = extractedRanks;
                 }
             }
-            
+
             // Fallback to configuration description
             if (ranks == 1)
             {
                 string configDesc = decodedFields.GetValueOrDefault("Configuration Description", "");
-                if (configDesc.Contains("2R", StringComparison.OrdinalIgnoreCase) || 
+                if (configDesc.Contains("2R", StringComparison.OrdinalIgnoreCase) ||
                     configDesc.Contains("2 ranks", StringComparison.OrdinalIgnoreCase))
                     ranks = 2;
-                else if (configDesc.Contains("4R", StringComparison.OrdinalIgnoreCase) || 
+                else if (configDesc.Contains("4R", StringComparison.OrdinalIgnoreCase) ||
                          configDesc.Contains("4 ranks", StringComparison.OrdinalIgnoreCase) ||
                          configDesc.Contains("4DR", StringComparison.OrdinalIgnoreCase))
                     ranks = 4;
-                else if (configDesc.Contains("8R", StringComparison.OrdinalIgnoreCase) || 
+                else if (configDesc.Contains("8R", StringComparison.OrdinalIgnoreCase) ||
                          configDesc.Contains("8 ranks", StringComparison.OrdinalIgnoreCase))
                     ranks = 8;
             }
-            
+
             // Limit ranks to valid range (1-8, encoded as 0-7)
             if (ranks < 1) ranks = 1;
             if (ranks > 8) ranks = 8;
-            
+
             byte12 |= (byte)(((ranks - 1) & 0x7) << 3);
-            
+
             // Bits 2-0: Device width
             // 0 = x4, 1 = x8, 2 = x16, 3 = x32
             int deviceWidth = 1; // Default: x8
             string interfaceField = decodedFields.GetValueOrDefault("Interface", "");
             string configDesc2 = decodedFields.GetValueOrDefault("Configuration Description", "");
-            
+
             if (interfaceField.Contains("x4", StringComparison.OrdinalIgnoreCase) ||
                 configDesc2.Contains("x4", StringComparison.OrdinalIgnoreCase))
                 deviceWidth = 0;
@@ -1962,9 +1998,9 @@ namespace HexEditor.SpdDecoder
             else if (interfaceField.Contains("x16", StringComparison.OrdinalIgnoreCase) ||
                      configDesc2.Contains("x16", StringComparison.OrdinalIgnoreCase))
                 deviceWidth = 2;
-            
+
             byte12 |= (byte)(deviceWidth & 0x7);
-            
+
             return byte12;
         }
 
@@ -1973,12 +2009,12 @@ namespace HexEditor.SpdDecoder
             string speed = decodedFields.GetValueOrDefault("Speed", "");
             if (string.IsNullOrEmpty(speed))
                 return 0;
-            
+
             // Extract MHz from strings like "Speed Code 40 = 3200 MHz"
             var match = System.Text.RegularExpressions.Regex.Match(speed, @"(\d+)\s*MHz");
             if (match.Success && int.TryParse(match.Groups[1].Value, out int mhz))
                 return mhz;
-            
+
             return 0;
         }
 
@@ -2001,13 +2037,13 @@ namespace HexEditor.SpdDecoder
         {
             // Try pattern with config code that can contain digits: M393A8G40CB4-CWE
             var match = Regex.Match(partNumber, @"^M(\d+)([A-Z]\d?)([A-Z])(\d+)([A-Z])([A-Z]\d+)(?:-([A-Z0-9]+))?$", RegexOptions.IgnoreCase);
-            
+
             if (!match.Success)
             {
                 // Try pattern with config code that's only letters: M386AAG40BM3-CWE
                 match = Regex.Match(partNumber, @"^M(\d+)([A-Z]+)([A-Z])(\d+)([A-Z])([A-Z0-9]+)(?:-([A-Z0-9]+))?$", RegexOptions.IgnoreCase);
             }
-            
+
             if (!match.Success)
                 return null;
 
@@ -2025,15 +2061,15 @@ namespace HexEditor.SpdDecoder
             // Format 1: M386AAG40BM3 (config code is letters only, like AA)
             // Format 2: M393A8G40CB4 (config code is letter+digit, like A8)
             bool isConfigWithDigit = configCode.Length == 2 && char.IsDigit(configCode[1]);
-            
+
             int pos = 1;
             breakdown.Add((pos++.ToString(), "M", "DRAM Component (Memory Module)"));
-            
+
             // Series (3 digits typically)
             string seriesPos = pos.ToString();
             pos += series.Length;
             breakdown.Add(($"{seriesPos}-{pos - 1}", series, $"Samsung Memory Series ({series} = {(series.StartsWith("3") ? "DDR4" : series.StartsWith("4") ? "DDR5" : "Unknown")})"));
-            
+
             // Config code - показываем как единый код для лучшей читаемости
             string configPos = pos.ToString();
             pos += configCode.Length;
@@ -2047,25 +2083,25 @@ namespace HexEditor.SpdDecoder
                 // Format: AA (letters only)
                 breakdown.Add(($"{configPos}-{pos - 1}", configCode, GetDensityOrganizationDescription(configCode, decodedFields)));
             }
-            
+
             // Voltage
             breakdown.Add((pos++.ToString(), voltageCode, GetVoltageDescription(voltageCode)));
-            
+
             // Speed code
             string speedPos = pos.ToString();
             pos += speedCode.Length;
             breakdown.Add(($"{speedPos}-{pos - 1}", speedCode, GetSpeedDescription(speedCode, decodedFields)));
-            
+
             // Form factor
             breakdown.Add((pos++.ToString(), formFactorCode, GetProductFamilyDescription(formFactorCode)));
-            
+
             // Revision (can be letter+digit like B4, B2, or letter+digit like M3, or just letters)
             // M3, EB1, B4 - these are typically single revision codes, not separate package+revision
             // Only split if it's a known pattern like B2, B4 where B might indicate package type
-            bool shouldSplitRevision = revision.Length == 2 && 
-                                       char.IsDigit(revision[1]) && 
+            bool shouldSplitRevision = revision.Length == 2 &&
+                                       char.IsDigit(revision[1]) &&
                                        (revision[0] == 'B' || revision[0] == 'E');
-            
+
             if (shouldSplitRevision)
             {
                 // Known patterns: B2, B4, E1, etc. - first char might indicate package/power
@@ -2083,8 +2119,8 @@ namespace HexEditor.SpdDecoder
                 // M3, EB1, etc. - treat as single revision code
                 string revPos = pos.ToString();
                 pos += revision.Length;
-                string revDesc = revision.Length == 2 && char.IsDigit(revision[1]) 
-                    ? $"Revision/Variant ({revision})" 
+                string revDesc = revision.Length == 2 && char.IsDigit(revision[1])
+                    ? $"Revision/Variant ({revision})"
                     : "Package (FBGA) / Revision";
                 breakdown.Add(($"{revPos}-{pos - 1}", revision, revDesc));
             }
@@ -2144,7 +2180,7 @@ namespace HexEditor.SpdDecoder
         {
             string configDesc = decodedFields.GetValueOrDefault("Configuration Description", "");
             string result = "";
-            
+
             if (!string.IsNullOrEmpty(configDesc))
             {
                 // Extract density/organization info from description
@@ -2157,7 +2193,7 @@ namespace HexEditor.SpdDecoder
                 else if (configDesc.Contains("8GB") || configDesc.Contains("1Rx8"))
                     result = "Density/Organization (8GB, 1Rx8)";
             }
-            
+
             // Fallback based on config code
             if (string.IsNullOrEmpty(result))
             {
@@ -2172,7 +2208,7 @@ namespace HexEditor.SpdDecoder
                 else
                     result = "Configuration: Density/Organization (varies by model)";
             }
-            
+
             // Add important marker
             return result + " ← ВАЖНО!";
         }
