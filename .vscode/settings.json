@@ -1,0 +1,42 @@
+{
+  // Git настройки
+  "git.enabled": true,
+  "git.autofetch": true,
+  "git.confirmSync": false,
+  "git.enableSmartCommit": true,
+  "git.suggestSmartCommit": true,
+  "git.autoRepositoryDetection": true,
+  
+  // Автоматический commit при сохранении (опционально)
+  "git.postSaveCommands": {
+    "commit": "git add . && git commit -m 'Auto-save'"
+  },
+  
+  // Автоматический push после commit (опционально)
+  "git.pushAfterCommit": true,
+  
+  // Показывать изменения в редакторе
+  "git.decorations.enabled": true,
+  "scm.diffDecorations": "all",
+  
+  // Автоматическое обновление индекса
+  "git.autoRefresh": true,
+  
+  // Настройки для Cursor AI
+  "cursor.general.enableGitIntegration": true,
+  
+  // Автоматическое форматирование при сохранении
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll": "explicit"
+  },
+  
+  // Исключения для Git
+  "files.exclude": {
+    "**/.git": false,
+    "**/bin": true,
+    "**/obj": true,
+    "**/.vs": true
+  }
+}
+
