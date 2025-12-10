@@ -1424,7 +1424,7 @@ internal sealed partial class ArduinoService
             
             // Выполняем операции в отдельном потоке, как в старом коде (new Thread(() => HandleAlert(...)).Start())
             _isHandlingAlert = true;
-            _ = Task.Run(async () =>
+            _ = Task.Run(() =>
             {
                 try
                 {
@@ -1501,65 +1501,11 @@ internal sealed partial class ArduinoService
                         System.Diagnostics.Debug.WriteLine($"[HandleAlert] {device.PortName}: Lock освобожден");
                     }
                     
-                    // Проверяем отмену и состояние перед длительными операциями
-                    cancellationToken.ThrowIfCancellationRequested();
-                    if (device == null || !device.IsConnected || _activeDevice != device)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"[HandleAlert] {device?.PortName ?? "Unknown"}: Выход перед RefreshMemoryTypeAsync - устройство недоступно");
-                        return;
-                    }
+                    // В старом коде HandleAlert выполнял только Scan() и GetRswpSupport() синхронно
+                    // Длительные операции (RefreshMemoryTypeAsync, CheckRswpAsync) выполняются позже, когда это нужно
+                    // Это предотвращает зависания при быстром подключении/отключении EEPROM
                     
-                    System.Diagnostics.Debug.WriteLine($"[HandleAlert] {device.PortName}: Начало RefreshMemoryTypeAsync()");
-                    // Обновляем тип памяти с таймаутом и проверкой отмены
-                    // Если EEPROM извлечена, операция может завершиться с ошибкой - это нормально
-                    try
-                    {
-                        await RefreshMemoryTypeAsync().WaitAsync(OperationTimeout, cancellationToken).ConfigureAwait(false);
-                        System.Diagnostics.Debug.WriteLine($"[HandleAlert] {device.PortName}: RefreshMemoryTypeAsync() завершен успешно");
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"[HandleAlert] {device.PortName}: RefreshMemoryTypeAsync() отменен");
-                        return; // Операция отменена - выходим без обновления UI
-                    }
-                    catch (Exception ex) when (ex is TimeoutException || ex is InvalidOperationException)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"[HandleAlert] {device.PortName}: RefreshMemoryTypeAsync() ошибка: {ex.GetType().Name} - {ex.Message}");
-                        // Ошибка может быть из-за извлечения EEPROM - это нормально, не логируем как ошибку
-                        // Просто выходим без продолжения
-                        return;
-                    }
-                    
-                    // Проверяем отмену и состояние перед проверкой RSWP
-                    cancellationToken.ThrowIfCancellationRequested();
-                    if (device == null || !device.IsConnected || _activeDevice != device)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"[HandleAlert] {device?.PortName ?? "Unknown"}: Выход перед CheckRswpAsync - устройство недоступно");
-                        return;
-                    }
-                    
-                    System.Diagnostics.Debug.WriteLine($"[HandleAlert] {device.PortName}: Начало CheckRswpAsync()");
-                    // Проверяем RSWP с таймаутом и проверкой отмены
-                    // Если EEPROM извлечена, операция может завершиться с ошибкой - это нормально
-                    try
-                    {
-                        await CheckRswpAsync().WaitAsync(OperationTimeout, cancellationToken).ConfigureAwait(false);
-                        System.Diagnostics.Debug.WriteLine($"[HandleAlert] {device.PortName}: CheckRswpAsync() завершен успешно");
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"[HandleAlert] {device.PortName}: CheckRswpAsync() отменен");
-                        return; // Операция отменена - выходим без обновления UI
-                    }
-                    catch (Exception ex) when (ex is TimeoutException || ex is InvalidOperationException)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"[HandleAlert] {device.PortName}: CheckRswpAsync() ошибка: {ex.GetType().Name} - {ex.Message}");
-                        // Ошибка может быть из-за извлечения EEPROM - это нормально, не логируем как ошибку
-                        // Просто выходим без продолжения
-                        return;
-                    }
-                    
-                    // Обновляем UI только если все операции завершились успешно и не были отменены
+                    // Обновляем UI после сканирования
                     cancellationToken.ThrowIfCancellationRequested();
                     if (device != null && device.IsConnected && _activeDevice == device)
                     {
