@@ -1386,11 +1386,12 @@ internal sealed partial class ArduinoService
                     cancellationToken.ThrowIfCancellationRequested();
                     
                     // Выполняем сканирование I2C синхронно в lock (как в старом коде)
+                    // Делаем это быстро, чтобы не блокировать другие операции
                     lock (_lock)
                     {
                         cancellationToken.ThrowIfCancellationRequested();
                         
-                        if (device == null || !device.IsConnected || _activeDevice != device)
+                        if (device == null || !device.IsConnected || _activeDevice != device || !_spdReady)
                         {
                             return;
                         }
@@ -1419,28 +1420,60 @@ internal sealed partial class ArduinoService
                         }
                     }
                     
-                    // Обновляем тип памяти и RSWP асинхронно (не блокируя lock)
+                    // Проверяем отмену и состояние перед длительными операциями
                     cancellationToken.ThrowIfCancellationRequested();
-                    if (device == null || !device.IsConnected || _activeDevice != device)
+                    if (device == null || !device.IsConnected || _activeDevice != device || !_spdReady)
                     {
                         return;
                     }
                     
-                    await RefreshMemoryTypeAsync().WaitAsync(OperationTimeout, cancellationToken).ConfigureAwait(false);
+                    // Обновляем тип памяти с таймаутом и проверкой отмены
+                    try
+                    {
+                        await RefreshMemoryTypeAsync().WaitAsync(OperationTimeout, cancellationToken).ConfigureAwait(false);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        return; // Операция отменена - выходим без обновления UI
+                    }
+                    catch (Exception ex) when (ex is TimeoutException || ex is InvalidOperationException)
+                    {
+                        LogWarn($"{device?.PortName ?? "Unknown"}: Ошибка при обновлении типа памяти: {ex.Message}");
+                        return; // При ошибке не продолжаем
+                    }
                     
+                    // Проверяем отмену и состояние перед проверкой RSWP
                     cancellationToken.ThrowIfCancellationRequested();
-                    if (device == null || !device.IsConnected || _activeDevice != device)
+                    if (device == null || !device.IsConnected || _activeDevice != device || !_spdReady)
                     {
                         return;
                     }
                     
-                    await CheckRswpAsync().WaitAsync(OperationTimeout, cancellationToken).ConfigureAwait(false);
+                    // Проверяем RSWP с таймаутом и проверкой отмены
+                    try
+                    {
+                        await CheckRswpAsync().WaitAsync(OperationTimeout, cancellationToken).ConfigureAwait(false);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        return; // Операция отменена - выходим без обновления UI
+                    }
+                    catch (Exception ex) when (ex is TimeoutException || ex is InvalidOperationException)
+                    {
+                        LogWarn($"{device?.PortName ?? "Unknown"}: Ошибка при проверке RSWP: {ex.Message}");
+                        return; // При ошибке не продолжаем
+                    }
                     
-                    OnStateChanged();
+                    // Обновляем UI только если все операции завершились успешно и не были отменены
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (device != null && device.IsConnected && _activeDevice == device && _spdReady)
+                    {
+                        OnStateChanged();
+                    }
                 }
                 catch (OperationCanceledException)
                 {
-                    // Операция отменена - это нормально при новом алерте
+                    // Операция отменена - это нормально при новом алерте или отключении
                 }
                 catch (Exception ex) when (ex is TimeoutException || ex is InvalidOperationException || ex is InvalidDataException)
                 {
@@ -1462,9 +1495,10 @@ internal sealed partial class ArduinoService
         }
         else if (e.Code == Hardware.Arduino.AlertCodes.SlaveDecrement)
         {
-            // Отменяем операции, если они выполняются
+            // Отменяем операции, если они выполняются (это должно быстро остановить выполняющиеся операции)
             _alertOperationCancellation?.Cancel();
             
+            // Сбрасываем состояние сразу
             _spdReady = false;
             SpdStateChanged?.Invoke(this, _spdReady);
             LogInfo($"{_activeDevice.PortName}: SPD EEPROM извлечена.");
@@ -1472,6 +1506,8 @@ internal sealed partial class ArduinoService
             RswpStateChanged?.Invoke(this, Array.Empty<bool>());
             _fullScanAddresses = null;
             _isHandlingAlert = false;
+            
+            // Обновляем UI (событие должно обрабатываться быстро обработчиками)
             OnStateChanged();
         }
     }
