@@ -808,9 +808,10 @@ namespace HexEditor
                 return;
             }
 
-            ConnectionStatusBadge.Background = Brushes.White;
-            ConnectionStatusBadge.BorderBrush = new SolidColorBrush(Color.FromRgb(0x1F, 0x1F, 0x1F));
-            ConnectionStatusText.Foreground = Brushes.Black;
+            // Зелёный фон для индикатора подключения
+            ConnectionStatusBadge.Background = new SolidColorBrush(Color.FromRgb(0x4C, 0xAF, 0x50)); // Зелёный цвет
+            ConnectionStatusBadge.BorderBrush = new SolidColorBrush(Color.FromRgb(0x2E, 0x7D, 0x32)); // Тёмно-зелёная граница
+            ConnectionStatusText.Foreground = Brushes.White; // Белый текст на зелёном фоне
 
             string formattedPort = FormatConnectionPort(_lastConnectionPort);
             ConnectionStatusText.Text = $"Arduino COM: {formattedPort}";
