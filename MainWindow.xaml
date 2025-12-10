@@ -8,7 +8,7 @@
         xmlns:database="clr-namespace:HexEditor.Database"
         xmlns:spd="clr-namespace:HexEditor.SpdDecoder"
         mc:Ignorable="d"
-        Title="Hex Editor"
+        Title="SPD-RW-EDIT"
         Height="1100"
         Width="1600"
         MinWidth="1511"

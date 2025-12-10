@@ -6,7 +6,18 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
-	<ApplicationManifest>app.manifest</ApplicationManifest>  
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    
+    <!-- Version Information -->
+    <Version>1.0.0</Version>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
+    
+    <!-- Assembly Metadata -->
+    <AssemblyTitle>SPD-RW-EDIT</AssemblyTitle>
+    <AssemblyProduct>SPD-RW-EDIT</AssemblyProduct>
+    <AssemblyDescription>SPD Reader/Writer and Editor for DDR3/DDR4/DDR5 memory modules</AssemblyDescription>
+    <AssemblyCopyright>Copyright © 2025</AssemblyCopyright>
   </PropertyGroup>
 
   <ItemGroup>
