@@ -104,21 +104,6 @@
         <Setter Property="FontFamily" Value="{DynamicResource ApplicationFontFamily}"/>
     </Style>
     
-    <!-- Стиль по умолчанию для ListBox - использует ApplicationFontFamily -->
-    <Style TargetType="ListBox">
-        <Setter Property="FontFamily" Value="{DynamicResource ApplicationFontFamily}"/>
-    </Style>
-    
-    <!-- Стиль по умолчанию для ComboBox - использует ApplicationFontFamily -->
-    <Style TargetType="ComboBox">
-        <Setter Property="FontFamily" Value="{DynamicResource ApplicationFontFamily}"/>
-    </Style>
-    
-    <!-- Стиль по умолчанию для MenuItem - использует ApplicationFontFamily -->
-    <Style TargetType="MenuItem">
-        <Setter Property="FontFamily" Value="{DynamicResource ApplicationFontFamily}"/>
-    </Style>
-    
     <!-- Стиль по умолчанию для Label - использует ApplicationFontFamily -->
     <Style TargetType="Label">
         <Setter Property="FontFamily" Value="{DynamicResource ApplicationFontFamily}"/>
@@ -400,7 +385,9 @@
     </Style>
     
     <!-- Default ComboBox style -->
-    <Style TargetType="ComboBox" BasedOn="{StaticResource ComboBoxStyle}"/>
+    <Style TargetType="ComboBox" BasedOn="{StaticResource ComboBoxStyle}">
+        <Setter Property="FontFamily" Value="{DynamicResource ApplicationFontFamily}"/>
+    </Style>
     
     <Style TargetType="ComboBox" x:Key="EditFieldComboBoxStyle" BasedOn="{StaticResource ComboBoxStyle}"/>
     
@@ -541,6 +528,7 @@
     <!-- ========================================= -->
     
     <Style TargetType="ListBox">
+        <Setter Property="FontFamily" Value="{DynamicResource ApplicationFontFamily}"/>
         <Setter Property="Background" Value="{StaticResource SurfaceBrush}"/>
         <Setter Property="BorderBrush" Value="{StaticResource SurfaceBorderBrush}"/>
         <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}"/>
