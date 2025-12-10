@@ -373,6 +373,30 @@
                         </StackPanel>
                     </Border>
 
+                    <!-- I2C Addresses Card -->
+                    <Border Style="{StaticResource CardStyle}">
+                        <StackPanel>
+                            <TextBlock Text="Найденные I2C адреса" Style="{StaticResource CardTitleStyle}"/>
+                            <ListBox x:Name="I2CAddressesListBox"
+                                     MinHeight="120"
+                                     MaxHeight="280"
+                                     Background="{StaticResource SurfaceBrush}"
+                                     BorderBrush="{StaticResource SurfaceBorderBrush}"
+                                     BorderThickness="1"
+                                     ScrollViewer.VerticalScrollBarVisibility="Auto">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding}"
+                                                   FontSize="12"
+                                                   FontFamily="Consolas"
+                                                   Foreground="{StaticResource PrimaryTextBrush}"
+                                                   Margin="0,2"/>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </StackPanel>
+                    </Border>
+
                     <!-- RSWP Card -->
                     <Border Style="{StaticResource CardStyle}">
                         <Grid>
@@ -380,20 +404,20 @@
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
 
-                            <TextBlock Grid.Row="0" Grid.ColumnSpan="2" Text="RSWP" Style="{StaticResource CardTitleStyle}"/>
-                            <TextBlock Grid.Row="1" Grid.ColumnSpan="2"
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="RSWP" Style="{StaticResource CardTitleStyle}"/>
+                            <TextBlock Grid.Row="1" Grid.Column="0"
                                        x:Name="RswpMemoryTypeText"
                                        Text="Тип памяти: —"
                                        Margin="0,0,0,8"
                                        Style="{StaticResource FieldLabelText}"/>
 
-                            <StackPanel Grid.Row="2" Grid.Column="0" Margin="0,0,8,0">
+                            <StackPanel Grid.Row="2" Grid.Column="0">
                                 <CheckBox x:Name="RswpBlock0CheckBox" Margin="0,0,0,1" IsEnabled="False">
                                     <TextBlock x:Name="RswpBlock0Text" Text="Block 0: - —" Foreground="{StaticResource PrimaryTextBrush}"/>
                                 </CheckBox>
@@ -444,27 +468,30 @@
                                 </CheckBox>
                             </StackPanel>
 
-                            <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Vertical" VerticalAlignment="Top">
+                            <StackPanel Grid.Row="3" Grid.Column="0" Orientation="Vertical" Margin="0,8,0,0">
                                 <Button x:Name="CheckRswpButton"
                                         Style="{StaticResource CommandButtonStyle}"
                                         Content="Проверить"
                                         Width="110"
                                         Margin="0,0,0,6"
+                                        HorizontalAlignment="Left"
                                         IsEnabled="False"
                                         Click="CheckRswpButton_Click"/>
-                                <Button x:Name="ClearRswpButton"
-                                        Style="{StaticResource CommandButtonStyle}"
-                                        Content="Очистить"
-                                        Width="110"
-                                        Margin="0,0,0,6"
-                                        IsEnabled="False"
-                                        Click="ClearRswpButton_Click"/>
                                 <Button x:Name="SetRswpButton"
                                         Style="{StaticResource CommandButtonStyle}"
                                         Content="Установить"
                                         Width="110"
+                                        Margin="0,0,0,6"
+                                        HorizontalAlignment="Left"
                                         IsEnabled="False"
                                         Click="SetRswpButton_Click"/>
+                                <Button x:Name="ClearRswpButton"
+                                        Style="{StaticResource CommandButtonStyle}"
+                                        Content="Очистить"
+                                        Width="110"
+                                        HorizontalAlignment="Left"
+                                        IsEnabled="False"
+                                        Click="ClearRswpButton_Click"/>
                             </StackPanel>
                         </Grid>
                     </Border>

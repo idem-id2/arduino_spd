@@ -189,6 +189,44 @@ internal sealed class Arduino : IDisposable
         }
     }
 
+    /// <summary>
+    /// Сканирует всю I2C шину (адреса 0x08-0x77) используя команду PROBEADDRESS
+    /// </summary>
+    public byte[] ScanFull()
+    {
+        lock (_portLock)
+        {
+            if (!IsConnected)
+            {
+                throw new InvalidOperationException("Device is not connected.");
+            }
+
+            List<byte> addresses = new();
+
+            // Сканируем весь диапазон I2C адресов (0x08-0x77)
+            // Пропускаем зарезервированные адреса 0x00-0x07
+            for (byte address = 0x08; address <= 0x77; address++)
+            {
+                try
+                {
+                    // Используем команду PROBEADDRESS для проверки каждого адреса
+                    bool found = ExecuteCommand<bool>(Command.PROBEADDRESS, address);
+                    if (found)
+                    {
+                        addresses.Add(address);
+                    }
+                }
+                catch
+                {
+                    // Игнорируем ошибки при проверке отдельных адресов
+                    // и продолжаем сканирование
+                }
+            }
+
+            return addresses.ToArray();
+        }
+    }
+
     public byte ReadSpd(ushort offset)
     {
         return ExecuteCommand<byte>(
@@ -823,6 +861,7 @@ internal sealed class Arduino : IDisposable
         public const byte RSWP = (byte)'b';
         public const byte DDR4DETECT = (byte)'4';
         public const byte DDR5DETECT = (byte)'5';
+        public const byte PROBEADDRESS = (byte)'a';
     }
 
     public struct RswpSupport

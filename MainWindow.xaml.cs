@@ -27,7 +27,9 @@ namespace HexEditor
     public partial class MainWindow : Window
     {
         private readonly ObservableCollection<string> _logEntries = new();
+        private readonly ObservableCollection<string> _i2cAddresses = new();
         private readonly ArduinoService _arduinoService;
+        private byte[]? _lastLoggedAddresses;
         private const int MaxLogEntries = 500;
         private const string PlaceholderValue = "—";
         private readonly List<long> _verificationMismatchOffsets = new(); // Список смещений отличающихся байтов после верификации
@@ -92,6 +94,7 @@ namespace HexEditor
             LogListBox.ItemsSource = _logEntries;
             LogTabListBox.ItemsSource = _logEntries;
             DevicesListBox.ItemsSource = _arduinoService.Devices;
+            I2CAddressesListBox.ItemsSource = _i2cAddresses;
             ToggleConnectionButton.Content = "Подключить";
             ToggleConnectionButton.IsEnabled = false;
             ResetDeviceDetails();
@@ -836,6 +839,7 @@ namespace HexEditor
             DetailClockText.Text = PlaceholderValue;
             DetailRswpText.Text = PlaceholderValue;
             UpdateRswpDisplay(Array.Empty<bool>());
+            UpdateI2CAddresses(Array.Empty<byte>());
             UpdateReadButtonState();
         }
 
@@ -979,6 +983,51 @@ namespace HexEditor
             RswpMemoryTypeText.Text = $"Тип памяти: {typeText}";
         }
 
+        private void UpdateI2CAddresses(byte[] addresses)
+        {
+            _i2cAddresses.Clear();
+            
+            if (addresses == null || addresses.Length == 0)
+            {
+                return;
+            }
+
+            foreach (byte address in addresses.OrderBy(a => a))
+            {
+                string description = GetI2CAddressDescription(address);
+                _i2cAddresses.Add($"0x{address:X2} - {description}");
+            }
+        }
+
+        private static string GetI2CAddressDescription(byte address)
+        {
+            return address switch
+            {
+                // Термодатчики (Temperature Sensors)
+                0x18 => "термодатчик",
+                0x19 => "термодатчик",
+                0x1A => "термодатчик",
+                0x1B => "термодатчик",
+                0x1C => "термодатчик",
+                0x1D => "термодатчик",
+                0x1E => "термодатчик",
+                0x1F => "термодатчик",
+                // Регистры страниц EEPROM
+                0x36 => "регистр страниц EEPROM SPA0",
+                0x37 => "регистр страниц EEPROM SPA1",
+                // EEPROM модули памяти (SPD)
+                0x50 => "EEPROM",
+                0x51 => "EEPROM",
+                0x52 => "EEPROM",
+                0x53 => "EEPROM",
+                0x54 => "EEPROM",
+                0x55 => "EEPROM",
+                0x56 => "EEPROM",
+                0x57 => "EEPROM",
+                _ => "неизвестное устройство"
+            };
+        }
+
         private void OnArduinoLogGenerated(object? sender, ArduinoLogEventArgs e)
         {
             AppendLog(e.Level, e.Message);
@@ -993,6 +1042,8 @@ namespace HexEditor
                     ResetDeviceDetails();
                     _lastConnectionPort = string.Empty;
                 }
+                // Не обновляем адреса здесь - это будет сделано в OnArduinoConnectionInfoChanged
+                // чтобы избежать множественных вызовов
 
                 _isArduinoConnected = isConnected;
                 UpdateConnectionStatusBadge();
@@ -1013,6 +1064,9 @@ namespace HexEditor
                 {
                     SetDeviceDetails(info.Port, info.FirmwareVersion, info.Name, info.I2CClock, info.Ddr4Rswp);
                     _lastConnectionPort = info.Port;
+                    // Обновляем адреса сразу после получения информации о подключении
+                    // device.Scan() уже был вызван в ConnectAsync, кэш установлен
+                    UpdateI2CAddressesFromDevice();
                 }
 
                 UpdateConnectionStatusBadge();
@@ -1048,12 +1102,80 @@ namespace HexEditor
             }
         }
 
-        private void OnArduinoSpdStateChanged(object? sender, bool _)
+        private void UpdateI2CAddressesFromDevice()
+        {
+            try
+            {
+                var device = _arduinoService.GetActiveDevice();
+                if (device == null)
+                {
+                    AppendLog("Debug", "UpdateI2CAddressesFromDevice: device is null");
+                    UpdateI2CAddresses(Array.Empty<byte>());
+                    return;
+                }
+
+                if (!device.IsConnected)
+                {
+                    AppendLog("Debug", "UpdateI2CAddressesFromDevice: device is not connected");
+                    UpdateI2CAddresses(Array.Empty<byte>());
+                    return;
+                }
+
+                // Вызываем ScanFull() в отдельном потоке для полного сканирования I2C шины
+                // Это может занять некоторое время (до 112 адресов * время проверки)
+                Task.Run(() =>
+                {
+                    try
+                    {
+                        byte[] addresses = device.ScanFull();
+                        Dispatcher.Invoke(() =>
+                        {
+                            UpdateI2CAddresses(addresses);
+                            if (addresses.Length > 0)
+                            {
+                                // Логируем только один раз, чтобы не засорять лог
+                                var addressList = string.Join(", ", addresses.Select(a => $"0x{a:X2}"));
+                                if (!_lastLoggedAddresses?.SequenceEqual(addresses) ?? true)
+                                {
+                                    AppendLog("Info", $"Найдено I2C устройств: {addresses.Length} ({addressList})");
+                                    _lastLoggedAddresses = addresses;
+                                }
+                            }
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        Dispatcher.Invoke(() =>
+                        {
+                            AppendLog("Error", $"Не удалось получить I2C адреса: {ex.Message}");
+                            UpdateI2CAddresses(Array.Empty<byte>());
+                        });
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                AppendLog("Error", $"Ошибка при обновлении I2C адресов: {ex.Message}");
+                UpdateI2CAddresses(Array.Empty<byte>());
+            }
+        }
+
+        private void OnArduinoSpdStateChanged(object? sender, bool isSpdReady)
         {
             Dispatcher.Invoke(() =>
             {
                 UpdateReadButtonState();
                 UpdateRswpButtonsState();
+                // Обновляем адреса после изменения состояния SPD
+                // При вставке SPD адреса уже должны быть в кэше
+                if (isSpdReady)
+                {
+                    UpdateI2CAddressesFromDevice();
+                }
+                else
+                {
+                    UpdateI2CAddresses(Array.Empty<byte>());
+                }
             });
         }
 
