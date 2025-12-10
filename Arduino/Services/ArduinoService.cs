@@ -1789,10 +1789,18 @@ internal sealed partial class ArduinoService
 
             var device = _activeDevice;
             System.Diagnostics.Debug.WriteLine($"[HandleConnectionLost] {device.PortName}: Соединение потеряно. Начало отключения.");
+            
+            // Логируем потерю связи в обычный лог для пользователя
+            LogWarn($"{device.PortName}: Соединение с Arduino потеряно. Устройство отключается...");
+            
             // Это событие вызывается только при реальной потере связи с Arduino
             // (не при извлечении EEPROM)
             DisconnectInternal(false);
+            
             System.Diagnostics.Debug.WriteLine($"[HandleConnectionLost] {device.PortName}: Отключение завершено.");
+            
+            // Логируем завершение отключения
+            LogInfo($"{device.PortName}: Устройство отключено.");
         }
 
     private void DisconnectInternal(bool logDisconnect)
