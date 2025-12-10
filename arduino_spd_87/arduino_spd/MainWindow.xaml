@@ -1,0 +1,710 @@
+﻿<Window x:Class="HexEditor.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:HexEditor"
+        xmlns:hex="clr-namespace:HexEditor.HexEdit"
+        xmlns:database="clr-namespace:HexEditor.Database"
+        xmlns:spd="clr-namespace:HexEditor.SpdDecoder"
+        mc:Ignorable="d"
+        Title="SPD-RW-EDIT"
+        Height="1100"
+        Width="1600"
+        MinWidth="1511"
+        MinHeight="840"
+        Background="{DynamicResource AppWindowBackground}"
+        TextOptions.TextFormattingMode="Display"
+        TextOptions.TextRenderingMode="ClearType"
+        TextOptions.TextHintingMode="Fixed"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True">
+    <DockPanel Background="{DynamicResource AppWindowBackground}">
+        <!-- Menu Bar -->
+        <Menu DockPanel.Dock="Top"
+              Background="{StaticResource SurfaceBrush}"
+              BorderBrush="{StaticResource SurfaceBorderBrush}"
+              BorderThickness="0,0,0,1"
+              Padding="12,6"
+              FontSize="13">
+            <MenuItem Header="File">
+                <MenuItem Header="Open" Click="OpenFile_Click"/>
+                <MenuItem Header="Save" Click="SaveFile_Click"/>
+                <MenuItem Header="Save As" Click="SaveFileAs_Click"/>
+            </MenuItem>
+            <MenuItem Header="Edit">
+                <MenuItem Header="Undo"
+                          Click="Undo_Click"
+                          InputGestureText="Ctrl+Z"
+                          x:Name="UndoMenuItem"/>
+                <MenuItem Header="Redo"
+                          Click="Redo_Click"
+                          InputGestureText="Ctrl+Y"
+                          x:Name="RedoMenuItem"/>
+                <Separator/>
+                <MenuItem Header="Copy"
+                          Click="Copy_Click"
+                          InputGestureText="Ctrl+C"
+                          x:Name="CopyMenuItem"/>
+                <MenuItem Header="Paste"
+                          Click="Paste_Click"
+                          InputGestureText="Ctrl+V"
+                          x:Name="PasteMenuItem"/>
+                <Separator/>
+                <MenuItem Header="Select All"
+                          Click="SelectAll_Click"
+                          InputGestureText="Ctrl+A"/>
+            </MenuItem>
+            <MenuItem Header="Device">
+                <MenuItem Header="Scan Arduino"
+                          Click="ScanArduinoMenuItem_Click"
+                          InputGestureText="F6"/>
+                <Separator/>
+                <MenuItem Header="Переименовать"
+                          Click="RenameDeviceMenuItem_Click"
+                          x:Name="RenameDeviceMenuItem"/>
+            </MenuItem>
+            <MenuItem Header="Help">
+                <MenuItem Header="Bookmark Keys">
+                    <MenuItem Header="Ctrl+1..0: Single bookmarks (10 colors)"
+                              IsEnabled="False"/>
+                    <MenuItem Header="Ctrl+Alt+1..0: Range bookmarks/frames (same 10 colors)"
+                              IsEnabled="False"/>
+                    <Separator/>
+                    <MenuItem Header="Colors: Red, Orange, Yellow, Green, RoyalBlue,"
+                              IsEnabled="False"/>
+                    <MenuItem Header="        Blue, Purple, DeepPink, Brown, Black"
+                              IsEnabled="False"/>
+                </MenuItem>
+            </MenuItem>
+        </Menu>
+
+        <!-- Command Bar -->
+        <Border DockPanel.Dock="Top"
+                Style="{StaticResource ToolbarPanelStyle}">
+            <WrapPanel Margin="16,10" ItemHeight="44" VerticalAlignment="Center">
+                <Button x:Name="OpenFileButton"
+                        Style="{StaticResource CommandButtonStyle}"
+                        ToolTip="Открыть файл"
+                        Click="OpenFile_Click">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="📂" FontSize="16" Margin="0,0,8,0"/>
+                        <TextBlock Text="Открыть"/>
+                    </StackPanel>
+                </Button>
+                <Button x:Name="SaveFileButton"
+                        Style="{StaticResource CommandButtonStyle}"
+                        ToolTip="Сохранить файл"
+                        Click="SaveFile_Click">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="💾" FontSize="16" Margin="0,0,8,0"/>
+                        <TextBlock Text="Сохранить"/>
+                    </StackPanel>
+                </Button>
+                <Button x:Name="ReadButton"
+                        Style="{StaticResource CommandButtonStyle}"
+                        ToolTip="Прочитать SPD из устройства"
+                        Click="ReadButton_Click"
+                        IsEnabled="False">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="⬇" FontSize="16" Margin="0,0,8,0"/>
+                        <TextBlock Text="Прочитать"/>
+                    </StackPanel>
+                </Button>
+                <Button x:Name="WriteButton"
+                        Style="{StaticResource CommandButtonStyle}"
+                        ToolTip="Записать SPD в устройство"
+                        Click="WriteButton_Click"
+                        IsEnabled="False">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="⬆" FontSize="16" Margin="0,0,8,0"/>
+                        <TextBlock Text="Запись"/>
+                    </StackPanel>
+                </Button>
+                <Button x:Name="VerifyButton"
+                        Style="{StaticResource CommandButtonStyle}"
+                        ToolTip="Верификация SPD"
+                        Click="VerifyButton_Click"
+                        IsEnabled="False">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="✓" FontSize="16" Margin="0,0,8,0"/>
+                        <TextBlock Text="Верификация"/>
+                    </StackPanel>
+                </Button>
+                <Button x:Name="FixCrcButton"
+                        Style="{StaticResource CommandButtonStyle}"
+                        ToolTip="Исправить CRC"
+                        Click="FixCrcButton_Click"
+                        IsEnabled="False">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="🛠" FontSize="16" Margin="0,0,8,0"/>
+                        <TextBlock Text="Fix CRC"/>
+                    </StackPanel>
+                </Button>
+            </WrapPanel>
+        </Border>
+
+        <!-- Status Bar -->
+        <Border DockPanel.Dock="Bottom"
+                Style="{StaticResource StatusBarPanelStyle}">
+            <Grid Margin="16,8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Orientation="Horizontal"
+                            Grid.Column="0"
+                            VerticalAlignment="Center"
+                            Margin="0,0,12,0">
+                    <Border x:Name="ConnectionStatusBadge"
+                            Style="{StaticResource BadgeStyle}"
+                            Width="150">
+                        <TextBlock x:Name="ConnectionStatusText"
+                                   Text="Автономный"
+                                   Foreground="{StaticResource PrimaryTextBrush}"
+                                   FontSize="12"
+                                   FontWeight="Bold"
+                                   TextAlignment="Center"/>
+                    </Border>
+                    <Border x:Name="MemoryTypeBadge"
+                            Style="{StaticResource BadgeStyle}"
+                            Width="110">
+                        <TextBlock x:Name="MemoryTypeText"
+                                   Text="DDR —"
+                                   Foreground="{StaticResource PrimaryTextBrush}"
+                                   FontSize="12"
+                                   FontWeight="Bold"
+                                   TextAlignment="Center"/>
+                    </Border>
+                    <Border x:Name="CrcStatusBadge"
+                            Style="{StaticResource BadgeStyle}"
+                            Width="130">
+                        <TextBlock x:Name="CrcStatusText"
+                                   Text="CRC —"
+                                   Foreground="{StaticResource PrimaryTextBrush}"
+                                   FontSize="12"
+                                   FontWeight="Bold"
+                                   TextAlignment="Center"/>
+                    </Border>
+                </StackPanel>
+
+                <Separator x:Name="ProgressSeparator"
+                           Grid.Column="1"
+                           Width="1"
+                           Margin="12,0"
+                           Opacity="0.4"
+                           Background="{StaticResource SeparatorBrush}"
+                           BorderBrush="{StaticResource SeparatorBrush}"/>
+
+                <Grid x:Name="ProgressPanel"
+                      Grid.Column="2"
+                      Width="350"
+                      Height="22"
+                      VerticalAlignment="Center"
+                      Opacity="0.4"
+                      Margin="16,0">
+                    <ProgressBar x:Name="StatusProgressBar" 
+                                 Height="22" 
+                                 Minimum="0" 
+                                 Maximum="100" 
+                                 Value="0"
+                                 VerticalAlignment="Center"/>
+                    <TextBlock x:Name="ProgressText"
+                               Text="—"
+                               Foreground="{StaticResource PrimaryTextBrush}"
+                               FontSize="11"
+                               FontWeight="SemiBold"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center"
+                               IsHitTestVisible="False"/>
+                </Grid>
+
+                <TextBlock x:Name="StatusText"
+                           Grid.Column="3"
+                           Text="Готов"
+                           Foreground="{StaticResource PrimaryTextBrush}"
+                           FontSize="12"
+                           VerticalAlignment="Center"
+                           HorizontalAlignment="Center"
+                           Margin="16,0,0,0"/>
+
+                <TextBlock x:Name="StatusInfoText"
+                           Grid.Column="5"
+                           Text=""
+                           Foreground="{StaticResource MutedTextBrush}"
+                           FontSize="12"
+                           VerticalAlignment="Center"
+                           Margin="16,0,0,0"/>
+            </Grid>
+        </Border>
+
+        <!-- Main Content TabControl -->
+        <TabControl Background="Transparent" Margin="0">
+            <!-- HEX Tab -->
+            <TabItem Header="SPD-RW">
+                <Grid Background="Transparent">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="300" MinWidth="300" MaxWidth="300"/>
+                <ColumnDefinition Width="*" MinWidth="800" MaxWidth="1000"/>
+                <ColumnDefinition Width="3"/>
+                <ColumnDefinition Width="*" MinWidth="360"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Left Panel: Arduino Device Panel -->
+            <ScrollViewer Grid.Column="0"
+                         VerticalScrollBarVisibility="Auto"
+                         HorizontalScrollBarVisibility="Disabled"
+                         Background="Transparent">
+                <StackPanel Margin="0">
+                    <!-- Arduino Search Card -->
+                    <Border Style="{StaticResource CardStyle}">
+                        <StackPanel>
+                            <TextBlock Text="Поиск Arduino" Style="{StaticResource CardTitleStyle}"/>
+                            <ListBox x:Name="DevicesListBox"
+                                     MinHeight="60"
+                                     Margin="0,0,0,8"
+                                     Background="{StaticResource SurfaceBrush}"
+                                     BorderBrush="{StaticResource SurfaceBorderBrush}"
+                                     BorderThickness="1"
+                                     SelectionChanged="DevicesListBox_SelectionChanged">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding DisplaySummary}"
+                                                   FontSize="12"
+                                                   Foreground="{StaticResource PrimaryTextBrush}"
+                                                   TextWrapping="Wrap"/>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                            <Grid Margin="0,4,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Button x:Name="SearchButton"
+                                        Grid.Column="0"
+                                        Style="{StaticResource CommandButtonStyle}"
+                                        Content="Поиск"
+                                        Margin="0,0,4,0"
+                                        HorizontalAlignment="Stretch"
+                                        Click="SearchButton_Click"/>
+                                <Button x:Name="ToggleConnectionButton"
+                                        Grid.Column="1"
+                                        Style="{StaticResource CommandButtonStyle}"
+                                        Content="Подключить"
+                                        Margin="4,0,0,0"
+                                        HorizontalAlignment="Stretch"
+                                        IsEnabled="False"
+                                        Click="ToggleConnectionButton_Click"/>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Device Info Card -->
+                    <Border Style="{StaticResource CardStyle}">
+                        <StackPanel>
+                            <TextBlock Text="Информация об устройстве" Style="{StaticResource CardTitleStyle}"/>
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="90"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <TextBlock Grid.Row="0" Grid.Column="0"
+                                           Text="Port:"
+                                           Style="{StaticResource FieldLabelText}"/>
+                                <TextBlock Grid.Row="0" Grid.Column="1"
+                                           x:Name="DetailPortText"
+                                           Text="—"
+                                           Style="{StaticResource FieldValueText}"/>
+
+                                <TextBlock Grid.Row="1" Grid.Column="0"
+                                           Text="FW Version:"
+                                           Style="{StaticResource FieldLabelText}"
+                                           Margin="0,4,0,0"/>
+                                <TextBlock Grid.Row="1" Grid.Column="1"
+                                           x:Name="DetailFirmwareText"
+                                           Text="—"
+                                           Style="{StaticResource FieldValueText}"
+                                           Margin="0,4,0,0"/>
+
+                                <TextBlock Grid.Row="2" Grid.Column="0"
+                                           Text="Name:"
+                                           Style="{StaticResource FieldLabelText}"
+                                           Margin="0,4,0,0"/>
+                                <TextBlock Grid.Row="2" Grid.Column="1"
+                                           x:Name="DetailNameText"
+                                           Text="—"
+                                           Style="{StaticResource FieldValueText}"
+                                           Margin="0,4,0,0"/>
+
+                                <TextBlock Grid.Row="3" Grid.Column="0"
+                                           Text="I2C Clock:"
+                                           Style="{StaticResource FieldLabelText}"
+                                           Margin="0,4,0,0"/>
+                                <TextBlock Grid.Row="3" Grid.Column="1"
+                                           x:Name="DetailClockText"
+                                           Text="—"
+                                           Style="{StaticResource FieldValueText}"
+                                           Margin="0,4,0,0"/>
+
+                                <TextBlock Grid.Row="4" Grid.Column="0"
+                                           Text="DDR4 RSWP:"
+                                           Style="{StaticResource FieldLabelText}"
+                                           Margin="0,4,0,0"/>
+                                <TextBlock Grid.Row="4" Grid.Column="1"
+                                           x:Name="DetailRswpText"
+                                           Text="—"
+                                           Style="{StaticResource FieldValueText}"
+                                           Margin="0,4,0,0"/>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- RSWP Card -->
+                    <Border Style="{StaticResource CardStyle}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="RSWP" Style="{StaticResource CardTitleStyle}"/>
+                            <TextBlock Grid.Row="1" Grid.Column="0"
+                                       x:Name="RswpMemoryTypeText"
+                                       Text="Тип памяти: —"
+                                       Margin="0,0,0,8"
+                                       Style="{StaticResource FieldLabelText}"/>
+
+                            <StackPanel Grid.Row="2" Grid.Column="0">
+                                <CheckBox x:Name="RswpBlock0CheckBox" Margin="0,0,0,1" IsEnabled="False">
+                                    <TextBlock x:Name="RswpBlock0Text" Text="Block 0: - —" Foreground="{StaticResource PrimaryTextBrush}"/>
+                                </CheckBox>
+                                <CheckBox x:Name="RswpBlock1CheckBox" Margin="0,0,0,1" IsEnabled="False">
+                                    <TextBlock x:Name="RswpBlock1Text" Text="Block 1: - —" Foreground="{StaticResource PrimaryTextBrush}"/>
+                                </CheckBox>
+                                <CheckBox x:Name="RswpBlock2CheckBox" Margin="0,0,0,1" IsEnabled="False">
+                                    <TextBlock x:Name="RswpBlock2Text" Text="Block 2: - —" Foreground="{StaticResource PrimaryTextBrush}"/>
+                                </CheckBox>
+                                <CheckBox x:Name="RswpBlock3CheckBox" Margin="0,0,0,1" IsEnabled="False">
+                                    <TextBlock x:Name="RswpBlock3Text" Text="Block 3: - —" Foreground="{StaticResource PrimaryTextBrush}"/>
+                                </CheckBox>
+                                <CheckBox x:Name="RswpBlock4CheckBox" Margin="0,0,0,1" IsEnabled="False">
+                                    <TextBlock x:Name="RswpBlock4Text" Text="Block 4: - —" Foreground="{StaticResource PrimaryTextBrush}"/>
+                                </CheckBox>
+                                <CheckBox x:Name="RswpBlock5CheckBox" Margin="0,0,0,1" IsEnabled="False">
+                                    <TextBlock x:Name="RswpBlock5Text" Text="Block 5: - —" Foreground="{StaticResource PrimaryTextBrush}"/>
+                                </CheckBox>
+                                <CheckBox x:Name="RswpBlock6CheckBox" Margin="0,0,0,1" IsEnabled="False">
+                                    <TextBlock x:Name="RswpBlock6Text" Text="Block 6: - —" Foreground="{StaticResource PrimaryTextBrush}"/>
+                                </CheckBox>
+                                <CheckBox x:Name="RswpBlock7CheckBox" Margin="0,0,0,1" IsEnabled="False">
+                                    <TextBlock x:Name="RswpBlock7Text" Text="Block 7: - —" Foreground="{StaticResource PrimaryTextBrush}"/>
+                                </CheckBox>
+                                <CheckBox x:Name="RswpBlock8CheckBox" Margin="0,0,0,1" IsEnabled="False">
+                                    <TextBlock x:Name="RswpBlock8Text" Text="Block 8: - —" Foreground="{StaticResource PrimaryTextBrush}"/>
+                                </CheckBox>
+                                <CheckBox x:Name="RswpBlock9CheckBox" Margin="0,0,0,1" IsEnabled="False">
+                                    <TextBlock x:Name="RswpBlock9Text" Text="Block 9: - —" Foreground="{StaticResource PrimaryTextBrush}"/>
+                                </CheckBox>
+                                <CheckBox x:Name="RswpBlock10CheckBox" Margin="0,0,0,1" IsEnabled="False">
+                                    <TextBlock x:Name="RswpBlock10Text" Text="Block 10: - —" Foreground="{StaticResource PrimaryTextBrush}"/>
+                                </CheckBox>
+                                <CheckBox x:Name="RswpBlock11CheckBox" Margin="0,0,0,1" IsEnabled="False">
+                                    <TextBlock x:Name="RswpBlock11Text" Text="Block 11: - —" Foreground="{StaticResource PrimaryTextBrush}"/>
+                                </CheckBox>
+                                <CheckBox x:Name="RswpBlock12CheckBox" Margin="0,0,0,1" IsEnabled="False">
+                                    <TextBlock x:Name="RswpBlock12Text" Text="Block 12: - —" Foreground="{StaticResource PrimaryTextBrush}"/>
+                                </CheckBox>
+                                <CheckBox x:Name="RswpBlock13CheckBox" Margin="0,0,0,1" IsEnabled="False">
+                                    <TextBlock x:Name="RswpBlock13Text" Text="Block 13: - —" Foreground="{StaticResource PrimaryTextBrush}"/>
+                                </CheckBox>
+                                <CheckBox x:Name="RswpBlock14CheckBox" Margin="0,0,0,1" IsEnabled="False">
+                                    <TextBlock x:Name="RswpBlock14Text" Text="Block 14: - —" Foreground="{StaticResource PrimaryTextBrush}"/>
+                                </CheckBox>
+                                <CheckBox x:Name="RswpBlock15CheckBox" Margin="0,0,0,0" IsEnabled="False">
+                                    <TextBlock x:Name="RswpBlock15Text" Text="Block 15: - —" Foreground="{StaticResource PrimaryTextBrush}"/>
+                                </CheckBox>
+                            </StackPanel>
+
+                            <StackPanel Grid.Row="3" Grid.Column="0" Orientation="Vertical" Margin="0,8,0,0">
+                                <Button x:Name="CheckRswpButton"
+                                        Style="{StaticResource CommandButtonStyle}"
+                                        Content="Проверить"
+                                        Width="110"
+                                        Margin="0,0,0,6"
+                                        HorizontalAlignment="Left"
+                                        IsEnabled="False"
+                                        Click="CheckRswpButton_Click"/>
+                                <Button x:Name="SetRswpButton"
+                                        Style="{StaticResource CommandButtonStyle}"
+                                        Content="Установить"
+                                        Width="110"
+                                        Margin="0,0,0,6"
+                                        HorizontalAlignment="Left"
+                                        IsEnabled="False"
+                                        Click="SetRswpButton_Click"/>
+                                <Button x:Name="ClearRswpButton"
+                                        Style="{StaticResource CommandButtonStyle}"
+                                        Content="Очистить"
+                                        Width="110"
+                                        HorizontalAlignment="Left"
+                                        IsEnabled="False"
+                                        Click="ClearRswpButton_Click"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- Center Panel: Hex Editor and Logs -->
+            <Border Grid.Column="1"
+                    Background="{StaticResource SurfaceBrush}"
+                    BorderBrush="{StaticResource SurfaceBorderBrush}"
+                    BorderThickness="1"
+                    Padding="0">
+                <TabControl Margin="0"
+                            HorizontalAlignment="Stretch"
+                            VerticalAlignment="Stretch">
+                    <!-- Hex Tab -->
+                    <TabItem Header="Hex">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*" MinHeight="220"/>
+                                <RowDefinition Height="4"/>
+                                <RowDefinition Height="220" MinHeight="170"/>
+                            </Grid.RowDefinitions>
+
+                            <hex:HexEditorControl x:Name="HexEditor" Grid.Row="0"/>
+
+                            <GridSplitter Grid.Row="1"
+                                          Height="4"
+                                          HorizontalAlignment="Stretch"
+                                          VerticalAlignment="Stretch"
+                                          Background="{StaticResource SurfaceBorderBrush}"
+                                          Cursor="SizeNS"
+                                          ShowsPreview="True"
+                                          ResizeDirection="Rows"
+                                          ResizeBehavior="PreviousAndNext"/>
+
+                            <Border Grid.Row="2"
+                                    Background="{StaticResource SurfaceBrush}"
+                                    BorderBrush="{StaticResource SurfaceBorderBrush}"
+                                    BorderThickness="1,1,1,0">
+                                <DockPanel LastChildFill="True" Margin="12">
+                                    <StackPanel DockPanel.Dock="Top"
+                                                Orientation="Horizontal"
+                                                VerticalAlignment="Center"
+                                                Margin="0,0,0,6">
+                                        <TextBlock Text="Device Logs"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{StaticResource PrimaryTextBrush}"
+                                                   FontSize="12"/>
+                                        <TextBlock Text=" · Arduino COM activity"
+                                                   Margin="6,0,0,0"
+                                                   Foreground="{StaticResource MutedTextBrush}"
+                                                   FontSize="11"/>
+                                    </StackPanel>
+
+                                    <ListBox x:Name="LogListBox"
+                                             Background="{StaticResource AppWindowBackground}"
+                                             Foreground="{StaticResource PrimaryTextBrush}"
+                                             BorderBrush="{StaticResource SurfaceBorderBrush}"
+                                             BorderThickness="1"
+                                             FontFamily="Consolas"
+                                             FontSize="11"
+                                             HorizontalContentAlignment="Stretch"
+                                             ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                             SelectionMode="Single">
+                                        <ListBox.ContextMenu>
+                                            <ContextMenu>
+                                                <MenuItem Header="Скопировать строку"
+                                                          Click="CopySelectedLogMenuItem_Click"/>
+                                                <MenuItem Header="Скопировать всё"
+                                                          Click="CopyAllLogsMenuItem_Click"/>
+                                            </ContextMenu>
+                                        </ListBox.ContextMenu>
+                                    </ListBox>
+                                </DockPanel>
+                            </Border>
+                        </Grid>
+                    </TabItem>
+
+                    <!-- Log Tab -->
+                    <TabItem Header="Log">
+                        <Border Background="{StaticResource SurfaceBrush}"
+                                BorderBrush="{StaticResource SurfaceBorderBrush}"
+                                BorderThickness="1,1,1,0">
+                            <DockPanel LastChildFill="True" Margin="12">
+                                <DockPanel DockPanel.Dock="Top" Margin="0,0,0,6">
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <TextBlock Text="Device Logs"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="{StaticResource PrimaryTextBrush}"
+                                                   FontSize="12"/>
+                                        <TextBlock Text=" · Arduino COM activity"
+                                                   Margin="6,0,0,0"
+                                                   Foreground="{StaticResource MutedTextBrush}"
+                                                   FontSize="11"/>
+                                    </StackPanel>
+                                </DockPanel>
+
+                                <ListBox x:Name="LogTabListBox"
+                                         Background="{StaticResource AppWindowBackground}"
+                                         Foreground="{StaticResource PrimaryTextBrush}"
+                                         BorderBrush="{StaticResource SurfaceBorderBrush}"
+                                         BorderThickness="1"
+                                         FontFamily="Consolas"
+                                         FontSize="11"
+                                         HorizontalContentAlignment="Stretch"
+                                         ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                         SelectionMode="Single">
+                                    <ListBox.ContextMenu>
+                                        <ContextMenu>
+                                            <MenuItem Header="Скопировать строку"
+                                                      Click="CopySelectedLogMenuItem_Click"/>
+                                            <MenuItem Header="Скопировать всё"
+                                                      Click="CopyAllLogsMenuItem_Click"/>
+                                        </ContextMenu>
+                                    </ListBox.ContextMenu>
+                                </ListBox>
+                            </DockPanel>
+                        </Border>
+                    </TabItem>
+                </TabControl>
+            </Border>
+
+            <!-- GridSplitter 3: Center / Right Panel -->
+            <GridSplitter Grid.Column="2"
+                          Width="3"
+                          HorizontalAlignment="Stretch"
+                          Background="{StaticResource SurfaceBorderBrush}"
+                          Cursor="SizeWE"
+                          ShowsPreview="True"
+                          ResizeDirection="Columns"
+                          ResizeBehavior="PreviousAndNext"/>
+
+            <!-- Right Panel: SPD Info and Database -->
+            <Border Grid.Column="3"
+                    Background="{StaticResource SurfaceBrush}"
+                    BorderBrush="{StaticResource SurfaceBorderBrush}"
+                    BorderThickness="1,0,0,0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    
+                    <!-- Memory Type Selection -->
+                    <Border Grid.Row="0"
+                            Background="{StaticResource SurfaceBrush}"
+                            BorderBrush="{StaticResource SurfaceBorderBrush}"
+                            BorderThickness="0,0,0,1"
+                            Padding="12,8">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Memory Type:"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,8,0"
+                                       FontSize="12"
+                                       Foreground="{StaticResource PrimaryTextBrush}"/>
+                            <ComboBox x:Name="ForcedMemoryTypeComboBox"
+                                      Grid.Column="1"
+                                      SelectionChanged="ForcedMemoryTypeComboBox_SelectionChanged"
+                                      VerticalAlignment="Center"
+                                      FontSize="12"
+                                      MinWidth="150">
+                                <ComboBoxItem Content="Auto (Detect)" Tag="Auto" IsSelected="True"/>
+                                <ComboBoxItem Content="DDR4 (Forced)" Tag="Ddr4"/>
+                                <ComboBoxItem Content="DDR5 (Forced)" Tag="Ddr5"/>
+                            </ComboBox>
+                        </Grid>
+                    </Border>
+                    
+                    <TabControl Grid.Row="1"
+                                Margin="0"
+                                HorizontalAlignment="Stretch"
+                                HorizontalContentAlignment="Stretch"
+                                VerticalAlignment="Stretch">
+                <TabItem Header="SPD Info">
+                    <Grid HorizontalAlignment="Stretch"
+                          VerticalAlignment="Stretch">
+                        <spd:SpdInfoPanel x:Name="SpdInfoPanel"
+                                          Margin="12"
+                                          HorizontalAlignment="Stretch"
+                                          VerticalAlignment="Stretch"
+                                          Loaded="SpdInfoPanel_Loaded"/>
+                    </Grid>
+                </TabItem>
+                <TabItem Header="SPD Edit">
+                    <Grid HorizontalAlignment="Stretch"
+                          VerticalAlignment="Stretch">
+                        <spd:SpdEditPanel x:Name="SpdEditPanel"
+                                          Margin="12"
+                                          HorizontalAlignment="Stretch"
+                                          VerticalAlignment="Stretch"/>
+                    </Grid>
+                </TabItem>
+                    </TabControl>
+                </Grid>
+            </Border>
+        </Grid>
+            </TabItem>
+            
+            <!-- Arduino Tab -->
+            <TabItem Header="Arduino">
+                <Grid Background="{StaticResource SurfaceBrush}">
+                    <!-- Reserved for Arduino-specific UI -->
+                </Grid>
+            </TabItem>
+            
+            <!-- Part Number Decoder Tab -->
+            <TabItem Header="Part Number Decoder">
+                <Grid Background="{StaticResource SurfaceBrush}">
+                    <spd:PartNumberDecoder x:Name="PartNumberDecoder"
+                                           HorizontalAlignment="Stretch"
+                                           VerticalAlignment="Stretch"
+                                           HorizontalContentAlignment="Stretch"/>
+                </Grid>
+            </TabItem>
+            
+            <!-- Database Tab -->
+            <TabItem Header="Database">
+                <TabControl Margin="8">
+                    <TabItem Header="DRAM Part Numbers">
+                        <database:DramPartNumberEditor x:Name="DramPartNumberEditor"
+                                                       HorizontalAlignment="Stretch"
+                                                       HorizontalContentAlignment="Stretch"/>
+                    </TabItem>
+                    <TabItem Header="Manufacturers">
+                        <database:ManufacturerEditor x:Name="ManufacturerEditor"
+                                                     HorizontalAlignment="Stretch"
+                                                     HorizontalContentAlignment="Stretch"/>
+                    </TabItem>
+                </TabControl>
+            </TabItem>
+        </TabControl>
+    </DockPanel>
+</Window>
