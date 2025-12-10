@@ -326,6 +326,15 @@ internal sealed partial class ArduinoService
         IsReading = true;
         OnStateChanged();
 
+        // Захватываем ссылку на устройство локально, чтобы избежать race condition
+        var currentDevice = _activeDevice;
+        if (currentDevice == null)
+        {
+            IsReading = false;
+            OnStateChanged();
+            return null;
+        }
+
         try
         {
             // Определяем тип памяти перед чтением, если он еще не определен
@@ -337,16 +346,34 @@ internal sealed partial class ArduinoService
             
             var data = await Task.Run(() =>
             {
+                // Проверяем, что устройство все еще подключено перед использованием
+                if (currentDevice == null || !currentDevice.IsConnected)
+                {
+                    return null;
+                }
+
                 lock (_lock)
                 {
-                    _activeDevice.I2CAddress = _activeI2cAddress;
+                    // Повторная проверка после получения lock
+                    if (currentDevice == null || !currentDevice.IsConnected || _activeDevice != currentDevice)
+                    {
+                        return null;
+                    }
+
+                    currentDevice.I2CAddress = _activeI2cAddress;
                     // Вызываем ReadSpdDump без параметра - использует значение по умолчанию 512
                     // Это работает как в старом коде arduino_spd_87
-                    return _activeDevice.ReadSpdDump();
+                    return currentDevice.ReadSpdDump();
                 }
             }).ConfigureAwait(true);
 
-            LogInfo($"{_activeDevice.PortName}: Дамп SPD загружен ({data.Length} байт).");
+            if (data == null)
+            {
+                LogWarn($"{currentDevice?.PortName}: Не удалось прочитать дамп SPD (устройство отключено).");
+                return null;
+            }
+
+            LogInfo($"{currentDevice.PortName}: Дамп SPD загружен ({data.Length} байт).");
             
             // Валидация размера данных в зависимости от типа памяти
             int expectedSize = _memoryType switch
@@ -358,7 +385,7 @@ internal sealed partial class ArduinoService
             
             if (data.Length != expectedSize)
             {
-                LogError($"{_activeDevice.PortName}: Неверный размер SPD: ожидается {expectedSize} байт для {_memoryType}, получено {data.Length} байт.");
+                LogError($"{currentDevice.PortName}: Неверный размер SPD: ожидается {expectedSize} байт для {_memoryType}, получено {data.Length} байт.");
                 return null;
             }
             
@@ -369,7 +396,7 @@ internal sealed partial class ArduinoService
         }
         catch (Exception ex)
         {
-            LogError($"{_activeDevice.PortName}: Ошибка чтения SPD ({ex.Message})");
+            LogError($"{currentDevice?.PortName}: Ошибка чтения SPD ({ex.Message})");
             return null;
         }
         finally
@@ -407,9 +434,16 @@ internal sealed partial class ArduinoService
             _ => 256 // DDR3 и ниже
         };
         
+        // Захватываем ссылку на устройство локально, чтобы избежать race condition
+        var currentDevice = _activeDevice;
+        if (currentDevice == null)
+        {
+            return false;
+        }
+
         if (data.Length != expectedSize)
         {
-            LogError($"{_activeDevice.PortName}: Неверный размер SPD для записи: ожидается {expectedSize} байт для {_memoryType}, получено {data.Length} байт.");
+            LogError($"{currentDevice.PortName}: Неверный размер SPD для записи: ожидается {expectedSize} байт для {_memoryType}, получено {data.Length} байт.");
             return false;
         }
 
@@ -417,9 +451,21 @@ internal sealed partial class ArduinoService
         {
             var result = await Task.Run(() =>
             {
+                // Проверяем, что устройство все еще подключено перед использованием
+                if (currentDevice == null || !currentDevice.IsConnected)
+                {
+                    return false;
+                }
+
                 lock (_lock)
                 {
-                    _activeDevice.I2CAddress = _activeI2cAddress;
+                    // Повторная проверка после получения lock
+                    if (currentDevice == null || !currentDevice.IsConnected || _activeDevice != currentDevice)
+                    {
+                        return false;
+                    }
+
+                    currentDevice.I2CAddress = _activeI2cAddress;
                     int bytesWritten = 0;
 
                     // Записываем байт за байтом, точно как в оригинальном коде
@@ -444,11 +490,11 @@ internal sealed partial class ArduinoService
                         
                         // Используем Update, как в оригинальном коде (проверяет значение перед записью)
                         // В оригинале используется Eeprom.Update по умолчанию (только если не /writeforce)
-                        bool writeResult = _activeDevice.UpdateSpd(i, b);
+                        bool writeResult = currentDevice.UpdateSpd(i, b);
                         
                         if (!writeResult)
                         {
-                            LogError($"{_activeDevice.PortName}: Не удалось записать байт {i} в EEPROM по адресу {_activeDevice.I2CAddress} на порту {_activeDevice.PortName}.");
+                            LogError($"{currentDevice.PortName}: Не удалось записать байт {i} в EEPROM по адресу {currentDevice.I2CAddress} на порту {currentDevice.PortName}.");
                             return false;
                         }
                         
@@ -468,7 +514,7 @@ internal sealed partial class ArduinoService
                         LogInfo(hexLine.ToString());
                     }
 
-                    LogInfo($"{_activeDevice.PortName}: Записано {bytesWritten} байт в SPD.");
+                    LogInfo($"{currentDevice.PortName}: Записано {bytesWritten} байт в SPD.");
                     return true;
                 }
             }).ConfigureAwait(true);
@@ -477,7 +523,7 @@ internal sealed partial class ArduinoService
         }
         catch (Exception ex)
         {
-            LogError($"{_activeDevice.PortName}: Ошибка записи SPD ({ex.Message})");
+            LogError($"{currentDevice?.PortName}: Ошибка записи SPD ({ex.Message})");
             return false;
         }
     }
@@ -509,25 +555,44 @@ internal sealed partial class ArduinoService
             return false;
         }
 
+        // Захватываем ссылку на устройство локально, чтобы избежать race condition
+        var currentDevice = _activeDevice;
+        if (currentDevice == null)
+        {
+            return false;
+        }
+
         try
         {
             var result = await Task.Run(() =>
             {
+                // Проверяем, что устройство все еще подключено перед использованием
+                if (currentDevice == null || !currentDevice.IsConnected)
+                {
+                    return false;
+                }
+
                 lock (_lock)
                 {
-                    return _activeDevice.SetName(name);
+                    // Повторная проверка после получения lock
+                    if (currentDevice == null || !currentDevice.IsConnected || _activeDevice != currentDevice)
+                    {
+                        return false;
+                    }
+
+                    return currentDevice.SetName(name);
                 }
             }).ConfigureAwait(true);
 
             if (result)
             {
-                LogInfo($"{_activeDevice.PortName}: Имя устройства установлено на '{name}'.");
+                LogInfo($"{currentDevice.PortName}: Имя устройства установлено на '{name}'.");
                 // Обновляем информацию о подключении
                 await RefreshConnectionInfoAsync().ConfigureAwait(true);
             }
             else
             {
-                LogWarn($"{_activeDevice.PortName}: Имя устройства уже '{name}'.");
+                LogWarn($"{currentDevice.PortName}: Имя устройства уже '{name}'.");
             }
 
             return result;
@@ -590,6 +655,13 @@ internal sealed partial class ArduinoService
             return Array.Empty<bool>();
         }
 
+        // Захватываем ссылку на устройство локально, чтобы избежать race condition
+        var currentDevice = _activeDevice;
+        if (currentDevice == null)
+        {
+            return Array.Empty<bool>();
+        }
+
         int blockCount = ActiveRswpBlockCount;
         if (blockCount == 0)
         {
@@ -597,7 +669,7 @@ internal sealed partial class ArduinoService
             blockCount = ActiveRswpBlockCount;
             if (blockCount == 0)
             {
-                LogWarn($"{_activeDevice.PortName}: Не удалось определить тип памяти SPD. Статус RSWP недоступен.");
+                LogWarn($"{currentDevice.PortName}: Не удалось определить тип памяти SPD. Статус RSWP недоступен.");
                 return Array.Empty<bool>();
             }
         }
@@ -606,15 +678,27 @@ internal sealed partial class ArduinoService
         {
             var states = await Task.Run(() =>
             {
+                // Проверяем, что устройство все еще подключено перед использованием
+                if (currentDevice == null || !currentDevice.IsConnected)
+                {
+                    return Array.Empty<bool>();
+                }
+
                 lock (_lock)
                 {
-                    _activeDevice.I2CAddress = _activeI2cAddress;
+                    // Повторная проверка после получения lock
+                    if (currentDevice == null || !currentDevice.IsConnected || _activeDevice != currentDevice)
+                    {
+                        return Array.Empty<bool>();
+                    }
+
+                    currentDevice.I2CAddress = _activeI2cAddress;
                     bool[] blockStates = new bool[blockCount];
                     for (byte block = 0; block < blockCount; block++)
                     {
                         try
                         {
-                            blockStates[block] = _activeDevice.GetRswp(block);
+                            blockStates[block] = currentDevice.GetRswp(block);
                         }
                         catch
                         {
@@ -629,17 +713,17 @@ internal sealed partial class ArduinoService
             RswpStateChanged?.Invoke(this, states);
             
             // Построчный вывод состояния всех блоков
-            LogInfo($"{_activeDevice.PortName}: Статус RSWP:");
+            LogInfo($"{currentDevice.PortName}: Статус RSWP:");
             for (int i = 0; i < states.Length; i++)
             {
-                LogInfo($"{_activeDevice.PortName}: Блок {i} [{(states[i] ? "Защищен" : "Не защищен")}]");
+                LogInfo($"{currentDevice.PortName}: Блок {i} [{(states[i] ? "Защищен" : "Не защищен")}]");
             }
             
             return states;
         }
         catch (Exception ex)
         {
-            LogError($"{_activeDevice.PortName}: Ошибка проверки RSWP ({ex.Message})");
+            LogError($"{currentDevice?.PortName}: Ошибка проверки RSWP ({ex.Message})");
             return Array.Empty<bool>();
         }
     }
@@ -687,33 +771,52 @@ internal sealed partial class ArduinoService
             return false;
         }
 
+        // Захватываем ссылку на устройство локально, чтобы избежать race condition
+        var currentDevice = _activeDevice;
+        if (currentDevice == null)
+        {
+            return false;
+        }
+
         try
         {
             var result = await Task.Run(() =>
             {
+                // Проверяем, что устройство все еще подключено перед использованием
+                if (currentDevice == null || !currentDevice.IsConnected)
+                {
+                    return false;
+                }
+
                 lock (_lock)
                 {
-                    _activeDevice.I2CAddress = _activeI2cAddress;
-                    return _activeDevice.SetRswp(block);
+                    // Повторная проверка после получения lock
+                    if (currentDevice == null || !currentDevice.IsConnected || _activeDevice != currentDevice)
+                    {
+                        return false;
+                    }
+
+                    currentDevice.I2CAddress = _activeI2cAddress;
+                    return currentDevice.SetRswp(block);
                 }
             }).ConfigureAwait(true);
 
             if (result)
             {
-                LogInfo($"{_activeDevice.PortName}: RSWP успешно установлен для блока {block}.");
+                LogInfo($"{currentDevice.PortName}: RSWP успешно установлен для блока {block}.");
                 // ПРИМЕЧАНИЕ: Проверка состояния (CheckRswpAsync) вызывается в MainWindow после установки ВСЕХ блоков
                 // Это избегает проблем с недоступностью SPD после HV операций
             }
             else
             {
-                LogWarn($"{_activeDevice.PortName}: ⚠️ Не удалось установить RSWP для блока {block}.");
+                LogWarn($"{currentDevice.PortName}: ⚠️ Не удалось установить RSWP для блока {block}.");
             }
 
             return result;
         }
         catch (Exception ex)
         {
-            LogError($"{_activeDevice.PortName}: Ошибка установки RSWP ({ex.Message})");
+            LogError($"{currentDevice?.PortName}: Ошибка установки RSWP ({ex.Message})");
             return false;
         }
     }
@@ -759,33 +862,52 @@ internal sealed partial class ArduinoService
             return false;
         }
 
+        // Захватываем ссылку на устройство локально, чтобы избежать race condition
+        var currentDevice = _activeDevice;
+        if (currentDevice == null)
+        {
+            return false;
+        }
+
         try
         {
             var result = await Task.Run(() =>
             {
+                // Проверяем, что устройство все еще подключено перед использованием
+                if (currentDevice == null || !currentDevice.IsConnected)
+                {
+                    return false;
+                }
+
                 lock (_lock)
                 {
-                    _activeDevice.I2CAddress = _activeI2cAddress;
-                    return _activeDevice.ClearRswp();
+                    // Повторная проверка после получения lock
+                    if (currentDevice == null || !currentDevice.IsConnected || _activeDevice != currentDevice)
+                    {
+                        return false;
+                    }
+
+                    currentDevice.I2CAddress = _activeI2cAddress;
+                    return currentDevice.ClearRswp();
                 }
             }).ConfigureAwait(true);
 
             if (result)
             {
-                LogInfo($"{_activeDevice.PortName}: RSWP очищен для всех блоков.");
+                LogInfo($"{currentDevice.PortName}: RSWP очищен для всех блоков.");
                 // ПРИМЕЧАНИЕ: Проверка состояния (CheckRswpAsync) выполнится автоматически
                 // после переинициализации SPD (событие SlaveIncrement)
             }
             else
             {
-                LogWarn($"{_activeDevice.PortName}: ⚠️ Не удалось очистить RSWP.");
+                LogWarn($"{currentDevice.PortName}: ⚠️ Не удалось очистить RSWP.");
             }
 
             return result;
         }
         catch (Exception ex)
         {
-            LogError($"{_activeDevice.PortName}: Ошибка очистки RSWP ({ex.Message})");
+            LogError($"{currentDevice?.PortName}: Ошибка очистки RSWP ({ex.Message})");
             return false;
         }
     }
@@ -798,19 +920,39 @@ internal sealed partial class ArduinoService
             return;
         }
 
+        // Захватываем ссылку на устройство локально, чтобы избежать race condition
+        var currentDevice = _activeDevice;
+        if (currentDevice == null)
+        {
+            UpdateMemoryType(SpdMemoryType.Unknown);
+            return;
+        }
+
         try
         {
             var detectedType = await Task.Run(() =>
             {
+                // Проверяем, что устройство все еще подключено перед использованием
+                if (currentDevice == null || !currentDevice.IsConnected)
+                {
+                    return SpdMemoryType.Unknown;
+                }
+
                 lock (_lock)
                 {
-                    _activeDevice.I2CAddress = _activeI2cAddress;
-                    if (_activeDevice.DetectDdr5())
+                    // Повторная проверка после получения lock
+                    if (currentDevice == null || !currentDevice.IsConnected || _activeDevice != currentDevice)
+                    {
+                        return SpdMemoryType.Unknown;
+                    }
+
+                    currentDevice.I2CAddress = _activeI2cAddress;
+                    if (currentDevice.DetectDdr5())
                     {
                         return SpdMemoryType.Ddr5;
                     }
 
-                    if (_activeDevice.DetectDdr4())
+                    if (currentDevice.DetectDdr4())
                     {
                         return SpdMemoryType.Ddr4;
                     }
@@ -823,7 +965,7 @@ internal sealed partial class ArduinoService
         }
         catch (Exception ex)
         {
-            LogWarn($"{_activeDevice?.PortName}: Memory type detection failed ({ex.Message}).");
+            LogWarn($"{currentDevice?.PortName}: Memory type detection failed ({ex.Message}).");
             UpdateMemoryType(SpdMemoryType.Unknown);
         }
     }
