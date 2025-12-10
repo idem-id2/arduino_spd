@@ -15,8 +15,33 @@ if (-not (Test-Path ".git")) {
     exit 0
 }
 
+# Нормализуем пути для корректной обработки разных разделителей (/, \)
+# Используем встроенные функции PowerShell для работы с путями
+$normalizedWorkspaceRoot = [System.IO.Path]::GetFullPath($workspaceRoot)
+$normalizedFilePath = [System.IO.Path]::GetFullPath($FilePath)
+
 # Получаем относительный путь файла от корня репозитория
-$relativePath = $FilePath.Replace($workspaceRoot, "").TrimStart("\", "/")
+# Используем .NET метод GetRelativePath для надежной обработки путей
+try {
+    $relativePath = [System.IO.Path]::GetRelativePath($normalizedWorkspaceRoot, $normalizedFilePath)
+    # Нормализуем разделители для Git (используем прямые слеши)
+    $relativePath = $relativePath.Replace('\', '/')
+} catch {
+    # Fallback: если GetRelativePath не доступен (старые версии .NET)
+    # Используем нормализованные пути с единообразными разделителями
+    $normalizedWorkspaceRootForReplace = $normalizedWorkspaceRoot.Replace('\', '/').TrimEnd('/')
+    $normalizedFilePathForReplace = $normalizedFilePath.Replace('\', '/')
+    
+    # Проверяем, что файл действительно находится внутри workspace
+    if (-not $normalizedFilePathForReplace.StartsWith($normalizedWorkspaceRootForReplace, [System.StringComparison]::OrdinalIgnoreCase)) {
+        Write-Host "File is outside workspace root, skipping auto-commit: $FilePath" -ForegroundColor Yellow
+        exit 0
+    }
+    
+    # Получаем относительный путь с учетом регистра
+    $relativePath = $normalizedFilePathForReplace.Substring($normalizedWorkspaceRootForReplace.Length).TrimStart("/")
+}
+
 $fileName = Split-Path -Leaf $FilePath
 
 # Игнорируем файлы в bin/, obj/, .vs/ и другие временные файлы
@@ -40,6 +65,11 @@ if ([string]::IsNullOrWhiteSpace($status)) {
 
 # Добавляем только измененный файл (не все файлы)
 git add "$relativePath"
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "Error: Failed to add file to git: $relativePath" -ForegroundColor Red
+    Write-Host "Git error code: $LASTEXITCODE" -ForegroundColor Red
+    exit 1
+}
 
 # Формируем сообщение коммита с временем
 $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
@@ -51,18 +81,27 @@ $shortPath = if ($relativePath.Length -gt 50) {
 $commitMessage = "Auto-save: $timestamp - $shortPath"
 
 # Создаем коммит
-try {
-    git commit -m $commitMessage
-    
+# Внешние команды (git) не выбрасывают исключения в PowerShell,
+# поэтому проверяем $LASTEXITCODE после выполнения
+$commitOutput = git commit -m $commitMessage 2>&1
+$commitExitCode = $LASTEXITCODE
+$commitError = $commitOutput | Out-String
+
+if ($commitExitCode -eq 0) {
     # Push выполнится автоматически через git hook post-commit
     Write-Host "✓ Auto-committed: $shortPath at $timestamp" -ForegroundColor Green
+    exit 0
 }
-catch {
-    # Если коммит не удался (например, нет изменений), это нормально
-    if ($_.Exception.Message -match "nothing to commit") {
+else {
+    # Коммит не удался - проверяем причину
+    # Если нет изменений для коммита - это нормально
+    if ($commitError -match "nothing to commit" -or $commitError -match "no changes added to commit") {
         Write-Host "No changes to commit for: $fileName" -ForegroundColor Gray
         exit 0
     }
-    Write-Host "Error committing: $_" -ForegroundColor Red
+    
+    # Другие ошибки - выводим и завершаем с ошибкой
+    Write-Host "Error committing: $commitError" -ForegroundColor Red
+    Write-Host "Git exit code: $commitExitCode" -ForegroundColor Red
     exit 1
 }
