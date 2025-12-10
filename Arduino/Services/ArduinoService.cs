@@ -1544,6 +1544,7 @@ internal sealed partial class ArduinoService
                     // ШАГ 4: СКАНИРОВАНИЕ I2C ШИНЫ
                     // Выполняем в lock для потокобезопасности (как в старом коде)
                     // Lock защищает от одновременного доступа к устройству из разных потоков
+                    // ВАЖНО: Операции внутри lock должны быть быстрыми, чтобы не блокировать другие потоки
                     lock (_lock)
                     {
                         System.Diagnostics.Debug.WriteLine($"[HandleAlert] {device.PortName}: Lock получен, начинаем сканирование");
@@ -1562,6 +1563,8 @@ internal sealed partial class ArduinoService
                         // ШАГ 4.2: ПОЛНОЕ СКАНИРОВАНИЕ I2C ШИНЫ
                         // Сканирует весь диапазон адресов (0x08-0x77) для отображения всех устройств
                         // В старом коде этого не было, но нужно для отображения полного списка устройств
+                        // ВАЖНО: ScanFull() может занять время (сканирует ~112 адресов), поэтому
+                        // при ошибке нужно быстро выйти из lock, чтобы не блокировать другие потоки
                         byte[] fullAddresses = Array.Empty<byte>();
                         try
                         {
@@ -1569,6 +1572,14 @@ internal sealed partial class ArduinoService
                             // Это может занять некоторое время, но выполняется внутри lock
                             fullAddresses = device.ScanFull();
                             System.Diagnostics.Debug.WriteLine($"[HandleAlert] {device.PortName}: ScanFull() завершен, найдено {fullAddresses.Length} адресов");
+                            
+                            // Проверяем состояние устройства после ScanFull()
+                            // Если устройство отключилось во время сканирования, выходим
+                            if (device == null || !device.IsConnected || _activeDevice != device)
+                            {
+                                System.Diagnostics.Debug.WriteLine($"[HandleAlert] {device?.PortName ?? "Unknown"}: Выход после ScanFull() - устройство недоступно");
+                                return;
+                            }
                             
                             // Логируем результаты для отладки и пользователя
                             if (fullAddresses.Length > 0)
@@ -1582,8 +1593,17 @@ internal sealed partial class ArduinoService
                             // ОБРАБОТКА ОШИБОК СКАНИРОВАНИЯ:
                             // Эти ошибки могут возникать при извлечении EEPROM во время сканирования
                             // Это нормальное состояние - EEPROM может быть извлечена в любой момент
-                            // Не логируем как ошибку и продолжаем работу с пустым массивом
+                            // Не логируем как ошибку и быстро выходим из lock, чтобы не блокировать другие потоки
                             System.Diagnostics.Debug.WriteLine($"[HandleAlert] {device.PortName}: ScanFull() ошибка (игнорируется): {ex.GetType().Name}");
+                            
+                            // Проверяем состояние устройства - если отключилось, выходим
+                            if (device == null || !device.IsConnected || _activeDevice != device)
+                            {
+                                System.Diagnostics.Debug.WriteLine($"[HandleAlert] {device?.PortName ?? "Unknown"}: Выход после ошибки ScanFull() - устройство недоступно");
+                                return;
+                            }
+                            
+                            // Продолжаем с пустым массивом, если устройство все еще подключено
                         }
                         
                         // Сохраняем результаты для отображения в UI
@@ -1595,9 +1615,23 @@ internal sealed partial class ArduinoService
                         // В старом коде: _addresses = Scan()
                         try
                         {
+                            // Проверяем состояние устройства перед Scan()
+                            if (device == null || !device.IsConnected || _activeDevice != device)
+                            {
+                                System.Diagnostics.Debug.WriteLine($"[HandleAlert] {device?.PortName ?? "Unknown"}: Выход перед Scan() - устройство недоступно");
+                                return;
+                            }
+                            
                             // Выполняем быстрое сканирование SPD адресов
                             var addresses = device.Scan();
                             System.Diagnostics.Debug.WriteLine($"[HandleAlert] {device.PortName}: Scan() завершен, найдено {addresses.Length} адресов");
+                            
+                            // Проверяем состояние устройства после Scan()
+                            if (device == null || !device.IsConnected || _activeDevice != device)
+                            {
+                                System.Diagnostics.Debug.WriteLine($"[HandleAlert] {device?.PortName ?? "Unknown"}: Выход после Scan() - устройство недоступно");
+                                return;
+                            }
                             
                             // Обновляем активный I2C адрес первым найденным SPD адресом
                             if (addresses.Length > 0)
@@ -1609,8 +1643,17 @@ internal sealed partial class ArduinoService
                         {
                             // ОБРАБОТКА ОШИБОК СКАНИРОВАНИЯ:
                             // Аналогично полному сканированию - ошибки при извлечении EEPROM нормальны
-                            // Продолжаем без обновления _activeI2cAddress
+                            // Быстро выходим из lock, чтобы не блокировать другие потоки
                             System.Diagnostics.Debug.WriteLine($"[HandleAlert] {device.PortName}: Scan() ошибка (игнорируется): {ex.GetType().Name}");
+                            
+                            // Проверяем состояние устройства - если отключилось, выходим
+                            if (device == null || !device.IsConnected || _activeDevice != device)
+                            {
+                                System.Diagnostics.Debug.WriteLine($"[HandleAlert] {device?.PortName ?? "Unknown"}: Выход после ошибки Scan() - устройство недоступно");
+                                return;
+                            }
+                            
+                            // Продолжаем без обновления _activeI2cAddress, если устройство все еще подключено
                         }
                         
                         System.Diagnostics.Debug.WriteLine($"[HandleAlert] {device.PortName}: Lock освобожден");
