@@ -1452,20 +1452,30 @@ internal sealed partial class ArduinoService
                         device.I2CAddress = _activeI2cAddress;
                         
                         // Полное сканирование I2C
-                        // ВАЖНО: Проверяем cancellation token ПЕРЕД вызовом ScanFull(), чтобы не блокировать lock при отмене
+                        // Обрабатываем исключения тихо - они могут возникать при извлечении EEPROM
                         cancellationToken.ThrowIfCancellationRequested();
                         System.Diagnostics.Debug.WriteLine($"[HandleAlert] {device.PortName}: Выполнение ScanFull()");
-                        byte[] fullAddresses = device.ScanFull();
-                        System.Diagnostics.Debug.WriteLine($"[HandleAlert] {device.PortName}: ScanFull() завершен, найдено {fullAddresses.Length} адресов");
-                        
-                        if (fullAddresses.Length > 0)
+                        byte[] fullAddresses = Array.Empty<byte>();
+                        try
                         {
-                            var addressList = string.Join(", ", fullAddresses.Select(a => $"0x{a:X2}"));
-                            LogInfo($"{device.PortName}: Полное сканирование I2C: найдено {fullAddresses.Length} устройств ({addressList})");
+                            fullAddresses = device.ScanFull();
+                            System.Diagnostics.Debug.WriteLine($"[HandleAlert] {device.PortName}: ScanFull() завершен, найдено {fullAddresses.Length} адресов");
+                            
+                            if (fullAddresses.Length > 0)
+                            {
+                                var addressList = string.Join(", ", fullAddresses.Select(a => $"0x{a:X2}"));
+                                LogInfo($"{device.PortName}: Полное сканирование I2C: найдено {fullAddresses.Length} устройств ({addressList})");
+                            }
+                            else
+                            {
+                                LogInfo($"{device.PortName}: Полное сканирование I2C: устройства не найдены");
+                            }
                         }
-                        else
+                        catch (Exception ex) when (ex is InvalidDataException || ex is TimeoutException || ex is InvalidOperationException)
                         {
-                            LogInfo($"{device.PortName}: Полное сканирование I2C: устройства не найдены");
+                            // Ошибки при сканировании могут быть из-за извлечения EEPROM - это нормально
+                            System.Diagnostics.Debug.WriteLine($"[HandleAlert] {device.PortName}: ScanFull() ошибка (игнорируется): {ex.GetType().Name}");
+                            // Продолжаем с пустым массивом
                         }
                         
                         _fullScanAddresses = fullAddresses;
@@ -1473,11 +1483,20 @@ internal sealed partial class ArduinoService
                         // Быстрый скан для определения SPD адресов
                         cancellationToken.ThrowIfCancellationRequested();
                         System.Diagnostics.Debug.WriteLine($"[HandleAlert] {device.PortName}: Выполнение Scan()");
-                        var addresses = device.Scan();
-                        System.Diagnostics.Debug.WriteLine($"[HandleAlert] {device.PortName}: Scan() завершен, найдено {addresses.Length} адресов");
-                        if (addresses.Length > 0)
+                        try
                         {
-                            _activeI2cAddress = addresses[0];
+                            var addresses = device.Scan();
+                            System.Diagnostics.Debug.WriteLine($"[HandleAlert] {device.PortName}: Scan() завершен, найдено {addresses.Length} адресов");
+                            if (addresses.Length > 0)
+                            {
+                                _activeI2cAddress = addresses[0];
+                            }
+                        }
+                        catch (Exception ex) when (ex is InvalidDataException || ex is TimeoutException || ex is InvalidOperationException)
+                        {
+                            // Ошибки при сканировании могут быть из-за извлечения EEPROM - это нормально
+                            System.Diagnostics.Debug.WriteLine($"[HandleAlert] {device.PortName}: Scan() ошибка (игнорируется): {ex.GetType().Name}");
+                            // Продолжаем без обновления _activeI2cAddress
                         }
                         System.Diagnostics.Debug.WriteLine($"[HandleAlert] {device.PortName}: Lock освобожден");
                     }
@@ -1560,18 +1579,18 @@ internal sealed partial class ArduinoService
                     System.Diagnostics.Debug.WriteLine($"[HandleAlert] {device?.PortName ?? "Unknown"}: Task.Run отменен (OperationCanceledException)");
                     // Операция отменена - это нормально при новом алерте или извлечении EEPROM
                 }
-                catch (Exception ex) when (ex is TimeoutException || ex is InvalidOperationException || ex is InvalidDataException)
-                {
-                    System.Diagnostics.Debug.WriteLine($"[HandleAlert] {device?.PortName ?? "Unknown"}: Task.Run ошибка: {ex.GetType().Name} - {ex.Message}");
-                    // Ошибки могут возникать при извлечении EEPROM - это нормально
-                    // Отключаемся только если действительно потеряна связь с Arduino
-                    if (device != null && !device.IsConnected)
+                    catch (Exception ex) when (ex is TimeoutException || ex is InvalidOperationException || ex is InvalidDataException)
                     {
-                        System.Diagnostics.Debug.WriteLine($"[HandleAlert] {device.PortName}: Устройство отключено, вызываем DisconnectInternal");
-                        DisconnectInternal(false);
+                        // Ошибки могут возникать при извлечении EEPROM - это нормально
+                        // Не логируем как ошибку и не отключаемся, если устройство все еще подключено
+                        System.Diagnostics.Debug.WriteLine($"[HandleAlert] {device?.PortName ?? "Unknown"}: Task.Run ошибка (игнорируется): {ex.GetType().Name}");
+                        // Отключаемся только если действительно потеряна связь с Arduino
+                        if (device != null && !device.IsConnected)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"[HandleAlert] {device.PortName}: Устройство отключено, вызываем DisconnectInternal");
+                            DisconnectInternal(false);
+                        }
                     }
-                    // Иначе просто игнорируем ошибку (EEPROM может быть извлечена)
-                }
                 catch (Exception ex)
                 {
                     System.Diagnostics.Debug.WriteLine($"[HandleAlert] {device?.PortName ?? "Unknown"}: Task.Run неожиданная ошибка: {ex.GetType().Name} - {ex.Message}");
