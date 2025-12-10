@@ -1094,6 +1094,10 @@ internal sealed partial class ArduinoService
             return false;
         }
 
+        // Устанавливаем флаг для игнорирования алертов во время очистки RSWP
+        // Очистка RSWP также использует высокое напряжение (HV), что может вызывать алерты
+        _isSettingRswp = true;
+        
         try
         {
             var result = await Task.Run(() =>
@@ -1129,11 +1133,6 @@ internal sealed partial class ArduinoService
             }
 
             return result;
-        }
-        finally
-        {
-            // Сбрасываем флаг после завершения операции
-            _isSettingRswp = false;
         }
         catch (TimeoutException)
         {
