@@ -1,54 +1,28 @@
 {
-  // Git настройки
-  "git.enabled": true,
-  "git.autofetch": true,
-  "git.confirmSync": false,
-  "git.enableSmartCommit": true,
-  "git.suggestSmartCommit": true,
-  "git.autoRepositoryDetection": true,
-  
-  // Автоматический push после commit
-  "git.pushAfterCommit": true,
-  
-  // Показывать изменения в редакторе
-  "git.decorations.enabled": true,
-  "scm.diffDecorations": "all",
-  
-  // Автоматическое обновление индекса
-  "git.autoRefresh": true,
-  
-  // Настройки для Cursor AI
-  "cursor.general.enableGitIntegration": true,
-  
-  // Автоматическое форматирование при сохранении
-  "editor.formatOnSave": true,
-  "editor.codeActionsOnSave": {
-    "source.fixAll": "explicit"
-  },
-  
-  // Автоматическое сохранение
-  "files.autoSave": "afterDelay",
-  "files.autoSaveDelay": 2000,
-  
-  // Автоматический commit и push при сохранении (через расширение RunOnSave)
-  "emeraldwalk.RunOnSave": {
+  "emeraldwalk.runonsave": {
     "commands": [
       {
-        "match": ".*",
-        "notMatch": "\\.(dll|exe|pdb|cache|bin|obj|so|dylib)$",
-        "cmd": "powershell -ExecutionPolicy Bypass -File ${workspaceFolder}/.vscode/auto-commit.ps1",
-        "runIn": "terminal",
-        "runningStatusMessage": "Автоматическое сохранение в Git...",
-        "finishStatusMessage": "✓ Сохранено в Git"
+        "match": "\\.(cs|xaml|json|csproj|sln|md|txt|ino|h|ps1|psm1)$",
+        "notMatch": "(bin/|obj/|\\.user$|\\.suo$|\\[Bb]in/|\\[Oo]bj/|\\[Dd]ebug/|\\[Rr]elease/)",
+        "cmd": "powershell.exe -ExecutionPolicy Bypass -NoProfile -File \"${workspaceFolder}\\.vscode\\auto-commit.ps1\" \"${file}\"",
+        "runIn": "backend",
+        "runOn": "onSave"
       }
-    ]
+    ],
+    "shell": true
   },
-  
-  // Исключения для Git
   "files.exclude": {
-    "**/.git": false,
     "**/bin": true,
     "**/obj": true,
-    "**/.vs": true
-  }
+    "**/.vs": true,
+    "**/.git": false
+  },
+  "files.watcherExclude": {
+    "**/bin/**": true,
+    "**/obj/**": true,
+    "**/.vs/**": true,
+    "**/.git/**": true,
+    "**/node_modules/**": true
+  },
+  "dotnet.defaultSolution": "HexEditor.sln"
 }

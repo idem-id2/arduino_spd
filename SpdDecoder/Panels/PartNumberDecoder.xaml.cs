@@ -726,16 +726,16 @@ namespace HexEditor.SpdDecoder
                 // R8 might be revision code or other identifier, not ranks count
                 string formFactor = result.DecodedFields.GetValueOrDefault("Form Factor", "");
                 bool isUDIMM = formFactor.Contains("UDIMM", StringComparison.OrdinalIgnoreCase);
-                
+
                 // For UDIMM, determine ranks based on capacity and chip count
                 // 8GB UDIMM with 8 chips × 8Gb = typically Single Rank
                 // 16GB UDIMM with 8 chips × 16Gb = typically Single Rank
                 // 16GB UDIMM with 16 chips × 8Gb = typically Dual Rank
                 string capacityCode = result.DecodedFields.GetValueOrDefault("Density Code 2", "");
                 string dieDensityStr = result.DecodedFields.GetValueOrDefault("Die Density", "");
-                
+
                 int ranks = 1; // Default: Single Rank for UDIMM
-                
+
                 // Try to extract from pattern, but validate for UDIMM
                 var ranksMatch = Regex.Match(code, @"[JCDM]R(\d+)", RegexOptions.IgnoreCase);
                 if (ranksMatch.Success && ranksMatch.Groups.Count > 1)
@@ -756,7 +756,7 @@ namespace HexEditor.SpdDecoder
                         }
                     }
                 }
-                
+
                 // Smart detection for UDIMM based on capacity
                 if (isUDIMM && ranks == 1)
                 {
@@ -775,7 +775,7 @@ namespace HexEditor.SpdDecoder
                             ranks = 2; // Dual Rank with 8Gb chips
                     }
                 }
-                
+
                 result.DecodedFields["Ranks"] = $"{ranks} Rank{(ranks > 1 ? "s" : "")} ({(ranks == 1 ? "Single" : ranks == 2 ? "Dual" : ranks == 4 ? "Quad" : "Multi")} Rank)";
                 if (isUDIMM && code.Contains("R8"))
                 {
@@ -1588,7 +1588,64 @@ namespace HexEditor.SpdDecoder
                 spdTable.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(60) });
                 spdTable.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
-                int row = 0;
+                // Add header row
+                spdTable.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+                // Header: Offset
+                var headerOffsetBlock = new TextBlock
+                {
+                    Text = "Offset",
+                    FontSize = 12,
+                    FontWeight = FontWeights.Bold,
+                    FontFamily = new FontFamily("Consolas"),
+                    Foreground = (Brush)TryFindResource("PrimaryTextBrush"),
+                    Margin = new Thickness(0, 0, 8, 8)
+                };
+                Grid.SetRow(headerOffsetBlock, 0);
+                Grid.SetColumn(headerOffsetBlock, 0);
+                spdTable.Children.Add(headerOffsetBlock);
+
+                // Header: Value
+                var headerValueBlock = new TextBlock
+                {
+                    Text = "Value",
+                    FontSize = 12,
+                    FontWeight = FontWeights.Bold,
+                    FontFamily = new FontFamily("Consolas"),
+                    Foreground = (Brush)TryFindResource("PrimaryTextBrush"),
+                    Margin = new Thickness(0, 0, 8, 8)
+                };
+                Grid.SetRow(headerValueBlock, 0);
+                Grid.SetColumn(headerValueBlock, 1);
+                spdTable.Children.Add(headerValueBlock);
+
+                // Header: Description
+                var headerDescBlock = new TextBlock
+                {
+                    Text = "Description",
+                    FontSize = 12,
+                    FontWeight = FontWeights.Bold,
+                    Foreground = (Brush)TryFindResource("PrimaryTextBrush"),
+                    Margin = new Thickness(0, 0, 0, 8)
+                };
+                Grid.SetRow(headerDescBlock, 0);
+                Grid.SetColumn(headerDescBlock, 2);
+                spdTable.Children.Add(headerDescBlock);
+
+                // Add separator row after header
+                spdTable.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                var headerSeparator = new Separator
+                {
+                    Background = (Brush)TryFindResource("SeparatorBrush"),
+                    Margin = new Thickness(0, 4, 0, 8),
+                    HorizontalAlignment = HorizontalAlignment.Stretch
+                };
+                Grid.SetRow(headerSeparator, 1);
+                Grid.SetColumn(headerSeparator, 0);
+                Grid.SetColumnSpan(headerSeparator, 3);
+                spdTable.Children.Add(headerSeparator);
+
+                int row = 2; // Start from row 2 (row 0 is header, row 1 is separator)
                 foreach (var kvp in spdBytes.OrderBy(x => x.Key))
                 {
                     spdTable.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
@@ -1596,7 +1653,7 @@ namespace HexEditor.SpdDecoder
                     // Byte offset
                     var offsetBlock = new TextBlock
                     {
-                        Text = $"0x{kvp.Key:X2}:",
+                        Text = $"0x{kvp.Key:X2}",
                         FontSize = 12,
                         FontFamily = new FontFamily("Consolas"),
                         Foreground = (Brush)TryFindResource("SecondaryTextBrush"),
@@ -1792,7 +1849,7 @@ namespace HexEditor.SpdDecoder
                 moduleType = 0x04; // LRDIMM
             else if (formFactor.Contains("RDIMM", StringComparison.OrdinalIgnoreCase))
                 moduleType = 0x01; // RDIMM
-            else if (formFactor.Contains("SO-DIMM", StringComparison.OrdinalIgnoreCase) || 
+            else if (formFactor.Contains("SO-DIMM", StringComparison.OrdinalIgnoreCase) ||
                      formFactor.Contains("SODIMM", StringComparison.OrdinalIgnoreCase))
                 moduleType = 0x03; // SO-DIMM
             else if (formFactor.Contains("UDIMM", StringComparison.OrdinalIgnoreCase))
