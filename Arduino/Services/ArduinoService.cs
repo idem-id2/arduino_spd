@@ -1365,62 +1365,148 @@ internal sealed partial class ArduinoService
             
             // Сначала выполняем полное сканирование всех I2C адресов до быстрого скана
             // Это нужно сделать до обновления типа памяти и RSWP
-            _ = Task.Run(() =>
+            _ = Task.Run(async () =>
             {
                 try
                 {
+                    LogInfo($"[DEBUG] {device.PortName}: HandleAlert: Начало сканирования I2C");
+                    
                     // Проверяем, что устройство все еще подключено перед сканированием
                     if (device == null || !device.IsConnected)
                     {
+                        LogWarn($"[DEBUG] {device?.PortName ?? "Unknown"}: HandleAlert: Устройство отключено перед сканированием");
                         return;
                     }
                     
-                    lock (_lock)
+                    await Task.Run(() =>
                     {
-                        // Повторная проверка после получения lock
-                        if (device == null || !device.IsConnected || _activeDevice != device)
+                        lock (_lock)
                         {
-                            return;
+                            // Повторная проверка после получения lock
+                            if (device == null || !device.IsConnected || _activeDevice != device)
+                            {
+                                LogWarn($"[DEBUG] {device?.PortName ?? "Unknown"}: HandleAlert: Устройство отключено после получения lock");
+                                return;
+                            }
+                            
+                            LogInfo($"[DEBUG] {device.PortName}: HandleAlert: Выполнение ScanFull()");
+                            device.I2CAddress = _activeI2cAddress;
+                            byte[] fullAddresses = device.ScanFull();
+                            
+                            if (fullAddresses.Length > 0)
+                            {
+                                var addressList = string.Join(", ", fullAddresses.Select(a => $"0x{a:X2}"));
+                                LogInfo($"{device.PortName}: Полное сканирование I2C: найдено {fullAddresses.Length} устройств ({addressList})");
+                            }
+                            else
+                            {
+                                LogInfo($"{device.PortName}: Полное сканирование I2C: устройства не найдены");
+                            }
+                            
+                            // Сохраняем результаты полного сканирования
+                            _fullScanAddresses = fullAddresses;
+                            
+                            // Затем выполняем быстрый скан для определения SPD адресов
+                            LogInfo($"[DEBUG] {device.PortName}: HandleAlert: Выполнение Scan()");
+                            var addresses = device.Scan();
+                            if (addresses.Length > 0)
+                            {
+                                _activeI2cAddress = addresses[0];
+                            }
                         }
-                        
-                        device.I2CAddress = _activeI2cAddress;
-                        byte[] fullAddresses = device.ScanFull();
-                        if (fullAddresses.Length > 0)
-                        {
-                            var addressList = string.Join(", ", fullAddresses.Select(a => $"0x{a:X2}"));
-                            LogInfo($"{device.PortName}: Полное сканирование I2C: найдено {fullAddresses.Length} устройств ({addressList})");
-                        }
-                        else
-                        {
-                            LogInfo($"{device.PortName}: Полное сканирование I2C: устройства не найдены");
-                        }
-                        
-                        // Сохраняем результаты полного сканирования
-                        _fullScanAddresses = fullAddresses;
-                        
-                        // Затем выполняем быстрый скан для определения SPD адресов
-                        var addresses = device.Scan();
-                        if (addresses.Length > 0)
-                        {
-                            _activeI2cAddress = addresses[0];
-                        }
-                    }
+                    }).WaitAsync(OperationTimeout).ConfigureAwait(false);
                     
                     // Уведомляем об изменении состояния для обновления UI после завершения сканирования
                     // Это должно быть вне lock, чтобы не блокировать UI поток
                     OnStateChanged();
+                    LogInfo($"[DEBUG] {device.PortName}: HandleAlert: Сканирование I2C завершено успешно");
+                }
+                catch (TimeoutException)
+                {
+                    LogError($"[DEBUG] {device?.PortName ?? "Unknown"}: HandleAlert: Таймаут при сканировании I2C. Соединение потеряно.");
+                    if (device != null && !device.IsConnected)
+                    {
+                        DisconnectInternal(false);
+                    }
+                }
+                catch (InvalidOperationException ex)
+                {
+                    LogError($"[DEBUG] {device?.PortName ?? "Unknown"}: HandleAlert: Устройство недоступно при сканировании I2C: {ex.Message}");
+                    if (device != null && !device.IsConnected)
+                    {
+                        DisconnectInternal(false);
+                    }
+                }
+                catch (TaskCanceledException)
+                {
+                    LogWarn($"[DEBUG] {device?.PortName ?? "Unknown"}: HandleAlert: Операция сканирования I2C отменена.");
+                }
+                catch (InvalidDataException ex)
+                {
+                    LogWarn($"[DEBUG] {device?.PortName ?? "Unknown"}: HandleAlert: Неверные данные при сканировании I2C: {ex.Message}");
                 }
                 catch (Exception ex)
                 {
-                    LogWarn($"{device?.PortName ?? "Unknown"}: Не удалось выполнить сканирование I2C при обнаружении EEPROM: {ex.Message}");
+                    LogWarn($"[DEBUG] {device?.PortName ?? "Unknown"}: HandleAlert: Не удалось выполнить сканирование I2C при обнаружении EEPROM: {ex.Message}");
                 }
             });
             
             // Обновляем тип памяти и RSWP при обнаружении нового SPD
             _ = Task.Run(async () =>
             {
-                await RefreshMemoryTypeAsync().ConfigureAwait(false);
-                await CheckRswpAsync().ConfigureAwait(false);
+                try
+                {
+                    LogInfo($"[DEBUG] {device.PortName}: HandleAlert: Начало обновления типа памяти и RSWP");
+                    
+                    // Проверяем, что устройство все еще подключено перед обновлением
+                    if (device == null || !device.IsConnected)
+                    {
+                        LogWarn($"[DEBUG] {device?.PortName ?? "Unknown"}: HandleAlert: Устройство отключено перед обновлением типа памяти");
+                        return;
+                    }
+                    
+                    var refreshTask = RefreshMemoryTypeAsync();
+                    await refreshTask.WaitAsync(OperationTimeout).ConfigureAwait(false);
+                    
+                    // Проверяем еще раз после RefreshMemoryTypeAsync
+                    if (device == null || !device.IsConnected)
+                    {
+                        LogWarn($"[DEBUG] {device?.PortName ?? "Unknown"}: HandleAlert: Устройство отключено после RefreshMemoryTypeAsync");
+                        return;
+                    }
+                    
+                    var checkRswpTask = CheckRswpAsync();
+                    await checkRswpTask.WaitAsync(OperationTimeout).ConfigureAwait(false);
+                    LogInfo($"[DEBUG] {device.PortName}: HandleAlert: Обновление типа памяти и RSWP завершено успешно");
+                }
+                catch (TimeoutException)
+                {
+                    LogError($"[DEBUG] {device?.PortName ?? "Unknown"}: HandleAlert: Таймаут при обновлении типа памяти/RSWP. Соединение потеряно.");
+                    if (device != null && !device.IsConnected)
+                    {
+                        DisconnectInternal(false);
+                    }
+                }
+                catch (InvalidOperationException ex)
+                {
+                    LogError($"[DEBUG] {device?.PortName ?? "Unknown"}: HandleAlert: Устройство недоступно при обновлении типа памяти/RSWP: {ex.Message}");
+                    if (device != null && !device.IsConnected)
+                    {
+                        DisconnectInternal(false);
+                    }
+                }
+                catch (TaskCanceledException)
+                {
+                    LogWarn($"[DEBUG] {device?.PortName ?? "Unknown"}: HandleAlert: Операция обновления типа памяти/RSWP отменена.");
+                }
+                catch (InvalidDataException ex)
+                {
+                    LogWarn($"[DEBUG] {device?.PortName ?? "Unknown"}: HandleAlert: Неверные данные при обновлении типа памяти/RSWP: {ex.Message}");
+                }
+                catch (Exception ex)
+                {
+                    LogWarn($"[DEBUG] {device?.PortName ?? "Unknown"}: HandleAlert: Ошибка при обновлении типа памяти/RSWP: {ex.Message}");
+                }
             });
         }
         else if (e.Code == Hardware.Arduino.AlertCodes.SlaveDecrement)
@@ -1443,8 +1529,10 @@ internal sealed partial class ArduinoService
                 return;
             }
 
-            LogWarn($"{_activeDevice.PortName}: Соединение потеряно.");
+            var device = _activeDevice;
+            LogWarn($"[DEBUG] {device.PortName}: HandleConnectionLost: Соединение потеряно. Начало отключения.");
             DisconnectInternal(false);
+            LogWarn($"[DEBUG] {device.PortName}: HandleConnectionLost: Отключение завершено.");
         }
 
     private void DisconnectInternal(bool logDisconnect)
