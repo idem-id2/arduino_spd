@@ -24,6 +24,9 @@ namespace HexEditor
         {
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
             
+            // Загружаем шрифт JetBrainsMonoNL-Regular.ttf для всего приложения
+            LoadApplicationFont();
+            
             // Настройка Dependency Injection
             var services = new ServiceCollection();
             ConfigureServices(services);
@@ -34,6 +37,47 @@ namespace HexEditor
             mainWindow.Show();
 
             base.OnStartup(e);
+        }
+
+        /// <summary>
+        /// Загружает шрифт JetBrainsMonoNL-Regular.ttf и добавляет его в ресурсы приложения.
+        /// Если шрифт не найден, используется fallback на распространённые моноширинные шрифты.
+        /// </summary>
+        private void LoadApplicationFont()
+        {
+            FontFamily? appFontFamily = null;
+            
+            try
+            {
+                string exeDirectory = AppDomain.CurrentDomain.BaseDirectory;
+                string ttfPath = Path.Combine(exeDirectory, "JetBrainsMonoNL-Regular.ttf");
+
+                if (File.Exists(ttfPath))
+                {
+                    var fontUri = new Uri(ttfPath, UriKind.Absolute);
+                    // Создаём FontFamily с fallback на распространённые моноширинные шрифты
+                    appFontFamily = new FontFamily(fontUri, "./#JetBrains Mono NL, Consolas, 'Courier New', monospace");
+                    System.Diagnostics.Debug.WriteLine("Loaded JetBrainsMonoNL-Regular.ttf for application-wide use");
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine("JetBrainsMonoNL-Regular.ttf not found, using Consolas fallback");
+                    // Используем fallback на распространённые моноширинные шрифты
+                    appFontFamily = new FontFamily("Consolas, 'Courier New', monospace");
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to load custom font: {ex.Message}, using Consolas fallback");
+                // Используем fallback на распространённые моноширинные шрифты
+                appFontFamily = new FontFamily("Consolas, 'Courier New', monospace");
+            }
+
+            // Добавляем FontFamily в ресурсы приложения
+            if (appFontFamily != null)
+            {
+                Resources["ApplicationFontFamily"] = appFontFamily;
+            }
         }
 
         private void ConfigureServices(IServiceCollection services)

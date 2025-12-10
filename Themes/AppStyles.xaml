@@ -90,6 +90,40 @@
     <!-- Typography - Clean & Readable -->
     <!-- ========================================= -->
     
+    <!-- FontFamily для всего приложения: JetBrains Mono NL с fallback на Consolas, Courier New, monospace -->
+    <!-- Загружается программно в App.xaml.cs, здесь используется как ресурс -->
+    <FontFamily x:Key="ApplicationFontFamily">Consolas, 'Courier New', monospace</FontFamily>
+    
+    <!-- Стиль по умолчанию для TextBlock - использует ApplicationFontFamily -->
+    <Style TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{DynamicResource ApplicationFontFamily}"/>
+    </Style>
+    
+    <!-- Стиль по умолчанию для TextBox - использует ApplicationFontFamily -->
+    <Style TargetType="TextBox">
+        <Setter Property="FontFamily" Value="{DynamicResource ApplicationFontFamily}"/>
+    </Style>
+    
+    <!-- Стиль по умолчанию для ListBox - использует ApplicationFontFamily -->
+    <Style TargetType="ListBox">
+        <Setter Property="FontFamily" Value="{DynamicResource ApplicationFontFamily}"/>
+    </Style>
+    
+    <!-- Стиль по умолчанию для ComboBox - использует ApplicationFontFamily -->
+    <Style TargetType="ComboBox">
+        <Setter Property="FontFamily" Value="{DynamicResource ApplicationFontFamily}"/>
+    </Style>
+    
+    <!-- Стиль по умолчанию для MenuItem - использует ApplicationFontFamily -->
+    <Style TargetType="MenuItem">
+        <Setter Property="FontFamily" Value="{DynamicResource ApplicationFontFamily}"/>
+    </Style>
+    
+    <!-- Стиль по умолчанию для Label - использует ApplicationFontFamily -->
+    <Style TargetType="Label">
+        <Setter Property="FontFamily" Value="{DynamicResource ApplicationFontFamily}"/>
+    </Style>
+    
     <Style TargetType="TextBlock" x:Key="CardTitleStyle">
         <Setter Property="FontWeight" Value="SemiBold"/>
         <Setter Property="FontSize" Value="16"/>
