@@ -811,41 +811,54 @@ internal sealed partial class ArduinoService
             }
         }
 
+        LogInfo($"[DEBUG] {currentDevice.PortName}: CheckRswpAsync: Запуск Task.Run, blockCount={blockCount}");
         try
         {
             var states = await Task.Run(() =>
             {
+                LogInfo($"[DEBUG] {currentDevice?.PortName ?? "Unknown"}: CheckRswpAsync: Task.Run начал выполнение");
                 // Проверяем, что устройство все еще подключено перед использованием
                 if (currentDevice == null || !currentDevice.IsConnected)
                 {
+                    LogInfo($"[DEBUG] CheckRswpAsync: Выход - устройство не подключено");
                     return Array.Empty<bool>();
                 }
 
+                LogInfo($"[DEBUG] {currentDevice.PortName}: CheckRswpAsync: Попытка получить lock");
                 lock (_lock)
                 {
+                    LogInfo($"[DEBUG] {currentDevice.PortName}: CheckRswpAsync: Lock получен");
                     // Повторная проверка после получения lock
                     if (currentDevice == null || !currentDevice.IsConnected || _activeDevice != currentDevice)
                     {
+                        LogInfo($"[DEBUG] CheckRswpAsync: Выход из lock - устройство недоступно");
                         return Array.Empty<bool>();
                     }
 
                     currentDevice.I2CAddress = _activeI2cAddress;
                     bool[] blockStates = new bool[blockCount];
+                    LogInfo($"[DEBUG] {currentDevice.PortName}: CheckRswpAsync: Начало цикла проверки блоков, blockCount={blockCount}");
                     for (byte block = 0; block < blockCount; block++)
                     {
                         try
                         {
+                            LogInfo($"[DEBUG] {currentDevice.PortName}: CheckRswpAsync: Проверка блока {block}");
                             blockStates[block] = currentDevice.GetRswp(block);
+                            LogInfo($"[DEBUG] {currentDevice.PortName}: CheckRswpAsync: Блок {block} = {blockStates[block]}");
                         }
-                        catch
+                        catch (Exception ex)
                         {
+                            LogInfo($"[DEBUG] {currentDevice.PortName}: CheckRswpAsync: Ошибка при проверке блока {block}: {ex.Message}");
                             // Если блок не поддерживается, считаем его незащищенным
                             blockStates[block] = false;
                         }
                     }
+                    LogInfo($"[DEBUG] {currentDevice.PortName}: CheckRswpAsync: Цикл завершен, Lock освобожден");
                     return blockStates;
                 }
             }).WaitAsync(OperationTimeout).ConfigureAwait(true);
+            LogInfo($"[DEBUG] {currentDevice.PortName}: CheckRswpAsync: Task.Run завершен");
+            LogInfo($"[DEBUG] {currentDevice.PortName}: CheckRswpAsync: Завершен успешно, получено {states.Length} состояний");
 
             RswpStateChanged?.Invoke(this, states);
             
@@ -1135,8 +1148,11 @@ internal sealed partial class ArduinoService
 
     private async Task RefreshMemoryTypeAsync()
     {
+        LogInfo($"[DEBUG] RefreshMemoryTypeAsync: Начало");
+        
         if (!IsConnected || _activeDevice == null || !_spdReady)
         {
+            LogInfo($"[DEBUG] RefreshMemoryTypeAsync: Выход - IsConnected={IsConnected}, _activeDevice={_activeDevice != null}, _spdReady={_spdReady}");
             UpdateMemoryType(SpdMemoryType.Unknown);
             return;
         }
@@ -1145,44 +1161,58 @@ internal sealed partial class ArduinoService
         var currentDevice = _activeDevice;
         if (currentDevice == null)
         {
+            LogInfo($"[DEBUG] RefreshMemoryTypeAsync: Выход - currentDevice null");
             UpdateMemoryType(SpdMemoryType.Unknown);
             return;
         }
 
+        LogInfo($"[DEBUG] {currentDevice.PortName}: RefreshMemoryTypeAsync: Запуск Task.Run");
         try
         {
             var detectedType = await Task.Run(() =>
             {
+                LogInfo($"[DEBUG] {currentDevice?.PortName ?? "Unknown"}: RefreshMemoryTypeAsync: Task.Run начал выполнение");
                 // Проверяем, что устройство все еще подключено перед использованием
                 if (currentDevice == null || !currentDevice.IsConnected)
                 {
+                    LogInfo($"[DEBUG] RefreshMemoryTypeAsync: Выход - устройство не подключено");
                     return SpdMemoryType.Unknown;
                 }
 
+                LogInfo($"[DEBUG] {currentDevice.PortName}: RefreshMemoryTypeAsync: Попытка получить lock");
                 lock (_lock)
                 {
+                    LogInfo($"[DEBUG] {currentDevice.PortName}: RefreshMemoryTypeAsync: Lock получен");
                     // Повторная проверка после получения lock
                     if (currentDevice == null || !currentDevice.IsConnected || _activeDevice != currentDevice)
                     {
+                        LogInfo($"[DEBUG] RefreshMemoryTypeAsync: Выход из lock - устройство недоступно");
                         return SpdMemoryType.Unknown;
                     }
 
                     currentDevice.I2CAddress = _activeI2cAddress;
+                    LogInfo($"[DEBUG] {currentDevice.PortName}: RefreshMemoryTypeAsync: Вызов DetectDdr5()");
                     if (currentDevice.DetectDdr5())
                     {
+                        LogInfo($"[DEBUG] {currentDevice.PortName}: RefreshMemoryTypeAsync: DetectDdr5() = true");
                         return SpdMemoryType.Ddr5;
                     }
 
+                    LogInfo($"[DEBUG] {currentDevice.PortName}: RefreshMemoryTypeAsync: Вызов DetectDdr4()");
                     if (currentDevice.DetectDdr4())
                     {
+                        LogInfo($"[DEBUG] {currentDevice.PortName}: RefreshMemoryTypeAsync: DetectDdr4() = true");
                         return SpdMemoryType.Ddr4;
                     }
 
+                    LogInfo($"[DEBUG] {currentDevice.PortName}: RefreshMemoryTypeAsync: Тип памяти Unknown");
                     return SpdMemoryType.Unknown;
                 }
             }).WaitAsync(OperationTimeout).ConfigureAwait(true);
+            LogInfo($"[DEBUG] {currentDevice.PortName}: RefreshMemoryTypeAsync: Task.Run завершен, detectedType={detectedType}");
 
             UpdateMemoryType(detectedType);
+            LogInfo($"[DEBUG] {currentDevice.PortName}: RefreshMemoryTypeAsync: Завершен успешно");
         }
         catch (TimeoutException)
         {
@@ -1347,13 +1377,18 @@ internal sealed partial class ArduinoService
 
     private void HandleAlert(object? sender, Hardware.Arduino.ArduinoAlertEventArgs e)
     {
+        LogInfo($"[DEBUG] HandleAlert: Начало обработки алерта {e.Code}");
+        
         if (_activeDevice == null || sender != _activeDevice)
         {
+            LogInfo($"[DEBUG] HandleAlert: Выход - устройство null или sender не совпадает");
             return;
         }
 
         if (e.Code == Hardware.Arduino.AlertCodes.SlaveIncrement)
         {
+            LogInfo($"[DEBUG] {_activeDevice.PortName}: HandleAlert: SlaveIncrement получен");
+            
             // Отменяем предыдущие операции, если они еще выполняются
             _alertOperationCancellation?.Cancel();
             _alertOperationCancellation?.Dispose();
@@ -1363,6 +1398,7 @@ internal sealed partial class ArduinoService
             // Проверяем, не обрабатывается ли уже другой алерт
             if (_isHandlingAlert)
             {
+                LogInfo($"[DEBUG] {_activeDevice.PortName}: HandleAlert: Выход - уже обрабатывается другой алерт");
                 return;
             }
 
@@ -1370,38 +1406,48 @@ internal sealed partial class ArduinoService
             var device = _activeDevice;
             if (device == null)
             {
+                LogInfo($"[DEBUG] HandleAlert: Выход - device null после получения ссылки");
                 return;
             }
             
+            LogInfo($"[DEBUG] {device.PortName}: HandleAlert: Устанавливаем _spdReady = true");
             _spdReady = true;
             SpdStateChanged?.Invoke(this, _spdReady);
             LogInfo($"{device.PortName}: Обнаружена новая SPD EEPROM");
             
             // Выполняем операции в отдельном потоке, как в старом коде (new Thread(() => HandleAlert(...)).Start())
             _isHandlingAlert = true;
+            LogInfo($"[DEBUG] {device.PortName}: HandleAlert: Запуск Task.Run для обработки SlaveIncrement");
             _ = Task.Run(async () =>
             {
                 try
                 {
+                    LogInfo($"[DEBUG] {device.PortName}: HandleAlert: Task.Run начал выполнение");
                     cancellationToken.ThrowIfCancellationRequested();
                     
+                    LogInfo($"[DEBUG] {device.PortName}: HandleAlert: Попытка получить lock для сканирования I2C");
                     // Выполняем сканирование I2C синхронно в lock (как в старом коде)
                     // Делаем это быстро, чтобы не блокировать другие операции
                     lock (_lock)
                     {
+                        LogInfo($"[DEBUG] {device.PortName}: HandleAlert: Lock получен, начинаем сканирование");
                         cancellationToken.ThrowIfCancellationRequested();
                         
                         // Проверяем только подключение устройства, не проверяем _spdReady
                         // (EEPROM может быть извлечена - это нормально)
                         if (device == null || !device.IsConnected || _activeDevice != device)
                         {
+                            LogInfo($"[DEBUG] {device?.PortName ?? "Unknown"}: HandleAlert: Выход из lock - устройство недоступно");
                             return;
                         }
                         
                         device.I2CAddress = _activeI2cAddress;
                         
+                        LogInfo($"[DEBUG] {device.PortName}: HandleAlert: Выполнение ScanFull()");
                         // Полное сканирование I2C
                         byte[] fullAddresses = device.ScanFull();
+                        LogInfo($"[DEBUG] {device.PortName}: HandleAlert: ScanFull() завершен, найдено {fullAddresses.Length} адресов");
+                        
                         if (fullAddresses.Length > 0)
                         {
                             var addressList = string.Join(", ", fullAddresses.Select(a => $"0x{a:X2}"));
@@ -1414,33 +1460,41 @@ internal sealed partial class ArduinoService
                         
                         _fullScanAddresses = fullAddresses;
                         
+                        LogInfo($"[DEBUG] {device.PortName}: HandleAlert: Выполнение Scan()");
                         // Быстрый скан для определения SPD адресов
                         var addresses = device.Scan();
+                        LogInfo($"[DEBUG] {device.PortName}: HandleAlert: Scan() завершен, найдено {addresses.Length} адресов");
                         if (addresses.Length > 0)
                         {
                             _activeI2cAddress = addresses[0];
                         }
+                        LogInfo($"[DEBUG] {device.PortName}: HandleAlert: Lock освобожден");
                     }
                     
                     // Проверяем отмену и состояние перед длительными операциями
                     cancellationToken.ThrowIfCancellationRequested();
                     if (device == null || !device.IsConnected || _activeDevice != device)
                     {
+                        LogInfo($"[DEBUG] {device?.PortName ?? "Unknown"}: HandleAlert: Выход перед RefreshMemoryTypeAsync - устройство недоступно");
                         return;
                     }
                     
+                    LogInfo($"[DEBUG] {device.PortName}: HandleAlert: Начало RefreshMemoryTypeAsync()");
                     // Обновляем тип памяти с таймаутом и проверкой отмены
                     // Если EEPROM извлечена, операция может завершиться с ошибкой - это нормально
                     try
                     {
                         await RefreshMemoryTypeAsync().WaitAsync(OperationTimeout, cancellationToken).ConfigureAwait(false);
+                        LogInfo($"[DEBUG] {device.PortName}: HandleAlert: RefreshMemoryTypeAsync() завершен успешно");
                     }
                     catch (OperationCanceledException)
                     {
+                        LogInfo($"[DEBUG] {device.PortName}: HandleAlert: RefreshMemoryTypeAsync() отменен");
                         return; // Операция отменена - выходим без обновления UI
                     }
                     catch (Exception ex) when (ex is TimeoutException || ex is InvalidOperationException)
                     {
+                        LogInfo($"[DEBUG] {device.PortName}: HandleAlert: RefreshMemoryTypeAsync() ошибка: {ex.GetType().Name} - {ex.Message}");
                         // Ошибка может быть из-за извлечения EEPROM - это нормально, не логируем как ошибку
                         // Просто выходим без продолжения
                         return;
@@ -1450,21 +1504,26 @@ internal sealed partial class ArduinoService
                     cancellationToken.ThrowIfCancellationRequested();
                     if (device == null || !device.IsConnected || _activeDevice != device)
                     {
+                        LogInfo($"[DEBUG] {device?.PortName ?? "Unknown"}: HandleAlert: Выход перед CheckRswpAsync - устройство недоступно");
                         return;
                     }
                     
+                    LogInfo($"[DEBUG] {device.PortName}: HandleAlert: Начало CheckRswpAsync()");
                     // Проверяем RSWP с таймаутом и проверкой отмены
                     // Если EEPROM извлечена, операция может завершиться с ошибкой - это нормально
                     try
                     {
                         await CheckRswpAsync().WaitAsync(OperationTimeout, cancellationToken).ConfigureAwait(false);
+                        LogInfo($"[DEBUG] {device.PortName}: HandleAlert: CheckRswpAsync() завершен успешно");
                     }
                     catch (OperationCanceledException)
                     {
+                        LogInfo($"[DEBUG] {device.PortName}: HandleAlert: CheckRswpAsync() отменен");
                         return; // Операция отменена - выходим без обновления UI
                     }
                     catch (Exception ex) when (ex is TimeoutException || ex is InvalidOperationException)
                     {
+                        LogInfo($"[DEBUG] {device.PortName}: HandleAlert: CheckRswpAsync() ошибка: {ex.GetType().Name} - {ex.Message}");
                         // Ошибка может быть из-за извлечения EEPROM - это нормально, не логируем как ошибку
                         // Просто выходим без продолжения
                         return;
@@ -1474,19 +1533,30 @@ internal sealed partial class ArduinoService
                     cancellationToken.ThrowIfCancellationRequested();
                     if (device != null && device.IsConnected && _activeDevice == device)
                     {
+                        LogInfo($"[DEBUG] {device.PortName}: HandleAlert: Вызов OnStateChanged()");
                         OnStateChanged();
+                        LogInfo($"[DEBUG] {device.PortName}: HandleAlert: OnStateChanged() завершен");
                     }
+                    else
+                    {
+                        LogInfo($"[DEBUG] {device?.PortName ?? "Unknown"}: HandleAlert: OnStateChanged() не вызван - устройство недоступно");
+                    }
+                    
+                    LogInfo($"[DEBUG] {device?.PortName ?? "Unknown"}: HandleAlert: Task.Run завершен успешно");
                 }
                 catch (OperationCanceledException)
                 {
+                    LogInfo($"[DEBUG] {device?.PortName ?? "Unknown"}: HandleAlert: Task.Run отменен (OperationCanceledException)");
                     // Операция отменена - это нормально при новом алерте или извлечении EEPROM
                 }
                 catch (Exception ex) when (ex is TimeoutException || ex is InvalidOperationException || ex is InvalidDataException)
                 {
+                    LogInfo($"[DEBUG] {device?.PortName ?? "Unknown"}: HandleAlert: Task.Run ошибка: {ex.GetType().Name} - {ex.Message}");
                     // Ошибки могут возникать при извлечении EEPROM - это нормально
                     // Отключаемся только если действительно потеряна связь с Arduino
                     if (device != null && !device.IsConnected)
                     {
+                        LogInfo($"[DEBUG] {device.PortName}: HandleAlert: Устройство отключено, вызываем DisconnectInternal");
                         // Только если устройство действительно отключено, вызываем DisconnectInternal
                         DisconnectInternal(false);
                     }
@@ -1494,21 +1564,28 @@ internal sealed partial class ArduinoService
                 }
                 catch (Exception ex)
                 {
+                    LogInfo($"[DEBUG] {device?.PortName ?? "Unknown"}: HandleAlert: Task.Run неожиданная ошибка: {ex.GetType().Name} - {ex.Message}");
                     // Неожиданные ошибки логируем, но не отключаемся
                     // (могут быть из-за извлечения EEPROM)
                     LogWarn($"{device?.PortName ?? "Unknown"}: Неожиданная ошибка при обработке алерта: {ex.Message}");
                 }
                 finally
                 {
+                    LogInfo($"[DEBUG] {device?.PortName ?? "Unknown"}: HandleAlert: Task.Run finally - сброс _isHandlingAlert");
                     _isHandlingAlert = false;
+                    LogInfo($"[DEBUG] {device?.PortName ?? "Unknown"}: HandleAlert: Task.Run завершен");
                 }
             }, cancellationToken);
         }
         else if (e.Code == Hardware.Arduino.AlertCodes.SlaveDecrement)
         {
+            LogInfo($"[DEBUG] {_activeDevice.PortName}: HandleAlert: SlaveDecrement получен");
+            
             // Отменяем операции, если они выполняются (это должно быстро остановить выполняющиеся операции)
+            LogInfo($"[DEBUG] {_activeDevice.PortName}: HandleAlert: Отмена предыдущих операций");
             _alertOperationCancellation?.Cancel();
             
+            LogInfo($"[DEBUG] {_activeDevice.PortName}: HandleAlert: Сброс состояния");
             // Сбрасываем состояние сразу
             _spdReady = false;
             SpdStateChanged?.Invoke(this, _spdReady);
@@ -1518,8 +1595,10 @@ internal sealed partial class ArduinoService
             _fullScanAddresses = null;
             _isHandlingAlert = false;
             
+            LogInfo($"[DEBUG] {_activeDevice.PortName}: HandleAlert: Вызов OnStateChanged()");
             // Обновляем UI (событие должно обрабатываться быстро обработчиками)
             OnStateChanged();
+            LogInfo($"[DEBUG] {_activeDevice.PortName}: HandleAlert: SlaveDecrement обработан");
         }
     }
 
