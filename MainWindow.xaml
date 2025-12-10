@@ -378,8 +378,8 @@
                         <StackPanel>
                             <TextBlock Text="Найденные I2C адреса" Style="{StaticResource CardTitleStyle}"/>
                             <ListBox x:Name="I2CAddressesListBox"
-                                     MinHeight="120"
-                                     MaxHeight="280"
+                                     MinHeight="140"
+                                     MaxHeight="240"
                                      Background="{StaticResource SurfaceBrush}"
                                      BorderBrush="{StaticResource SurfaceBorderBrush}"
                                      BorderThickness="1"

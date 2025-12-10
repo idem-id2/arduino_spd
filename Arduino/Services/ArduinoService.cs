@@ -69,9 +69,11 @@ internal sealed partial class ArduinoService
     {
         if (IsScanning)
         {
+            LogDebug("ScanAsync: уже идет сканирование, пропускаем");
             return;
         }
 
+        LogDebug("ScanAsync: начало сканирования");
         _scanCancellation?.Cancel();
         _scanCancellation?.Dispose();
         _scanCancellation = new CancellationTokenSource();
@@ -86,13 +88,16 @@ internal sealed partial class ArduinoService
         string[] ports;
         try
         {
+            LogDebug("ScanAsync: получение списка COM-портов...");
             ports = SerialPort.GetPortNames()
                               .OrderBy(p => p, StringComparer.OrdinalIgnoreCase)
                               .ToArray();
+            LogDebug($"ScanAsync: найдено COM-портов: {ports.Length} ({string.Join(", ", ports)})");
         }
         catch (Exception ex)
         {
             LogError($"Не удалось перечислить COM-порты: {ex.Message}");
+            LogDebug($"ScanAsync: исключение при получении портов: {ex.GetType().Name} - {ex.Message}\n{ex.StackTrace}");
             IsScanning = false;
             OnStateChanged();
             return;
@@ -108,15 +113,27 @@ internal sealed partial class ArduinoService
 
         try
         {
+            int portIndex = 0;
             foreach (var port in ports)
             {
+                portIndex++;
+                LogDebug($"ScanAsync: обработка порта {portIndex}/{ports.Length}: {port}");
+                
                 if (token.IsCancellationRequested)
                 {
                     LogWarn("Сканирование Arduino отменено.");
+                    LogDebug($"ScanAsync: отмена запрошена на порту {port}");
                     break;
                 }
 
+                var portStartTime = Stopwatch.StartNew();
+                LogDebug($"ScanAsync: запуск ProbePortWithTimeoutAsync для {port}");
+                
                 var info = await ProbePortWithTimeoutAsync(port, token).ConfigureAwait(true);
+                
+                portStartTime.Stop();
+                LogDebug($"ScanAsync: ProbePortWithTimeoutAsync для {port} завершен за {portStartTime.ElapsedMilliseconds} мс, результат: {(info != null ? "найдено устройство" : "устройство не найдено")}");
+                
                 if (info != null)
                 {
                     discovered.Add(info);
@@ -127,13 +144,21 @@ internal sealed partial class ArduinoService
         catch (OperationCanceledException)
         {
             LogWarn("Сканирование Arduino отменено.");
+            LogDebug("ScanAsync: OperationCanceledException поймана");
+        }
+        catch (Exception ex)
+        {
+            LogError($"ScanAsync: неожиданная ошибка: {ex.Message}");
+            LogDebug($"ScanAsync: исключение в цикле сканирования: {ex.GetType().Name} - {ex.Message}\n{ex.StackTrace}");
         }
         finally
         {
+            LogDebug("ScanAsync: очистка CancellationTokenSource");
             _scanCancellation?.Dispose();
             _scanCancellation = null;
         }
 
+        LogDebug($"ScanAsync: обновление UI, найдено устройств: {discovered.Count}");
         Application.Current.Dispatcher.Invoke(() =>
         {
             Devices.Clear();
@@ -146,6 +171,7 @@ internal sealed partial class ArduinoService
 
         scanStopwatch.Stop();
         LogInfo($"Сканирование Arduino завершено. Проверено портов: {ports.Length}, найдено устройств: {discovered.Count}, длительность: {scanStopwatch.ElapsedMilliseconds} мс.");
+        LogDebug($"ScanAsync: завершение, общее время: {scanStopwatch.ElapsedMilliseconds} мс");
         IsScanning = false;
         OnStateChanged();
     }
@@ -817,68 +843,129 @@ internal sealed partial class ArduinoService
     private async Task<ArduinoDeviceInfo?> ProbePortWithTimeoutAsync(string portName, CancellationToken token)
     {
         var probeStopwatch = Stopwatch.StartNew();
+        LogDebug($"{portName}: ProbePortWithTimeoutAsync: начало, таймаут: {PortProbeTimeout.TotalSeconds} сек");
 
         try
         {
+            LogDebug($"{portName}: ProbePortWithTimeoutAsync: проверка отмены");
             token.ThrowIfCancellationRequested();
 
+            LogDebug($"{portName}: ProbePortWithTimeoutAsync: создание Task.Run для ProbePort");
             var probeTask = Task.Run(() =>
             {
+                LogDebug($"{portName}: ProbePortWithTimeoutAsync: Task.Run начат, проверка отмены");
                 token.ThrowIfCancellationRequested();
-                return ProbePort(portName);
+                LogDebug($"{portName}: ProbePortWithTimeoutAsync: вызов ProbePort");
+                var result = ProbePort(portName);
+                LogDebug($"{portName}: ProbePortWithTimeoutAsync: ProbePort завершен, результат: {(result != null ? "найдено" : "не найдено")}");
+                return result;
             }, token);
 
+            LogDebug($"{portName}: ProbePortWithTimeoutAsync: создание Task.Delay на {PortProbeTimeout.TotalSeconds} сек");
             var delayTask = Task.Delay(PortProbeTimeout, token);
+            
+            LogDebug($"{portName}: ProbePortWithTimeoutAsync: ожидание Task.WhenAny");
             var completedTask = await Task.WhenAny(probeTask, delayTask).ConfigureAwait(false);
+            LogDebug($"{portName}: ProbePortWithTimeoutAsync: Task.WhenAny завершен, завершилась задача: {(completedTask == probeTask ? "probeTask" : "delayTask")}");
 
             if (completedTask == probeTask)
             {
+                LogDebug($"{portName}: ProbePortWithTimeoutAsync: probeTask завершился первым, получение результата");
                 var info = await probeTask.ConfigureAwait(false);
                 probeStopwatch.Stop();
                 if (info != null)
                 {
                     info.ProbeDurationMs = probeStopwatch.ElapsedMilliseconds;
+                    LogDebug($"{portName}: ProbePortWithTimeoutAsync: устройство найдено за {info.ProbeDurationMs} мс");
+                }
+                else
+                {
+                    LogDebug($"{portName}: ProbePortWithTimeoutAsync: устройство не найдено, время: {probeStopwatch.ElapsedMilliseconds} мс");
                 }
                 return info;
             }
 
+            LogDebug($"{portName}: ProbePortWithTimeoutAsync: delayTask завершился первым - таймаут");
             LogWarn($"{portName}: Тайм-аут проверки.");
+            
+            // Пытаемся отменить probeTask, если он еще выполняется
+            if (!probeTask.IsCompleted)
+            {
+                LogDebug($"{portName}: ProbePortWithTimeoutAsync: probeTask еще выполняется, ожидание завершения...");
+                try
+                {
+                    // Даем немного времени на завершение
+                    await Task.WhenAny(probeTask, Task.Delay(100)).ConfigureAwait(false);
+                    LogDebug($"{portName}: ProbePortWithTimeoutAsync: probeTask статус после ожидания: {probeTask.Status}");
+                }
+                catch (Exception ex)
+                {
+                    LogDebug($"{portName}: ProbePortWithTimeoutAsync: ошибка при ожидании probeTask: {ex.Message}");
+                }
+            }
+            
             return null;
         }
         catch (OperationCanceledException)
         {
+            LogDebug($"{portName}: ProbePortWithTimeoutAsync: OperationCanceledException");
             return null;
         }
         catch (Exception ex)
         {
             LogWarn($"{portName}: probe failed ({ex.Message}).");
+            LogDebug($"{portName}: ProbePortWithTimeoutAsync: исключение: {ex.GetType().Name} - {ex.Message}\n{ex.StackTrace}");
             return null;
         }
         finally
         {
             probeStopwatch.Stop();
+            LogDebug($"{portName}: ProbePortWithTimeoutAsync: завершение, общее время: {probeStopwatch.ElapsedMilliseconds} мс");
         }
     }
 
     private ArduinoDeviceInfo? ProbePort(string portName)
     {
+        var probeStopwatch = Stopwatch.StartNew();
+        LogDebug($"{portName}: ProbePort: начало");
+        
         // Используем отдельные настройки для сканирования портов:
         // таймаут немного больше (3 с), чтобы настоящие устройства успевали ответить,
         // а "пустые" аппаратные COM-порты всё равно быстро освобождались благодаря внешнему PortProbeTimeout.
         var scanPortSettings = new Hardware.Arduino.SerialPortSettings(115200, true, true, 3);
+        LogDebug($"{portName}: ProbePort: настройки порта - BaudRate: {scanPortSettings.BaudRate}, Timeout: {scanPortSettings.Timeout} сек");
         
         LogInfo($"{portName}: Проверка сигнатуры устройства...");
 
+        LogDebug($"{portName}: ProbePort: создание объекта Arduino");
         using var device = new Hardware.Arduino(scanPortSettings, portName);
+        
         try
         {
+            LogDebug($"{portName}: ProbePort: вызов device.Connect()");
+            var connectStartTime = Stopwatch.StartNew();
             device.Connect();
+            connectStartTime.Stop();
+            LogDebug($"{portName}: ProbePort: device.Connect() завершен за {connectStartTime.ElapsedMilliseconds} мс");
             LogInfo($"{portName}: Проверка успешна.");
 
+            LogDebug($"{portName}: ProbePort: получение FirmwareVersion");
+            var firmwareStartTime = Stopwatch.StartNew();
             int firmware = device.FirmwareVersion;
+            firmwareStartTime.Stop();
+            LogDebug($"{portName}: ProbePort: FirmwareVersion получен за {firmwareStartTime.ElapsedMilliseconds} мс: {firmware}");
+            
             string firmwareText = FormatFirmwareVersion(firmware);
+            
+            LogDebug($"{portName}: ProbePort: получение Name");
+            var nameStartTime = Stopwatch.StartNew();
             string name = device.Name;
+            nameStartTime.Stop();
+            LogDebug($"{portName}: ProbePort: Name получен за {nameStartTime.ElapsedMilliseconds} мс: {name}");
 
+            probeStopwatch.Stop();
+            LogDebug($"{portName}: ProbePort: успешно завершен за {probeStopwatch.ElapsedMilliseconds} мс, создание ArduinoDeviceInfo");
+            
             return new ArduinoDeviceInfo
             {
                 Port = portName,
@@ -886,28 +973,42 @@ internal sealed partial class ArduinoService
                 Name = name
             };
         }
-        catch (TimeoutException)
+        catch (TimeoutException ex)
         {
+            probeStopwatch.Stop();
             // Таймаут - порт не содержит Arduino устройство, это нормально
+            LogDebug($"{portName}: ProbePort: TimeoutException за {probeStopwatch.ElapsedMilliseconds} мс - {ex.Message}");
             return null;
         }
         catch (Exception ex)
         {
+            probeStopwatch.Stop();
             LogWarn($"{portName}: Ошибка проверки ({ex.Message}).");
+            LogDebug($"{portName}: ProbePort: исключение за {probeStopwatch.ElapsedMilliseconds} мс - {ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
             return null;
         }
         finally
         {
             try
             {
+                LogDebug($"{portName}: ProbePort: проверка IsConnected перед отключением");
                 if (device.IsConnected)
                 {
+                    LogDebug($"{portName}: ProbePort: вызов device.Disconnect()");
+                    var disconnectStartTime = Stopwatch.StartNew();
                     device.Disconnect();
+                    disconnectStartTime.Stop();
+                    LogDebug($"{portName}: ProbePort: device.Disconnect() завершен за {disconnectStartTime.ElapsedMilliseconds} мс");
+                }
+                else
+                {
+                    LogDebug($"{portName}: ProbePort: устройство уже отключено");
                 }
             }
-            catch
+            catch (Exception ex)
             {
                 // Игнорируем ошибки при отключении
+                LogDebug($"{portName}: ProbePort: ошибка при отключении (игнорируется): {ex.Message}");
             }
         }
     }
@@ -1025,6 +1126,7 @@ internal sealed partial class ArduinoService
     private void LogInfo(string message) => Log("Info", message);
     private void LogWarn(string message) => Log("Warn", message);
     private void LogError(string message) => Log("Error", message);
+    private void LogDebug(string message) => Log("Debug", message);
 
     private void Log(string level, string message)
     {
