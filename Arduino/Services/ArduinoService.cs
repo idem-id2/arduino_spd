@@ -1476,6 +1476,42 @@ internal sealed partial class ArduinoService
                     {
                         System.Diagnostics.Debug.WriteLine($"[HandleAlert] {device.PortName}: Вызов OnStateChanged()");
                         OnStateChanged();
+                        
+                        // Запускаем определение типа памяти и проверку RSWP в фоне (без ожидания)
+                        // Это нужно для логирования "Обнаружена DDR4 SPD" и "Статус RSWP"
+                        // Выполняем асинхронно, чтобы не блокировать обработку следующих алертов
+                        _ = Task.Run(async () =>
+                        {
+                            try
+                            {
+                                // Определяем тип памяти
+                                if (device != null && device.IsConnected && _activeDevice == device)
+                                {
+                                    await RefreshMemoryTypeAsync().ConfigureAwait(false);
+                                }
+                                
+                                // Проверяем RSWP
+                                if (device != null && device.IsConnected && _activeDevice == device)
+                                {
+                                    await CheckRswpAsync().ConfigureAwait(false);
+                                }
+                                
+                                // Обновляем UI после определения типа памяти и проверки RSWP
+                                if (device != null && device.IsConnected && _activeDevice == device)
+                                {
+                                    OnStateChanged();
+                                }
+                            }
+                            catch (Exception ex) when (ex is TimeoutException || ex is InvalidOperationException || ex is InvalidDataException)
+                            {
+                                // Ошибки могут возникать при извлечении EEPROM - это нормально
+                                System.Diagnostics.Debug.WriteLine($"[HandleAlert] {device?.PortName ?? "Unknown"}: Фоновые операции ошибка (игнорируется): {ex.GetType().Name}");
+                            }
+                            catch (Exception ex)
+                            {
+                                System.Diagnostics.Debug.WriteLine($"[HandleAlert] {device?.PortName ?? "Unknown"}: Фоновые операции неожиданная ошибка: {ex.GetType().Name}");
+                            }
+                        });
                     }
                     
                     System.Diagnostics.Debug.WriteLine($"[HandleAlert] {device?.PortName ?? "Unknown"}: Task.Run завершен успешно");
