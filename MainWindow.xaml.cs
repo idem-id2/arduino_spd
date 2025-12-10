@@ -814,7 +814,7 @@ namespace HexEditor
             ConnectionStatusText.Foreground = Brushes.White; // Белый текст на зелёном фоне
 
             string formattedPort = FormatConnectionPort(_lastConnectionPort);
-            ConnectionStatusText.Text = $"Arduino COM: {formattedPort}";
+            ConnectionStatusText.Text = $"Arduino {formattedPort}";
         }
 
         private static string FormatConnectionPort(string port)
