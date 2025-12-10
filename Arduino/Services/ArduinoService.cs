@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.IO;
 using System.IO.Ports;
 using System.Linq;
 using System.Text;
@@ -26,6 +27,7 @@ internal sealed partial class ArduinoService
     private readonly object _lock = new();
     private CancellationTokenSource? _scanCancellation;
     private static readonly TimeSpan PortProbeTimeout = TimeSpan.FromSeconds(5);
+    private static readonly TimeSpan OperationTimeout = TimeSpan.FromSeconds(30); // Таймаут для операций с устройством
 
     private Hardware.Arduino? _activeDevice;
     private byte _activeI2cAddress = 0x50;
@@ -365,7 +367,7 @@ internal sealed partial class ArduinoService
                     // Это работает как в старом коде arduino_spd_87
                     return currentDevice.ReadSpdDump();
                 }
-            }).ConfigureAwait(true);
+            }).WaitAsync(OperationTimeout).ConfigureAwait(true);
 
             if (data == null)
             {
@@ -393,6 +395,36 @@ internal sealed partial class ArduinoService
             await CheckRswpAsync().ConfigureAwait(true);
             
             return data;
+        }
+        catch (TimeoutException)
+        {
+            LogError($"{currentDevice?.PortName}: Таймаут при чтении SPD. Соединение потеряно.");
+            // При таймауте отключаемся
+            if (currentDevice != null && !currentDevice.IsConnected)
+            {
+                DisconnectInternal(false);
+            }
+            return null;
+        }
+        catch (InvalidOperationException ex)
+        {
+            LogError($"{currentDevice?.PortName}: Устройство недоступно при чтении SPD: {ex.Message}");
+            // При ошибке соединения отключаемся
+            if (currentDevice != null && !currentDevice.IsConnected)
+            {
+                DisconnectInternal(false);
+            }
+            return null;
+        }
+        catch (TaskCanceledException)
+        {
+            LogError($"{currentDevice?.PortName}: Операция чтения SPD отменена.");
+            return null;
+        }
+        catch (InvalidDataException ex)
+        {
+            LogError($"{currentDevice?.PortName}: Неверные данные при чтении SPD: {ex.Message}");
+            return null;
         }
         catch (Exception ex)
         {
@@ -517,9 +549,39 @@ internal sealed partial class ArduinoService
                     LogInfo($"{currentDevice.PortName}: Записано {bytesWritten} байт в SPD.");
                     return true;
                 }
-            }).ConfigureAwait(true);
+            }).WaitAsync(OperationTimeout).ConfigureAwait(true);
 
             return result;
+        }
+        catch (TimeoutException)
+        {
+            LogError($"{currentDevice?.PortName}: Таймаут при записи SPD. Соединение потеряно.");
+            // При таймауте отключаемся
+            if (currentDevice != null && !currentDevice.IsConnected)
+            {
+                DisconnectInternal(false);
+            }
+            return false;
+        }
+        catch (InvalidOperationException ex)
+        {
+            LogError($"{currentDevice?.PortName}: Устройство недоступно при записи SPD: {ex.Message}");
+            // При ошибке соединения отключаемся
+            if (currentDevice != null && !currentDevice.IsConnected)
+            {
+                DisconnectInternal(false);
+            }
+            return false;
+        }
+        catch (TaskCanceledException)
+        {
+            LogError($"{currentDevice?.PortName}: Операция записи SPD отменена.");
+            return false;
+        }
+        catch (InvalidDataException ex)
+        {
+            LogError($"{currentDevice?.PortName}: Неверные данные при записи SPD: {ex.Message}");
+            return false;
         }
         catch (Exception ex)
         {
@@ -582,7 +644,7 @@ internal sealed partial class ArduinoService
 
                     return currentDevice.SetName(name);
                 }
-            }).ConfigureAwait(true);
+            }).WaitAsync(OperationTimeout).ConfigureAwait(true);
 
             if (result)
             {
@@ -597,9 +659,37 @@ internal sealed partial class ArduinoService
 
             return result;
         }
+        catch (TimeoutException)
+        {
+            LogError($"{currentDevice?.PortName}: Таймаут при установке имени устройства. Соединение потеряно.");
+            if (currentDevice != null && !currentDevice.IsConnected)
+            {
+                DisconnectInternal(false);
+            }
+            return false;
+        }
+        catch (InvalidOperationException ex)
+        {
+            LogError($"{currentDevice?.PortName}: Устройство недоступно при установке имени: {ex.Message}");
+            if (currentDevice != null && !currentDevice.IsConnected)
+            {
+                DisconnectInternal(false);
+            }
+            return false;
+        }
+        catch (TaskCanceledException)
+        {
+            LogError($"{currentDevice?.PortName}: Операция установки имени отменена.");
+            return false;
+        }
+        catch (InvalidDataException ex)
+        {
+            LogError($"{currentDevice?.PortName}: Неверные данные при установке имени: {ex.Message}");
+            return false;
+        }
         catch (Exception ex)
         {
-            LogError($"{_activeDevice.PortName}: Не удалось установить имя устройства ({ex.Message})");
+            LogError($"{currentDevice?.PortName}: Не удалось установить имя устройства ({ex.Message})");
             return false;
         }
     }
@@ -611,29 +701,74 @@ internal sealed partial class ArduinoService
             return;
         }
 
+        // Захватываем ссылку на устройство локально, чтобы избежать race condition
+        var currentDevice = _activeDevice;
+        if (currentDevice == null)
+        {
+            return;
+        }
+
         try
         {
             await Task.Run(() =>
             {
+                // Проверяем, что устройство все еще подключено перед использованием
+                if (currentDevice == null || !currentDevice.IsConnected)
+                {
+                    return;
+                }
+
                 lock (_lock)
                 {
-                    string name = _activeDevice.Name;
-                    int firmware = _activeDevice.FirmwareVersion;
+                    // Повторная проверка после получения lock
+                    if (currentDevice == null || !currentDevice.IsConnected || _activeDevice != currentDevice)
+                    {
+                        return;
+                    }
+
+                    string name = currentDevice.Name;
+                    int firmware = currentDevice.FirmwareVersion;
                     string firmwareText = FormatFirmwareVersion(firmware);
-                    ushort clock = _activeDevice.I2CClock;
+                    ushort clock = currentDevice.I2CClock;
                     string clockText = clock == Hardware.Arduino.ClockMode.Fast ? "400 kHz" : "100 kHz";
-                    byte rswp = _activeDevice.RswpTypeSupport;
+                    byte rswp = currentDevice.RswpTypeSupport;
                     bool ddr4Rswp = (rswp & Hardware.Arduino.RswpSupport.DDR4) != 0;
                     string ddr4Text = ddr4Rswp ? "Да" : "Нет";
 
                     ConnectionInfoChanged?.Invoke(this, new ArduinoConnectionInfo(
-                        _activeDevice.PortName,
+                        currentDevice.PortName,
                         firmwareText,
                         name,
                         clockText,
                         ddr4Text));
                 }
-            }).ConfigureAwait(true);
+            }).WaitAsync(OperationTimeout).ConfigureAwait(true);
+        }
+        catch (TimeoutException)
+        {
+            LogWarn($"{currentDevice?.PortName}: Таймаут при обновлении информации о подключении.");
+            // При таймауте отключаемся
+            if (currentDevice != null && !currentDevice.IsConnected)
+            {
+                DisconnectInternal(false);
+            }
+        }
+        catch (InvalidOperationException ex)
+        {
+            LogWarn($"{currentDevice?.PortName}: Устройство недоступно при обновлении информации: {ex.Message}");
+            // При ошибке соединения отключаемся
+            if (currentDevice != null && !currentDevice.IsConnected)
+            {
+                DisconnectInternal(false);
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            LogWarn($"{currentDevice?.PortName}: Операция обновления информации отменена.");
+        }
+        catch (InvalidDataException ex)
+        {
+            LogWarn($"{currentDevice?.PortName}: Неверные данные при обновлении информации: {ex.Message}");
         }
         catch (Exception ex)
         {
@@ -708,7 +843,7 @@ internal sealed partial class ArduinoService
                     }
                     return blockStates;
                 }
-            }).ConfigureAwait(true);
+            }).WaitAsync(OperationTimeout).ConfigureAwait(true);
 
             RswpStateChanged?.Invoke(this, states);
             
@@ -720,6 +855,34 @@ internal sealed partial class ArduinoService
             }
             
             return states;
+        }
+        catch (TimeoutException)
+        {
+            LogError($"{currentDevice?.PortName}: Таймаут при проверке RSWP. Соединение потеряно.");
+            if (currentDevice != null && !currentDevice.IsConnected)
+            {
+                DisconnectInternal(false);
+            }
+            return Array.Empty<bool>();
+        }
+        catch (InvalidOperationException ex)
+        {
+            LogError($"{currentDevice?.PortName}: Устройство недоступно при проверке RSWP: {ex.Message}");
+            if (currentDevice != null && !currentDevice.IsConnected)
+            {
+                DisconnectInternal(false);
+            }
+            return Array.Empty<bool>();
+        }
+        catch (TaskCanceledException)
+        {
+            LogError($"{currentDevice?.PortName}: Операция проверки RSWP отменена.");
+            return Array.Empty<bool>();
+        }
+        catch (InvalidDataException ex)
+        {
+            LogError($"{currentDevice?.PortName}: Неверные данные при проверке RSWP: {ex.Message}");
+            return Array.Empty<bool>();
         }
         catch (Exception ex)
         {
@@ -799,7 +962,7 @@ internal sealed partial class ArduinoService
                     currentDevice.I2CAddress = _activeI2cAddress;
                     return currentDevice.SetRswp(block);
                 }
-            }).ConfigureAwait(true);
+            }).WaitAsync(OperationTimeout).ConfigureAwait(true);
 
             if (result)
             {
@@ -813,6 +976,34 @@ internal sealed partial class ArduinoService
             }
 
             return result;
+        }
+        catch (TimeoutException)
+        {
+            LogError($"{currentDevice?.PortName}: Таймаут при установке RSWP. Соединение потеряно.");
+            if (currentDevice != null && !currentDevice.IsConnected)
+            {
+                DisconnectInternal(false);
+            }
+            return false;
+        }
+        catch (InvalidOperationException ex)
+        {
+            LogError($"{currentDevice?.PortName}: Устройство недоступно при установке RSWP: {ex.Message}");
+            if (currentDevice != null && !currentDevice.IsConnected)
+            {
+                DisconnectInternal(false);
+            }
+            return false;
+        }
+        catch (TaskCanceledException)
+        {
+            LogError($"{currentDevice?.PortName}: Операция установки RSWP отменена.");
+            return false;
+        }
+        catch (InvalidDataException ex)
+        {
+            LogError($"{currentDevice?.PortName}: Неверные данные при установке RSWP: {ex.Message}");
+            return false;
         }
         catch (Exception ex)
         {
@@ -890,7 +1081,7 @@ internal sealed partial class ArduinoService
                     currentDevice.I2CAddress = _activeI2cAddress;
                     return currentDevice.ClearRswp();
                 }
-            }).ConfigureAwait(true);
+            }).WaitAsync(OperationTimeout).ConfigureAwait(true);
 
             if (result)
             {
@@ -904,6 +1095,34 @@ internal sealed partial class ArduinoService
             }
 
             return result;
+        }
+        catch (TimeoutException)
+        {
+            LogError($"{currentDevice?.PortName}: Таймаут при очистке RSWP. Соединение потеряно.");
+            if (currentDevice != null && !currentDevice.IsConnected)
+            {
+                DisconnectInternal(false);
+            }
+            return false;
+        }
+        catch (InvalidOperationException ex)
+        {
+            LogError($"{currentDevice?.PortName}: Устройство недоступно при очистке RSWP: {ex.Message}");
+            if (currentDevice != null && !currentDevice.IsConnected)
+            {
+                DisconnectInternal(false);
+            }
+            return false;
+        }
+        catch (TaskCanceledException)
+        {
+            LogError($"{currentDevice?.PortName}: Операция очистки RSWP отменена.");
+            return false;
+        }
+        catch (InvalidDataException ex)
+        {
+            LogError($"{currentDevice?.PortName}: Неверные данные при очистке RSWP: {ex.Message}");
+            return false;
         }
         catch (Exception ex)
         {
@@ -959,9 +1178,37 @@ internal sealed partial class ArduinoService
 
                     return SpdMemoryType.Unknown;
                 }
-            }).ConfigureAwait(true);
+            }).WaitAsync(OperationTimeout).ConfigureAwait(true);
 
             UpdateMemoryType(detectedType);
+        }
+        catch (TimeoutException)
+        {
+            LogWarn($"{currentDevice?.PortName}: Таймаут при определении типа памяти. Соединение потеряно.");
+            if (currentDevice != null && !currentDevice.IsConnected)
+            {
+                DisconnectInternal(false);
+            }
+            UpdateMemoryType(SpdMemoryType.Unknown);
+        }
+        catch (InvalidOperationException ex)
+        {
+            LogWarn($"{currentDevice?.PortName}: Устройство недоступно при определении типа памяти: {ex.Message}");
+            if (currentDevice != null && !currentDevice.IsConnected)
+            {
+                DisconnectInternal(false);
+            }
+            UpdateMemoryType(SpdMemoryType.Unknown);
+        }
+        catch (TaskCanceledException)
+        {
+            LogWarn($"{currentDevice?.PortName}: Операция определения типа памяти отменена.");
+            UpdateMemoryType(SpdMemoryType.Unknown);
+        }
+        catch (InvalidDataException ex)
+        {
+            LogWarn($"{currentDevice?.PortName}: Неверные данные при определении типа памяти: {ex.Message}");
+            UpdateMemoryType(SpdMemoryType.Unknown);
         }
         catch (Exception ex)
         {
