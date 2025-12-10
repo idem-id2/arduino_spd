@@ -1421,53 +1421,89 @@ internal sealed partial class ArduinoService
 
     private ArduinoDeviceInfo? ProbePort(string portName)
     {
+        System.Diagnostics.Debug.WriteLine($"[ProbePort] {portName}: Начало проверки порта");
+        
         // Используем отдельные настройки для сканирования портов:
         // таймаут немного больше (3 с), чтобы настоящие устройства успевали ответить,
         // а "пустые" аппаратные COM-порты всё равно быстро освобождались благодаря внешнему PortProbeTimeout.
         var scanPortSettings = new Hardware.Arduino.SerialPortSettings(115200, true, true, 3);
         
+        System.Diagnostics.Debug.WriteLine($"[ProbePort] {portName}: Создание SerialPortSettings: BaudRate={scanPortSettings.BaudRate}, Timeout={scanPortSettings.Timeout} с");
         LogInfo($"{portName}: Проверка сигнатуры устройства...");
 
+        System.Diagnostics.Debug.WriteLine($"[ProbePort] {portName}: Создание экземпляра Hardware.Arduino");
         using var device = new Hardware.Arduino(scanPortSettings, portName);
+        
         try
         {
+            System.Diagnostics.Debug.WriteLine($"[ProbePort] {portName}: Вызов device.Connect()");
+            var connectStart = Stopwatch.StartNew();
+            
             device.Connect();
+            
+            connectStart.Stop();
+            System.Diagnostics.Debug.WriteLine($"[ProbePort] {portName}: device.Connect() завершен за {connectStart.ElapsedMilliseconds} мс, IsConnected={device.IsConnected}");
             LogInfo($"{portName}: Проверка успешна.");
 
+            System.Diagnostics.Debug.WriteLine($"[ProbePort] {portName}: Получение FirmwareVersion");
+            var firmwareStart = Stopwatch.StartNew();
             int firmware = device.FirmwareVersion;
+            firmwareStart.Stop();
             string firmwareText = FormatFirmwareVersion(firmware);
-            string name = device.Name;
+            System.Diagnostics.Debug.WriteLine($"[ProbePort] {portName}: FirmwareVersion получен за {firmwareStart.ElapsedMilliseconds} мс: {firmware} ({firmwareText})");
 
-            return new ArduinoDeviceInfo
+            System.Diagnostics.Debug.WriteLine($"[ProbePort] {portName}: Получение Name");
+            var nameStart = Stopwatch.StartNew();
+            string name = device.Name;
+            nameStart.Stop();
+            System.Diagnostics.Debug.WriteLine($"[ProbePort] {portName}: Name получен за {nameStart.ElapsedMilliseconds} мс: {name}");
+
+            var info = new ArduinoDeviceInfo
             {
                 Port = portName,
                 FirmwareVersion = firmwareText,
                 Name = name
             };
+            
+            System.Diagnostics.Debug.WriteLine($"[ProbePort] {portName}: ArduinoDeviceInfo создан успешно");
+            return info;
         }
-        catch (TimeoutException)
+        catch (TimeoutException ex)
         {
             // Таймаут - порт не содержит Arduino устройство, это нормально
+            System.Diagnostics.Debug.WriteLine($"[ProbePort] {portName}: TimeoutException - {ex.Message}");
             return null;
         }
         catch (Exception ex)
         {
+            System.Diagnostics.Debug.WriteLine($"[ProbePort] {portName}: Ошибка: {ex.GetType().Name} - {ex.Message}");
             LogWarn($"{portName}: Ошибка проверки ({ex.Message}).");
             return null;
         }
         finally
         {
+            System.Diagnostics.Debug.WriteLine($"[ProbePort] {portName}: finally блок - начало отключения");
             try
             {
                 if (device.IsConnected)
                 {
+                    System.Diagnostics.Debug.WriteLine($"[ProbePort] {portName}: Вызов device.Disconnect()");
+                    var disconnectStart = Stopwatch.StartNew();
                     device.Disconnect();
+                    disconnectStart.Stop();
+                    System.Diagnostics.Debug.WriteLine($"[ProbePort] {portName}: device.Disconnect() завершен за {disconnectStart.ElapsedMilliseconds} мс");
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"[ProbePort] {portName}: Устройство не подключено, Disconnect() не вызывается");
                 }
             }
-            catch
+            catch (Exception ex)
             {
                 // Игнорируем ошибки при отключении
+                System.Diagnostics.Debug.WriteLine($"[ProbePort] {portName}: Ошибка при отключении (игнорируется): {ex.GetType().Name} - {ex.Message}");
             }
+            System.Diagnostics.Debug.WriteLine($"[ProbePort] {portName}: Проверка порта завершена");
         }
     }
 
