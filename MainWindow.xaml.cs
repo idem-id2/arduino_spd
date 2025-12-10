@@ -7,6 +7,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO.Ports;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
@@ -42,6 +43,27 @@ namespace HexEditor
         public MainWindow()
         {
             InitializeComponent();
+            
+            // Устанавливаем версию в заголовке окна
+            var assembly = Assembly.GetExecutingAssembly();
+            var version = assembly.GetName().Version;
+            if (version != null)
+            {
+                // Используем только Major.Minor.Build, игнорируем Revision если он 0
+                if (version.Revision > 0)
+                {
+                    Title = $"SPD-RW-EDIT v{version.Major}.{version.Minor}.{version.Build}.{version.Revision}";
+                }
+                else
+                {
+                    Title = $"SPD-RW-EDIT v{version.Major}.{version.Minor}.{version.Build}";
+                }
+            }
+            else
+            {
+                Title = "SPD-RW-EDIT v1.0.0";
+            }
+            
             _arduinoService = new ArduinoService();
             _arduinoService.LogGenerated += OnArduinoLogGenerated;
             _arduinoService.ConnectionStateChanged += OnArduinoConnectionStateChanged;
