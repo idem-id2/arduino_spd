@@ -1674,18 +1674,29 @@ internal sealed partial class ArduinoService
         {
             System.Diagnostics.Debug.WriteLine($"[HandleAlert] {_activeDevice.PortName}: SlaveDecrement получен");
             
-            // Отменяем операции, если они выполняются (это должно быстро остановить выполняющиеся операции)
+            // ШАГ 9: ОБРАБОТКА SlaveDecrement (EEPROM извлечена)
+            // Это нормальное состояние - EEPROM может быть извлечена в любой момент
+            // Не вызываем отключение устройства - Arduino все еще подключен
+            
+            // Отменяем фоновые операции, если они выполняются
+            // Это позволяет быстро остановить выполняющиеся операции определения типа памяти и проверки RSWP
             _alertOperationCancellation?.Cancel();
             
-            // Сбрасываем состояние сразу
+            // Сбрасываем флаг готовности SPD EEPROM
             _spdReady = false;
             SpdStateChanged?.Invoke(this, _spdReady);
             LogInfo($"{_activeDevice.PortName}: SPD EEPROM извлечена.");
+            
+            // Сбрасываем состояние типа памяти и RSWP
+            // Тип памяти становится Unknown, так как EEPROM больше нет
             UpdateMemoryType(SpdMemoryType.Unknown);
+            // Очищаем состояние RSWP (нет блоков для проверки)
             RswpStateChanged?.Invoke(this, Array.Empty<bool>());
+            // Очищаем результаты полного сканирования
             _fullScanAddresses = null;
             
-            // Обновляем UI (событие должно обрабатываться быстро обработчиками)
+            // Обновляем UI для отображения изменений
+            // Событие должно обрабатываться быстро обработчиками, чтобы не блокировать поток
             OnStateChanged();
             System.Diagnostics.Debug.WriteLine($"[HandleAlert] {_activeDevice.PortName}: SlaveDecrement обработан");
         }
