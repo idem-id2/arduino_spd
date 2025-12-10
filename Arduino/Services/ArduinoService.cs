@@ -1363,11 +1363,10 @@ internal sealed partial class ArduinoService
             // Проверяем, не обрабатывается ли уже другой алерт
             if (_isHandlingAlert)
             {
-                LogWarn($"[DEBUG] {_activeDevice.PortName}: HandleAlert: Пропуск - уже обрабатывается другой алерт");
                 return;
             }
 
-            // Сохраняем ссылку на устройство локально, чтобы избежать race condition
+            // Сохраняем ссылку на устройство локально
             var device = _activeDevice;
             if (device == null)
             {
@@ -1378,123 +1377,82 @@ internal sealed partial class ArduinoService
             SpdStateChanged?.Invoke(this, _spdReady);
             LogInfo($"{device.PortName}: Обнаружена новая SPD EEPROM");
             
-            // Выполняем все операции последовательно в одной задаче, как в старом коде
+            // Выполняем операции в отдельном потоке, как в старом коде (new Thread(() => HandleAlert(...)).Start())
             _isHandlingAlert = true;
             _ = Task.Run(async () =>
             {
                 try
                 {
-                    // Проверяем отмену перед началом
                     cancellationToken.ThrowIfCancellationRequested();
                     
-                    LogInfo($"[DEBUG] {device.PortName}: HandleAlert: Начало обработки SlaveIncrement");
-                    
-                    // Проверяем, что устройство все еще подключено
-                    if (device == null || !device.IsConnected || _activeDevice != device)
+                    // Выполняем сканирование I2C синхронно в lock (как в старом коде)
+                    lock (_lock)
                     {
-                        LogWarn($"[DEBUG] {device?.PortName ?? "Unknown"}: HandleAlert: Устройство отключено перед обработкой");
-                        return;
-                    }
-                    
-                    // Сначала выполняем полное сканирование всех I2C адресов (как в старом коде - синхронно)
-                    cancellationToken.ThrowIfCancellationRequested();
-                    await Task.Run(() =>
-                    {
-                        lock (_lock)
+                        cancellationToken.ThrowIfCancellationRequested();
+                        
+                        if (device == null || !device.IsConnected || _activeDevice != device)
                         {
-                            cancellationToken.ThrowIfCancellationRequested();
-                            
-                            // Повторная проверка после получения lock
-                            if (device == null || !device.IsConnected || _activeDevice != device)
-                            {
-                                LogWarn($"[DEBUG] {device?.PortName ?? "Unknown"}: HandleAlert: Устройство отключено после получения lock");
-                                return;
-                            }
-                            
-                            LogInfo($"[DEBUG] {device.PortName}: HandleAlert: Выполнение ScanFull()");
-                            device.I2CAddress = _activeI2cAddress;
-                            byte[] fullAddresses = device.ScanFull();
-                            
-                            if (fullAddresses.Length > 0)
-                            {
-                                var addressList = string.Join(", ", fullAddresses.Select(a => $"0x{a:X2}"));
-                                LogInfo($"{device.PortName}: Полное сканирование I2C: найдено {fullAddresses.Length} устройств ({addressList})");
-                            }
-                            else
-                            {
-                                LogInfo($"{device.PortName}: Полное сканирование I2C: устройства не найдены");
-                            }
-                            
-                            // Сохраняем результаты полного сканирования
-                            _fullScanAddresses = fullAddresses;
-                            
-                            // Затем выполняем быстрый скан для определения SPD адресов
-                            LogInfo($"[DEBUG] {device.PortName}: HandleAlert: Выполнение Scan()");
-                            var addresses = device.Scan();
-                            if (addresses.Length > 0)
-                            {
-                                _activeI2cAddress = addresses[0];
-                            }
+                            return;
                         }
-                    }, cancellationToken).WaitAsync(OperationTimeout).ConfigureAwait(false);
+                        
+                        device.I2CAddress = _activeI2cAddress;
+                        
+                        // Полное сканирование I2C
+                        byte[] fullAddresses = device.ScanFull();
+                        if (fullAddresses.Length > 0)
+                        {
+                            var addressList = string.Join(", ", fullAddresses.Select(a => $"0x{a:X2}"));
+                            LogInfo($"{device.PortName}: Полное сканирование I2C: найдено {fullAddresses.Length} устройств ({addressList})");
+                        }
+                        else
+                        {
+                            LogInfo($"{device.PortName}: Полное сканирование I2C: устройства не найдены");
+                        }
+                        
+                        _fullScanAddresses = fullAddresses;
+                        
+                        // Быстрый скан для определения SPD адресов
+                        var addresses = device.Scan();
+                        if (addresses.Length > 0)
+                        {
+                            _activeI2cAddress = addresses[0];
+                        }
+                    }
                     
-                    // Проверяем отмену перед обновлением типа памяти
+                    // Обновляем тип памяти и RSWP асинхронно (не блокируя lock)
                     cancellationToken.ThrowIfCancellationRequested();
                     if (device == null || !device.IsConnected || _activeDevice != device)
                     {
-                        LogWarn($"[DEBUG] {device?.PortName ?? "Unknown"}: HandleAlert: Устройство отключено перед обновлением типа памяти");
                         return;
                     }
                     
-                    // Обновляем тип памяти
-                    LogInfo($"[DEBUG] {device.PortName}: HandleAlert: Обновление типа памяти");
-                    var refreshTask = RefreshMemoryTypeAsync();
-                    await refreshTask.WaitAsync(OperationTimeout, cancellationToken).ConfigureAwait(false);
+                    await RefreshMemoryTypeAsync().WaitAsync(OperationTimeout, cancellationToken).ConfigureAwait(false);
                     
-                    // Проверяем отмену перед проверкой RSWP
                     cancellationToken.ThrowIfCancellationRequested();
                     if (device == null || !device.IsConnected || _activeDevice != device)
                     {
-                        LogWarn($"[DEBUG] {device?.PortName ?? "Unknown"}: HandleAlert: Устройство отключено перед проверкой RSWP");
                         return;
                     }
                     
-                    // Проверяем RSWP
-                    LogInfo($"[DEBUG] {device.PortName}: HandleAlert: Проверка RSWP");
-                    var checkRswpTask = CheckRswpAsync();
-                    await checkRswpTask.WaitAsync(OperationTimeout, cancellationToken).ConfigureAwait(false);
+                    await CheckRswpAsync().WaitAsync(OperationTimeout, cancellationToken).ConfigureAwait(false);
                     
-                    // Уведомляем об изменении состояния для обновления UI после завершения всех операций
                     OnStateChanged();
-                    LogInfo($"[DEBUG] {device.PortName}: HandleAlert: Обработка SlaveIncrement завершена успешно");
                 }
                 catch (OperationCanceledException)
                 {
-                    LogWarn($"[DEBUG] {device?.PortName ?? "Unknown"}: HandleAlert: Операция отменена (новый алерт получен)");
+                    // Операция отменена - это нормально при новом алерте
                 }
-                catch (TimeoutException)
+                catch (Exception ex) when (ex is TimeoutException || ex is InvalidOperationException || ex is InvalidDataException)
                 {
-                    LogError($"[DEBUG] {device?.PortName ?? "Unknown"}: HandleAlert: Таймаут при обработке SlaveIncrement. Соединение потеряно.");
+                    LogWarn($"{device?.PortName ?? "Unknown"}: Ошибка при обработке алерта: {ex.Message}");
                     if (device != null && !device.IsConnected)
                     {
                         DisconnectInternal(false);
                     }
-                }
-                catch (InvalidOperationException ex)
-                {
-                    LogError($"[DEBUG] {device?.PortName ?? "Unknown"}: HandleAlert: Устройство недоступно: {ex.Message}");
-                    if (device != null && !device.IsConnected)
-                    {
-                        DisconnectInternal(false);
-                    }
-                }
-                catch (InvalidDataException ex)
-                {
-                    LogWarn($"[DEBUG] {device?.PortName ?? "Unknown"}: HandleAlert: Неверные данные: {ex.Message}");
                 }
                 catch (Exception ex)
                 {
-                    LogWarn($"[DEBUG] {device?.PortName ?? "Unknown"}: HandleAlert: Ошибка при обработке SlaveIncrement: {ex.Message}");
+                    LogWarn($"{device?.PortName ?? "Unknown"}: Неожиданная ошибка при обработке алерта: {ex.Message}");
                 }
                 finally
                 {
@@ -1511,11 +1469,9 @@ internal sealed partial class ArduinoService
             SpdStateChanged?.Invoke(this, _spdReady);
             LogInfo($"{_activeDevice.PortName}: SPD EEPROM извлечена.");
             UpdateMemoryType(SpdMemoryType.Unknown);
-            // Очищаем состояние RSWP при удалении SPD
             RswpStateChanged?.Invoke(this, Array.Empty<bool>());
-            // Очищаем результаты полного сканирования при извлечении EEPROM
             _fullScanAddresses = null;
-            _isHandlingAlert = false; // Сбрасываем флаг обработки
+            _isHandlingAlert = false;
             OnStateChanged();
         }
     }
