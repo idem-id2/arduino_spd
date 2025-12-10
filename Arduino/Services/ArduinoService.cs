@@ -873,25 +873,29 @@ internal sealed partial class ArduinoService
         }
         catch (TimeoutException)
         {
-            LogError($"{currentDevice?.PortName}: Таймаут при проверке RSWP. Соединение потеряно.");
+            // Таймаут может быть из-за извлечения EEPROM - это нормально
+            // Отключаемся только если устройство действительно отключено
             if (currentDevice != null && !currentDevice.IsConnected)
             {
+                LogError($"{currentDevice.PortName}: Таймаут при проверке RSWP. Соединение потеряно.");
                 DisconnectInternal(false);
             }
             return Array.Empty<bool>();
         }
         catch (InvalidOperationException ex)
         {
-            LogError($"{currentDevice?.PortName}: Устройство недоступно при проверке RSWP: {ex.Message}");
+            // Ошибка может быть из-за извлечения EEPROM - это нормально
+            // Отключаемся только если устройство действительно отключено
             if (currentDevice != null && !currentDevice.IsConnected)
             {
+                LogError($"{currentDevice.PortName}: Устройство недоступно при проверке RSWP: {ex.Message}");
                 DisconnectInternal(false);
             }
             return Array.Empty<bool>();
         }
         catch (TaskCanceledException)
         {
-            LogError($"{currentDevice?.PortName}: Операция проверки RSWP отменена.");
+            // Операция отменена - это нормально при извлечении EEPROM
             return Array.Empty<bool>();
         }
         catch (InvalidDataException ex)
@@ -1216,18 +1220,22 @@ internal sealed partial class ArduinoService
         }
         catch (TimeoutException)
         {
-            LogWarn($"{currentDevice?.PortName}: Таймаут при определении типа памяти. Соединение потеряно.");
+            // Таймаут может быть из-за извлечения EEPROM - это нормально
+            // Отключаемся только если устройство действительно отключено
             if (currentDevice != null && !currentDevice.IsConnected)
             {
+                LogWarn($"{currentDevice.PortName}: Таймаут при определении типа памяти. Соединение потеряно.");
                 DisconnectInternal(false);
             }
             UpdateMemoryType(SpdMemoryType.Unknown);
         }
         catch (InvalidOperationException ex)
         {
-            LogWarn($"{currentDevice?.PortName}: Устройство недоступно при определении типа памяти: {ex.Message}");
+            // Ошибка может быть из-за извлечения EEPROM - это нормально
+            // Отключаемся только если устройство действительно отключено
             if (currentDevice != null && !currentDevice.IsConnected)
             {
+                LogWarn($"{currentDevice.PortName}: Устройство недоступно при определении типа памяти: {ex.Message}");
                 DisconnectInternal(false);
             }
             UpdateMemoryType(SpdMemoryType.Unknown);
@@ -1609,9 +1617,11 @@ internal sealed partial class ArduinoService
             }
 
             var device = _activeDevice;
-            LogWarn($"[DEBUG] {device.PortName}: HandleConnectionLost: Соединение потеряно. Начало отключения.");
+            System.Diagnostics.Debug.WriteLine($"[HandleConnectionLost] {device.PortName}: Соединение потеряно. Начало отключения.");
+            // Это событие вызывается только при реальной потере связи с Arduino
+            // (не при извлечении EEPROM)
             DisconnectInternal(false);
-            LogWarn($"[DEBUG] {device.PortName}: HandleConnectionLost: Отключение завершено.");
+            System.Diagnostics.Debug.WriteLine($"[HandleConnectionLost] {device.PortName}: Отключение завершено.");
         }
 
     private void DisconnectInternal(bool logDisconnect)

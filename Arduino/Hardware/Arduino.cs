@@ -759,9 +759,15 @@ internal sealed class Arduino : IDisposable
 
                 return _response.Body;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                OnConnectionLost();
+                // Вызываем OnConnectionLost только при реальной потере связи
+                // (ошибки серийного порта, таймауты при отсутствии ответа от устройства)
+                // Не вызываем при ошибках операций с EEPROM (InvalidOperationException при извлечении EEPROM)
+                if (ex is IOException || ex is TimeoutException || !IsConnected)
+                {
+                    OnConnectionLost();
+                }
                 throw;
             }
             finally
