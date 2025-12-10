@@ -35,7 +35,6 @@ internal sealed partial class ArduinoService
     private bool _spdReady;
     private SpdMemoryType _memoryType = SpdMemoryType.Unknown;
     private byte[]? _fullScanAddresses; // Результаты полного сканирования I2C шины
-    private volatile bool _isHandlingAlert; // Флаг для предотвращения одновременной обработки алертов
 
     public ObservableCollection<ArduinoDeviceInfo> Devices { get; } = new();
 
@@ -1397,24 +1396,11 @@ internal sealed partial class ArduinoService
         {
             System.Diagnostics.Debug.WriteLine($"[HandleAlert] {_activeDevice.PortName}: SlaveIncrement получен");
             
-            // Отменяем предыдущие операции, если они еще выполняются
-            _alertOperationCancellation?.Cancel();
-            _alertOperationCancellation?.Dispose();
-            _alertOperationCancellation = new CancellationTokenSource();
-            var cancellationToken = _alertOperationCancellation.Token;
-
-            // Проверяем, не обрабатывается ли уже другой алерт
-            if (_isHandlingAlert)
-            {
-                System.Diagnostics.Debug.WriteLine($"[HandleAlert] {_activeDevice.PortName}: Выход - уже обрабатывается другой алерт");
-                return;
-            }
-
             // Сохраняем ссылку на устройство локально
             var device = _activeDevice;
             if (device == null)
             {
-                System.Diagnostics.Debug.WriteLine("[HandleAlert] Выход - device null после получения ссылки");
+                System.Diagnostics.Debug.WriteLine("[HandleAlert] Выход - device null");
                 return;
             }
             
@@ -1422,27 +1408,21 @@ internal sealed partial class ArduinoService
             SpdStateChanged?.Invoke(this, _spdReady);
             LogInfo($"{device.PortName}: Обнаружена новая SPD EEPROM");
             
-            // Выполняем операции в отдельном потоке, как в старом коде (new Thread(() => HandleAlert(...)).Start())
-            _isHandlingAlert = true;
+            // В старом коде HandleAlert выполнялся в отдельном потоке без проверок и cancellation tokens
+            // Каждый алерт обрабатывался независимо: new Thread(() => HandleAlert(...)).Start()
+            // Выполняем только быстрые операции: Scan() и GetRswpSupport() (через ScanFull для полного сканирования)
             _ = Task.Run(() =>
             {
                 try
                 {
                     System.Diagnostics.Debug.WriteLine($"[HandleAlert] {device.PortName}: Task.Run начал выполнение");
-                    cancellationToken.ThrowIfCancellationRequested();
                     
                     // Выполняем сканирование I2C синхронно в lock (как в старом коде)
-                    // Делаем это быстро, чтобы не блокировать другие операции
-                    // ВАЖНО: Проверяем cancellation token ПЕРЕД получением lock, чтобы не блокировать другие потоки
-                    cancellationToken.ThrowIfCancellationRequested();
-                    System.Diagnostics.Debug.WriteLine($"[HandleAlert] {device.PortName}: Попытка получить lock для сканирования I2C");
                     lock (_lock)
                     {
                         System.Diagnostics.Debug.WriteLine($"[HandleAlert] {device.PortName}: Lock получен, начинаем сканирование");
-                        cancellationToken.ThrowIfCancellationRequested();
                         
-                        // Проверяем только подключение устройства, не проверяем _spdReady
-                        // (EEPROM может быть извлечена - это нормально)
+                        // Проверяем только подключение устройства
                         if (device == null || !device.IsConnected || _activeDevice != device)
                         {
                             System.Diagnostics.Debug.WriteLine($"[HandleAlert] {device?.PortName ?? "Unknown"}: Выход из lock - устройство недоступно");
@@ -1451,10 +1431,7 @@ internal sealed partial class ArduinoService
                         
                         device.I2CAddress = _activeI2cAddress;
                         
-                        // Полное сканирование I2C
-                        // Обрабатываем исключения тихо - они могут возникать при извлечении EEPROM
-                        cancellationToken.ThrowIfCancellationRequested();
-                        System.Diagnostics.Debug.WriteLine($"[HandleAlert] {device.PortName}: Выполнение ScanFull()");
+                        // Полное сканирование I2C (в старом коде не было, но нужно для отображения всех адресов)
                         byte[] fullAddresses = Array.Empty<byte>();
                         try
                         {
@@ -1466,23 +1443,16 @@ internal sealed partial class ArduinoService
                                 var addressList = string.Join(", ", fullAddresses.Select(a => $"0x{a:X2}"));
                                 LogInfo($"{device.PortName}: Полное сканирование I2C: найдено {fullAddresses.Length} устройств ({addressList})");
                             }
-                            else
-                            {
-                                LogInfo($"{device.PortName}: Полное сканирование I2C: устройства не найдены");
-                            }
                         }
                         catch (Exception ex) when (ex is InvalidDataException || ex is TimeoutException || ex is InvalidOperationException)
                         {
                             // Ошибки при сканировании могут быть из-за извлечения EEPROM - это нормально
                             System.Diagnostics.Debug.WriteLine($"[HandleAlert] {device.PortName}: ScanFull() ошибка (игнорируется): {ex.GetType().Name}");
-                            // Продолжаем с пустым массивом
                         }
                         
                         _fullScanAddresses = fullAddresses;
                         
-                        // Быстрый скан для определения SPD адресов
-                        cancellationToken.ThrowIfCancellationRequested();
-                        System.Diagnostics.Debug.WriteLine($"[HandleAlert] {device.PortName}: Выполнение Scan()");
+                        // Быстрый скан для определения SPD адресов (как в старом коде: _addresses = Scan())
                         try
                         {
                             var addresses = device.Scan();
@@ -1496,61 +1466,37 @@ internal sealed partial class ArduinoService
                         {
                             // Ошибки при сканировании могут быть из-за извлечения EEPROM - это нормально
                             System.Diagnostics.Debug.WriteLine($"[HandleAlert] {device.PortName}: Scan() ошибка (игнорируется): {ex.GetType().Name}");
-                            // Продолжаем без обновления _activeI2cAddress
                         }
+                        
                         System.Diagnostics.Debug.WriteLine($"[HandleAlert] {device.PortName}: Lock освобожден");
                     }
                     
-                    // В старом коде HandleAlert выполнял только Scan() и GetRswpSupport() синхронно
-                    // Длительные операции (RefreshMemoryTypeAsync, CheckRswpAsync) выполняются позже, когда это нужно
-                    // Это предотвращает зависания при быстром подключении/отключении EEPROM
-                    
                     // Обновляем UI после сканирования
-                    cancellationToken.ThrowIfCancellationRequested();
                     if (device != null && device.IsConnected && _activeDevice == device)
                     {
                         System.Diagnostics.Debug.WriteLine($"[HandleAlert] {device.PortName}: Вызов OnStateChanged()");
                         OnStateChanged();
-                        System.Diagnostics.Debug.WriteLine($"[HandleAlert] {device.PortName}: OnStateChanged() завершен");
-                    }
-                    else
-                    {
-                        System.Diagnostics.Debug.WriteLine($"[HandleAlert] {device?.PortName ?? "Unknown"}: OnStateChanged() не вызван - устройство недоступно");
                     }
                     
                     System.Diagnostics.Debug.WriteLine($"[HandleAlert] {device?.PortName ?? "Unknown"}: Task.Run завершен успешно");
                 }
-                catch (OperationCanceledException)
+                catch (Exception ex) when (ex is TimeoutException || ex is InvalidOperationException || ex is InvalidDataException)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[HandleAlert] {device?.PortName ?? "Unknown"}: Task.Run отменен (OperationCanceledException)");
-                    // Операция отменена - это нормально при новом алерте или извлечении EEPROM
-                }
-                    catch (Exception ex) when (ex is TimeoutException || ex is InvalidOperationException || ex is InvalidDataException)
+                    // Ошибки могут возникать при извлечении EEPROM - это нормально
+                    System.Diagnostics.Debug.WriteLine($"[HandleAlert] {device?.PortName ?? "Unknown"}: Task.Run ошибка (игнорируется): {ex.GetType().Name}");
+                    // Отключаемся только если действительно потеряна связь с Arduino
+                    if (device != null && !device.IsConnected)
                     {
-                        // Ошибки могут возникать при извлечении EEPROM - это нормально
-                        // Не логируем как ошибку и не отключаемся, если устройство все еще подключено
-                        System.Diagnostics.Debug.WriteLine($"[HandleAlert] {device?.PortName ?? "Unknown"}: Task.Run ошибка (игнорируется): {ex.GetType().Name}");
-                        // Отключаемся только если действительно потеряна связь с Arduino
-                        if (device != null && !device.IsConnected)
-                        {
-                            System.Diagnostics.Debug.WriteLine($"[HandleAlert] {device.PortName}: Устройство отключено, вызываем DisconnectInternal");
-                            DisconnectInternal(false);
-                        }
+                        System.Diagnostics.Debug.WriteLine($"[HandleAlert] {device.PortName}: Устройство отключено, вызываем DisconnectInternal");
+                        DisconnectInternal(false);
                     }
+                }
                 catch (Exception ex)
                 {
                     System.Diagnostics.Debug.WriteLine($"[HandleAlert] {device?.PortName ?? "Unknown"}: Task.Run неожиданная ошибка: {ex.GetType().Name} - {ex.Message}");
-                    // Неожиданные ошибки логируем, но не отключаемся
-                    // (могут быть из-за извлечения EEPROM)
                     LogWarn($"{device?.PortName ?? "Unknown"}: Неожиданная ошибка при обработке алерта: {ex.Message}");
                 }
-                finally
-                {
-                    System.Diagnostics.Debug.WriteLine($"[HandleAlert] {device?.PortName ?? "Unknown"}: Task.Run finally - сброс _isHandlingAlert");
-                    _isHandlingAlert = false;
-                    System.Diagnostics.Debug.WriteLine($"[HandleAlert] {device?.PortName ?? "Unknown"}: Task.Run завершен");
-                }
-            }, cancellationToken);
+            });
         }
         else if (e.Code == Hardware.Arduino.AlertCodes.SlaveDecrement)
         {
@@ -1566,7 +1512,6 @@ internal sealed partial class ArduinoService
             UpdateMemoryType(SpdMemoryType.Unknown);
             RswpStateChanged?.Invoke(this, Array.Empty<bool>());
             _fullScanAddresses = null;
-            _isHandlingAlert = false;
             
             // Обновляем UI (событие должно обрабатываться быстро обработчиками)
             OnStateChanged();
@@ -1600,7 +1545,6 @@ internal sealed partial class ArduinoService
         _alertOperationCancellation?.Cancel();
         _alertOperationCancellation?.Dispose();
         _alertOperationCancellation = null;
-        _isHandlingAlert = false;
 
         var device = _activeDevice;
         _activeDevice = null;
