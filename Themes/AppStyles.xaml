@@ -293,6 +293,7 @@
     <!-- ========================================= -->
     
     <Style TargetType="ComboBox" x:Key="ComboBoxStyle">
+        <Setter Property="FontFamily" Value="{DynamicResource ApplicationFontFamily}"/>
         <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}"/>
         <Setter Property="Background" Value="{StaticResource SurfaceBrush}"/>
         <Setter Property="BorderBrush" Value="{StaticResource SurfaceBorderBrush}"/>
