@@ -73,11 +73,15 @@ internal sealed partial class ArduinoService
 
     public async Task ScanAsync()
     {
+        System.Diagnostics.Debug.WriteLine("[ScanAsync] Начало сканирования");
+        
         if (IsScanning)
         {
+            System.Diagnostics.Debug.WriteLine("[ScanAsync] Выход - сканирование уже выполняется");
             return;
         }
 
+        System.Diagnostics.Debug.WriteLine("[ScanAsync] Отмена предыдущего сканирования");
         _scanCancellation?.Cancel();
         _scanCancellation?.Dispose();
         _scanCancellation = new CancellationTokenSource();
@@ -86,18 +90,23 @@ internal sealed partial class ArduinoService
         IsScanning = true;
         OnStateChanged();
         LogInfo("Запуск сканирования Arduino...");
+        System.Diagnostics.Debug.WriteLine("[ScanAsync] Флаг IsScanning установлен");
 
         var discovered = new List<ArduinoDeviceInfo>();
         var scanStopwatch = Stopwatch.StartNew();
         string[] ports;
+        
+        System.Diagnostics.Debug.WriteLine("[ScanAsync] Получение списка COM-портов...");
         try
         {
             ports = SerialPort.GetPortNames()
                               .OrderBy(p => p, StringComparer.OrdinalIgnoreCase)
                               .ToArray();
+            System.Diagnostics.Debug.WriteLine($"[ScanAsync] Найдено COM-портов: {ports.Length} ({string.Join(", ", ports)})");
         }
         catch (Exception ex)
         {
+            System.Diagnostics.Debug.WriteLine($"[ScanAsync] Ошибка получения списка портов: {ex.GetType().Name} - {ex.Message}");
             LogError($"Не удалось перечислить COM-порты: {ex.Message}");
             IsScanning = false;
             OnStateChanged();
@@ -106,54 +115,93 @@ internal sealed partial class ArduinoService
 
         if (ports.Length == 0)
         {
+            System.Diagnostics.Debug.WriteLine("[ScanAsync] COM-порты не обнаружены");
             LogWarn("COM-порты не обнаружены.");
             IsScanning = false;
             OnStateChanged();
             return;
         }
 
+        System.Diagnostics.Debug.WriteLine($"[ScanAsync] Начало проверки {ports.Length} портов");
         try
         {
+            int portIndex = 0;
             foreach (var port in ports)
             {
+                portIndex++;
+                System.Diagnostics.Debug.WriteLine($"[ScanAsync] Проверка порта {portIndex}/{ports.Length}: {port}");
+                
                 if (token.IsCancellationRequested)
                 {
+                    System.Diagnostics.Debug.WriteLine("[ScanAsync] Сканирование отменено через CancellationToken");
                     LogWarn("Сканирование Arduino отменено.");
                     break;
                 }
 
+                System.Diagnostics.Debug.WriteLine($"[ScanAsync] Вызов ProbePortWithTimeoutAsync для {port}");
+                var portCheckStart = Stopwatch.StartNew();
+                
                 var info = await ProbePortWithTimeoutAsync(port, token).ConfigureAwait(true);
+                
+                portCheckStart.Stop();
+                System.Diagnostics.Debug.WriteLine($"[ScanAsync] ProbePortWithTimeoutAsync для {port} завершен за {portCheckStart.ElapsedMilliseconds} мс, результат: {(info != null ? "найдено" : "не найдено")}");
+                
                 if (info != null)
                 {
                     discovered.Add(info);
                     LogInfo($"{port}: Arduino обнаружен (проверка завершена за {info.ProbeDurationMs} мс).");
+                    System.Diagnostics.Debug.WriteLine($"[ScanAsync] {port}: Arduino добавлен в список найденных устройств");
                 }
             }
+            
+            System.Diagnostics.Debug.WriteLine($"[ScanAsync] Проверка всех портов завершена. Найдено устройств: {discovered.Count}");
         }
         catch (OperationCanceledException)
         {
+            System.Diagnostics.Debug.WriteLine("[ScanAsync] OperationCanceledException - сканирование отменено");
             LogWarn("Сканирование Arduino отменено.");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[ScanAsync] Неожиданная ошибка в цикле проверки портов: {ex.GetType().Name} - {ex.Message}");
+            LogError($"Ошибка при сканировании портов: {ex.Message}");
         }
         finally
         {
+            System.Diagnostics.Debug.WriteLine("[ScanAsync] Очистка CancellationTokenSource");
             _scanCancellation?.Dispose();
             _scanCancellation = null;
         }
 
-        Application.Current.Dispatcher.Invoke(() =>
+        System.Diagnostics.Debug.WriteLine("[ScanAsync] Обновление UI через Dispatcher.Invoke");
+        try
         {
-            Devices.Clear();
-            foreach (var device in discovered.OrderBy(d => d.Port, StringComparer.OrdinalIgnoreCase))
+            Application.Current.Dispatcher.Invoke(() =>
             {
-                Devices.Add(device);
-            }
-            SetSelectedDevice(Devices.FirstOrDefault());
-        });
+                System.Diagnostics.Debug.WriteLine("[ScanAsync] Dispatcher.Invoke: начало обновления Devices");
+                Devices.Clear();
+                foreach (var device in discovered.OrderBy(d => d.Port, StringComparer.OrdinalIgnoreCase))
+                {
+                    Devices.Add(device);
+                }
+                SetSelectedDevice(Devices.FirstOrDefault());
+                System.Diagnostics.Debug.WriteLine($"[ScanAsync] Dispatcher.Invoke: обновлено {Devices.Count} устройств");
+            });
+            System.Diagnostics.Debug.WriteLine("[ScanAsync] Dispatcher.Invoke завершен");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[ScanAsync] Ошибка в Dispatcher.Invoke: {ex.GetType().Name} - {ex.Message}");
+            LogError($"Ошибка при обновлении списка устройств: {ex.Message}");
+        }
 
         scanStopwatch.Stop();
+        System.Diagnostics.Debug.WriteLine($"[ScanAsync] Сканирование завершено. Время: {scanStopwatch.ElapsedMilliseconds} мс, портов: {ports.Length}, найдено: {discovered.Count}");
         LogInfo($"Сканирование Arduino завершено. Проверено портов: {ports.Length}, найдено устройств: {discovered.Count}, длительность: {scanStopwatch.ElapsedMilliseconds} мс.");
+        
         IsScanning = false;
         OnStateChanged();
+        System.Diagnostics.Debug.WriteLine("[ScanAsync] Флаг IsScanning сброшен, сканирование завершено");
     }
 
     public async Task ConnectAsync()
@@ -1311,32 +1359,48 @@ internal sealed partial class ArduinoService
 
     private async Task<ArduinoDeviceInfo?> ProbePortWithTimeoutAsync(string portName, CancellationToken token)
     {
+        System.Diagnostics.Debug.WriteLine($"[ProbePortWithTimeoutAsync] {portName}: Начало проверки порта");
         var probeStopwatch = Stopwatch.StartNew();
 
         try
         {
+            System.Diagnostics.Debug.WriteLine($"[ProbePortWithTimeoutAsync] {portName}: Проверка CancellationToken");
             token.ThrowIfCancellationRequested();
 
+            System.Diagnostics.Debug.WriteLine($"[ProbePortWithTimeoutAsync] {portName}: Запуск Task.Run для ProbePort");
             var probeTask = Task.Run(() =>
             {
+                System.Diagnostics.Debug.WriteLine($"[ProbePortWithTimeoutAsync] {portName}: Task.Run начал выполнение ProbePort");
                 token.ThrowIfCancellationRequested();
-                return ProbePort(portName);
+                var result = ProbePort(portName);
+                System.Diagnostics.Debug.WriteLine($"[ProbePortWithTimeoutAsync] {portName}: ProbePort завершен, результат: {(result != null ? "найдено" : "не найдено")}");
+                return result;
             }, token);
 
+            System.Diagnostics.Debug.WriteLine($"[ProbePortWithTimeoutAsync] {portName}: Запуск Task.Delay с таймаутом {PortProbeTimeout.TotalMilliseconds} мс");
             var delayTask = Task.Delay(PortProbeTimeout, token);
+            
+            System.Diagnostics.Debug.WriteLine($"[ProbePortWithTimeoutAsync] {portName}: Ожидание завершения probeTask или delayTask");
             var completedTask = await Task.WhenAny(probeTask, delayTask).ConfigureAwait(false);
 
             if (completedTask == probeTask)
             {
+                System.Diagnostics.Debug.WriteLine($"[ProbePortWithTimeoutAsync] {portName}: probeTask завершился первым");
                 var info = await probeTask.ConfigureAwait(false);
                 probeStopwatch.Stop();
                 if (info != null)
                 {
                     info.ProbeDurationMs = probeStopwatch.ElapsedMilliseconds;
+                    System.Diagnostics.Debug.WriteLine($"[ProbePortWithTimeoutAsync] {portName}: Arduino найден за {info.ProbeDurationMs} мс");
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"[ProbePortWithTimeoutAsync] {portName}: Arduino не найден");
                 }
                 return info;
             }
 
+            System.Diagnostics.Debug.WriteLine($"[ProbePortWithTimeoutAsync] {portName}: delayTask завершился первым - таймаут");
             LogWarn($"{portName}: Тайм-аут проверки.");
             return null;
         }
