@@ -114,9 +114,21 @@ $commitExitCode = $LASTEXITCODE
 $commitError = $commitOutput | Out-String
 
 if ($commitExitCode -eq 0) {
-    # Push выполнится автоматически через git hook post-commit
-    # Изменения попадут напрямую в main ветку (без PR для удобства работы с AI)
-    Write-Host "✓ Auto-committed: $shortPath at $timestamp" -ForegroundColor Green
+    # Автоматически делаем push после коммита
+    $branch = git branch --show-current
+    if ([string]::IsNullOrWhiteSpace($branch)) {
+        $branch = "main"
+    }
+    
+    $pushOutput = git push origin $branch 2>&1
+    $pushExitCode = $LASTEXITCODE
+    
+    if ($pushExitCode -eq 0) {
+        Write-Host "✓ Auto-committed and pushed: $shortPath at $timestamp" -ForegroundColor Green
+    } else {
+        # Push может не удаться (например, если нет сети), но коммит успешен
+        Write-Host "✓ Auto-committed: $shortPath at $timestamp (push failed, will retry later)" -ForegroundColor Yellow
+    }
     exit 0
 }
 else {
