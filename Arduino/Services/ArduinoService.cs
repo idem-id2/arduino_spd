@@ -2045,7 +2045,7 @@ internal sealed class ArduinoDeviceInfo : INotifyPropertyChanged
         {
             string namePart = string.IsNullOrWhiteSpace(Name) ? "—" : Name;
             string fwPart = string.IsNullOrWhiteSpace(FirmwareVersion) ? "—" : FirmwareVersion;
-            return $"COM: {Port}, NAME: {namePart}, FW: {fwPart}";
+            return $"{Port}, NAME: {namePart}, FW: {fwPart}";
         }
     }
 
