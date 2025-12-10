@@ -1167,6 +1167,11 @@ internal sealed partial class ArduinoService
             LogError($"{currentDevice?.PortName}: Ошибка очистки RSWP ({ex.Message})");
             return false;
         }
+        finally
+        {
+            // Сбрасываем флаг после завершения операции
+            _isSettingRswp = false;
+        }
     }
 
     private async Task RefreshMemoryTypeAsync()
