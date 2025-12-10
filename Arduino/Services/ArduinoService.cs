@@ -35,6 +35,7 @@ internal sealed partial class ArduinoService
     private bool _spdReady;
     private SpdMemoryType _memoryType = SpdMemoryType.Unknown;
     private byte[]? _fullScanAddresses; // Результаты полного сканирования I2C шины
+    private volatile bool _isSettingRswp; // Флаг для предотвращения обработки алертов во время установки RSWP
 
     public ObservableCollection<ArduinoDeviceInfo> Devices { get; } = new();
 
@@ -1038,20 +1039,35 @@ internal sealed partial class ArduinoService
         // Логирование выбранных блоков ПЕРЕД установкой
         LogInfo($"{_activeDevice?.PortName}: Установка RSWP для выбранных блоков: [{string.Join(", ", blocks)}]");
 
-        // Устанавливаем блоки с задержками (SPD чип должен восстановиться после HV операции)
-        for (int i = 0; i < blocks.Length; i++)
+        // Устанавливаем флаг для игнорирования алертов во время установки RSWP
+        // При установке RSWP для DDR4 используется высокое напряжение (HV), что может вызывать
+        // временное отключение EEPROM на I2C шине и алерты SlaveDecrement/SlaveIncrement
+        // Эти алерты не должны прерывать операцию установки RSWP
+        _isSettingRswp = true;
+        
+        try
         {
-            await SetRswpAsync(blocks[i]);
-            
-            // Задержка между блоками (кроме последнего)
-            if (i < blocks.Length - 1)
+            // Устанавливаем блоки с задержками (SPD чип должен восстановиться после HV операции)
+            for (int i = 0; i < blocks.Length; i++)
             {
-                await Task.Delay(100).ConfigureAwait(true); // 100 мс между блоками
+                await SetRswpAsync(blocks[i]);
+                
+                // Задержка между блоками (кроме последнего)
+                // Это позволяет EEPROM восстановиться после HV операции
+                if (i < blocks.Length - 1)
+                {
+                    await Task.Delay(100).ConfigureAwait(true); // 100 мс между блоками
+                }
             }
-        }
 
-        // Итоговое сообщение после установки всех блоков
-        LogInfo($"{_activeDevice?.PortName}: Операция RSWP завершена для {blocks.Length} блок(ов).");
+            // Итоговое сообщение после установки всех блоков
+            LogInfo($"{_activeDevice?.PortName}: Операция RSWP завершена для {blocks.Length} блок(ов).");
+        }
+        finally
+        {
+            // Сбрасываем флаг после завершения операции
+            _isSettingRswp = false;
+        }
         
         // ПРИМЕЧАНИЕ: Проверка состояния (CheckRswpAsync) выполнится автоматически
         // после переинициализации SPD (событие SlaveIncrement)
@@ -1113,6 +1129,11 @@ internal sealed partial class ArduinoService
             }
 
             return result;
+        }
+        finally
+        {
+            // Сбрасываем флаг после завершения операции
+            _isSettingRswp = false;
         }
         catch (TimeoutException)
         {
@@ -1473,6 +1494,16 @@ internal sealed partial class ArduinoService
         if (_activeDevice == null || sender != _activeDevice)
         {
             System.Diagnostics.Debug.WriteLine("[HandleAlert] Выход - устройство null или sender не совпадает");
+            return;
+        }
+        
+        // ИГНОРИРУЕМ АЛЕРТЫ ВО ВРЕМЯ УСТАНОВКИ RSWP:
+        // При установке RSWP для DDR4 используется высокое напряжение (HV), что может вызывать
+        // временное отключение EEPROM на I2C шине. Это приводит к алертам SlaveDecrement/SlaveIncrement,
+        // которые не должны прерывать операцию установки RSWP.
+        if (_isSettingRswp)
+        {
+            System.Diagnostics.Debug.WriteLine($"[HandleAlert] {_activeDevice.PortName}: Алерт {e.Code} игнорируется - выполняется установка RSWP");
             return;
         }
 
