@@ -846,7 +846,7 @@ namespace HexEditor
 
         private void SetDeviceDetails(string port, string firmware, string name, string clock, string ddr4Rswp)
         {
-            DetailPortText.Text = string.IsNullOrWhiteSpace(port) ? PlaceholderValue : $"COM: {port}";
+            DetailPortText.Text = string.IsNullOrWhiteSpace(port) ? PlaceholderValue : port;
             DetailFirmwareText.Text = string.IsNullOrWhiteSpace(firmware) ? PlaceholderValue : firmware;
             DetailNameText.Text = string.IsNullOrWhiteSpace(name) ? PlaceholderValue : name;
             DetailClockText.Text = string.IsNullOrWhiteSpace(clock) ? PlaceholderValue : clock;

@@ -286,7 +286,7 @@ namespace HexEditor.Arduino.ViewModels
 
         private void SetDeviceDetails(string port, string firmware, string name, string clock, string ddr4Rswp)
         {
-            DetailPort = string.IsNullOrWhiteSpace(port) ? UiConstants.PLACEHOLDER_VALUE : $"COM: {port}";
+            DetailPort = string.IsNullOrWhiteSpace(port) ? UiConstants.PLACEHOLDER_VALUE : port;
             DetailFirmware = string.IsNullOrWhiteSpace(firmware) ? UiConstants.PLACEHOLDER_VALUE : firmware;
             DetailName = string.IsNullOrWhiteSpace(name) ? UiConstants.PLACEHOLDER_VALUE : name;
             DetailClock = string.IsNullOrWhiteSpace(clock) ? UiConstants.PLACEHOLDER_VALUE : clock;
@@ -307,7 +307,7 @@ namespace HexEditor.Arduino.ViewModels
                 ConnectionStatusBackground = Brushes.White;
                 ConnectionStatusForeground = Brushes.Black;
                 string formattedPort = FormatConnectionPort(DetailPort);
-                ConnectionStatusText = $"Arduino COM: {formattedPort}";
+                ConnectionStatusText = $"Arduino {formattedPort}";
             }
         }
 
