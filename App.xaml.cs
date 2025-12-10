@@ -1,7 +1,9 @@
 ﻿using System.Configuration;
 using System.Data;
+using System.IO;
 using System.Text;
 using System.Windows;
+using System.Windows.Media;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using HexEditor.Arduino.Services;
