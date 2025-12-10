@@ -33,19 +33,36 @@ try {
     $normalizedFilePathForReplace = $normalizedFilePath.Replace('\', '/')
     
     # Проверяем, что файл действительно находится внутри workspace
+    # Проверяем не только StartsWith, но и что после workspace root идет разделитель пути
+    # Это предотвращает ложные совпадения (например, /workspace и /workspace_other)
     if (-not $normalizedFilePathForReplace.StartsWith($normalizedWorkspaceRootForReplace, [System.StringComparison]::OrdinalIgnoreCase)) {
         Write-Host "File is outside workspace root, skipping auto-commit: $FilePath" -ForegroundColor Yellow
         exit 0
     }
     
-    # Получаем относительный путь с учетом регистра
+    # Получаем относительный путь
     $relativePath = $normalizedFilePathForReplace.Substring($normalizedWorkspaceRootForReplace.Length).TrimStart("/")
+    
+    # Дополнительная проверка: убеждаемся, что после workspace root был разделитель пути
+    # Это предотвращает случаи, когда workspace root является префиксом другого пути
+    # Например, /workspace и /workspace_other/file.txt
+    if ($normalizedFilePathForReplace.Length -gt $normalizedWorkspaceRootForReplace.Length) {
+        $charAfterRoot = $normalizedFilePathForReplace[$normalizedWorkspaceRootForReplace.Length]
+        if ($charAfterRoot -ne '/' -and $charAfterRoot -ne '\') {
+            Write-Host "File path boundary check failed, skipping auto-commit: $FilePath" -ForegroundColor Yellow
+            exit 0
+        }
+    }
 }
 
 $fileName = Split-Path -Leaf $FilePath
 
 # Игнорируем файлы в bin/, obj/, .vs/ и другие временные файлы
-if ($relativePath -match "(\\|/)(bin|obj|Debug|Release|\.vs)(\\|/)") {
+# Паттерн проверяет:
+# 1. Начало строки (^) или разделитель пути перед именем директории
+# 2. Имя директории (bin, obj, Debug, Release, .vs)
+# 3. Разделитель пути после имени директории или конец строки ($)
+if ($relativePath -match "(^|(\\|/))(bin|obj|Debug|Release|\.vs)(\\|/|$)") {
     Write-Host "Skipping auto-commit for temporary file: $relativePath" -ForegroundColor Gray
     exit 0
 }
