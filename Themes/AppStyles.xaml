@@ -110,7 +110,7 @@
     </Style>
     
     <Style TargetType="TextBlock" x:Key="CardTitleStyle">
-        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="FontWeight" Value="Regular"/>
         <Setter Property="FontSize" Value="14"/>
         <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}"/>
         <Setter Property="Margin" Value="0,0,0,16"/>
