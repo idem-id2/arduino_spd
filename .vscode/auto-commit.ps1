@@ -115,6 +115,7 @@ $commitError = $commitOutput | Out-String
 
 if ($commitExitCode -eq 0) {
     # Push выполнится автоматически через git hook post-commit
+    # PR также создастся автоматически через post-commit hook
     Write-Host "✓ Auto-committed: $shortPath at $timestamp" -ForegroundColor Green
     exit 0
 }
