@@ -1382,21 +1382,107 @@ internal sealed partial class ArduinoService
         }
     }
 
+    /// <summary>
+    /// Обрабатывает алерты от Arduino устройства.
+    /// 
+    /// АЛГОРИТМ ОБРАБОТКИ АЛЕРТОВ:
+    /// ===========================
+    /// 
+    /// 1. ВАЛИДАЦИЯ АЛЕРТА:
+    ///    - Проверяется, что устройство активно и sender совпадает с _activeDevice
+    ///    - Если проверка не пройдена, обработка прекращается
+    /// 
+    /// 2. ОБРАБОТКА SlaveIncrement (обнаружена новая EEPROM):
+    ///    - Устанавливается флаг _spdReady = true
+    ///    - Вызывается событие SpdStateChanged
+    ///    - Логируется сообщение об обнаружении EEPROM
+    ///    - Запускается асинхронная обработка в отдельном потоке (Task.Run)
+    /// 
+    /// 3. СКАНИРОВАНИЕ I2C ШИНЫ (внутри lock для потокобезопасности):
+    ///    a) Полное сканирование (ScanFull):
+    ///       - Сканирует весь диапазон адресов I2C (0x08-0x77)
+    ///       - Сохраняет результаты в _fullScanAddresses для отображения в UI
+    ///       - Ошибки обрабатываются тихо (InvalidDataException, TimeoutException, InvalidOperationException)
+    ///       - Это нормально при извлечении EEPROM во время сканирования
+    /// 
+    ///    b) Быстрое сканирование SPD адресов (Scan):
+    ///       - Сканирует только диапазон SPD адресов (0x50-0x57)
+    ///       - Обновляет _activeI2cAddress первым найденным адресом
+    ///       - Ошибки обрабатываются тихо
+    /// 
+    /// 4. ОБНОВЛЕНИЕ UI:
+    ///    - Вызывается OnStateChanged() для обновления интерфейса
+    ///    - Это происходит синхронно после сканирования
+    /// 
+    /// 5. ФОНОВЫЕ ОПЕРАЦИИ (асинхронно, без блокировки):
+    ///    - Запускается в отдельном Task.Run без await
+    ///    - Определение типа памяти (RefreshMemoryTypeAsync):
+    ///      * Вызывает DetectDdr5() и DetectDdr4() на Arduino
+    ///      * Обновляет _memoryType (Ddr4, Ddr5, Unknown)
+    ///      * Логирует "Обнаружена DDR4 SPD" или "Обнаружена DDR5 SPD"
+    /// 
+    ///    - Проверка RSWP (CheckRswpAsync):
+    ///      * Определяет количество блоков на основе типа памяти
+    ///      * Проверяет состояние защиты каждого блока через GetRswp(block)
+    ///      * Логирует статус каждого блока ("Защищен" / "Не защищен")
+    /// 
+    ///    - Финальное обновление UI:
+    ///      * Вызывается OnStateChanged() после всех операций
+    /// 
+    /// 6. ОБРАБОТКА ОШИБОК:
+    ///    - InvalidDataException, TimeoutException, InvalidOperationException:
+    ///      * Игнорируются тихо (это нормально при извлечении EEPROM)
+    ///      * Отключение происходит только если !device.IsConnected
+    /// 
+    ///    - Другие исключения:
+    ///      * Логируются как предупреждения
+    ///      * Не вызывают отключение устройства
+    /// 
+    /// 7. ОБРАБОТКА SlaveDecrement (EEPROM извлечена):
+    ///    - Устанавливается _spdReady = false
+    ///    - Сбрасывается тип памяти в Unknown
+    ///    - Очищается состояние RSWP
+    ///    - Очищается _fullScanAddresses
+    ///    - Вызывается OnStateChanged() для обновления UI
+    /// 
+    /// ВАЖНЫЕ ОСОБЕННОСТИ:
+    /// ===================
+    /// 
+    /// - Каждый алерт обрабатывается независимо в отдельном потоке
+    ///   (как в старом коде: new Thread(() => HandleAlert(...)).Start())
+    /// 
+    /// - Нет проверки _isHandlingAlert - алерты могут обрабатываться параллельно
+    /// 
+    /// - Нет CancellationToken - операции не прерываются при новом алерте
+    /// 
+    /// - Длительные операции (RefreshMemoryTypeAsync, CheckRswpAsync) выполняются
+    ///   в фоне без блокировки, чтобы не вызывать зависания GUI
+    /// 
+    /// - Исключения при извлечении EEPROM обрабатываются тихо - это нормальное состояние
+    /// 
+    /// - Отключение происходит только при реальной потере связи с Arduino
+    ///   (через HandleConnectionLost, который вызывается из ConnectionMonitor)
+    /// </summary>
+    /// <param name="sender">Источник события (Arduino устройство)</param>
+    /// <param name="e">Аргументы события с кодом алерта</param>
     private void HandleAlert(object? sender, Hardware.Arduino.ArduinoAlertEventArgs e)
     {
         System.Diagnostics.Debug.WriteLine($"[HandleAlert] Начало обработки алерта {e.Code}");
         
+        // ВАЛИДАЦИЯ: Проверяем, что устройство активно и sender совпадает
         if (_activeDevice == null || sender != _activeDevice)
         {
             System.Diagnostics.Debug.WriteLine("[HandleAlert] Выход - устройство null или sender не совпадает");
             return;
         }
 
+        // ОБРАБОТКА SlaveIncrement: Обнаружена новая SPD EEPROM на I2C шине
         if (e.Code == Hardware.Arduino.AlertCodes.SlaveIncrement)
         {
             System.Diagnostics.Debug.WriteLine($"[HandleAlert] {_activeDevice.PortName}: SlaveIncrement получен");
             
-            // Сохраняем ссылку на устройство локально
+            // ШАГ 1: Сохраняем ссылку на устройство локально для предотвращения race condition
+            // Если _activeDevice изменится во время обработки, мы все равно будем работать с правильным устройством
             var device = _activeDevice;
             if (device == null)
             {
@@ -1404,40 +1490,52 @@ internal sealed partial class ArduinoService
                 return;
             }
             
+            // ШАГ 2: Обновляем состояние SPD EEPROM
+            // Устанавливаем флаг готовности и уведомляем подписчиков
             _spdReady = true;
             SpdStateChanged?.Invoke(this, _spdReady);
             LogInfo($"{device.PortName}: Обнаружена новая SPD EEPROM");
             
-            // В старом коде HandleAlert выполнялся в отдельном потоке без проверок и cancellation tokens
-            // Каждый алерт обрабатывался независимо: new Thread(() => HandleAlert(...)).Start()
-            // Выполняем только быстрые операции: Scan() и GetRswpSupport() (через ScanFull для полного сканирования)
+            // ШАГ 3: Запускаем обработку в отдельном потоке
+            // В старом коде: new Thread(() => HandleAlert(...)).Start()
+            // Каждый алерт обрабатывается независимо, без проверок и cancellation tokens
+            // Это позволяет обрабатывать быстрые подключения/отключения EEPROM без зависаний
             _ = Task.Run(() =>
             {
                 try
                 {
                     System.Diagnostics.Debug.WriteLine($"[HandleAlert] {device.PortName}: Task.Run начал выполнение");
                     
-                    // Выполняем сканирование I2C синхронно в lock (как в старом коде)
+                    // ШАГ 4: СКАНИРОВАНИЕ I2C ШИНЫ
+                    // Выполняем в lock для потокобезопасности (как в старом коде)
+                    // Lock защищает от одновременного доступа к устройству из разных потоков
                     lock (_lock)
                     {
                         System.Diagnostics.Debug.WriteLine($"[HandleAlert] {device.PortName}: Lock получен, начинаем сканирование");
                         
-                        // Проверяем только подключение устройства
+                        // ШАГ 4.1: Повторная проверка состояния устройства после получения lock
+                        // Устройство могло отключиться или измениться пока мы ждали lock
                         if (device == null || !device.IsConnected || _activeDevice != device)
                         {
                             System.Diagnostics.Debug.WriteLine($"[HandleAlert] {device?.PortName ?? "Unknown"}: Выход из lock - устройство недоступно");
                             return;
                         }
                         
+                        // Устанавливаем активный I2C адрес для операций
                         device.I2CAddress = _activeI2cAddress;
                         
-                        // Полное сканирование I2C (в старом коде не было, но нужно для отображения всех адресов)
+                        // ШАГ 4.2: ПОЛНОЕ СКАНИРОВАНИЕ I2C ШИНЫ
+                        // Сканирует весь диапазон адресов (0x08-0x77) для отображения всех устройств
+                        // В старом коде этого не было, но нужно для отображения полного списка устройств
                         byte[] fullAddresses = Array.Empty<byte>();
                         try
                         {
+                            // Выполняем полное сканирование через команду PROBEADDRESS
+                            // Это может занять некоторое время, но выполняется внутри lock
                             fullAddresses = device.ScanFull();
                             System.Diagnostics.Debug.WriteLine($"[HandleAlert] {device.PortName}: ScanFull() завершен, найдено {fullAddresses.Length} адресов");
                             
+                            // Логируем результаты для отладки и пользователя
                             if (fullAddresses.Length > 0)
                             {
                                 var addressList = string.Join(", ", fullAddresses.Select(a => $"0x{a:X2}"));
@@ -1446,17 +1544,27 @@ internal sealed partial class ArduinoService
                         }
                         catch (Exception ex) when (ex is InvalidDataException || ex is TimeoutException || ex is InvalidOperationException)
                         {
-                            // Ошибки при сканировании могут быть из-за извлечения EEPROM - это нормально
+                            // ОБРАБОТКА ОШИБОК СКАНИРОВАНИЯ:
+                            // Эти ошибки могут возникать при извлечении EEPROM во время сканирования
+                            // Это нормальное состояние - EEPROM может быть извлечена в любой момент
+                            // Не логируем как ошибку и продолжаем работу с пустым массивом
                             System.Diagnostics.Debug.WriteLine($"[HandleAlert] {device.PortName}: ScanFull() ошибка (игнорируется): {ex.GetType().Name}");
                         }
                         
+                        // Сохраняем результаты для отображения в UI
                         _fullScanAddresses = fullAddresses;
                         
-                        // Быстрый скан для определения SPD адресов (как в старом коде: _addresses = Scan())
+                        // ШАГ 4.3: БЫСТРОЕ СКАНИРОВАНИЕ SPD АДРЕСОВ
+                        // Сканирует только диапазон SPD адресов (0x50-0x57) через команду SCANBUS
+                        // Это быстрее чем полное сканирование и используется для определения активного адреса
+                        // В старом коде: _addresses = Scan()
                         try
                         {
+                            // Выполняем быстрое сканирование SPD адресов
                             var addresses = device.Scan();
                             System.Diagnostics.Debug.WriteLine($"[HandleAlert] {device.PortName}: Scan() завершен, найдено {addresses.Length} адресов");
+                            
+                            // Обновляем активный I2C адрес первым найденным SPD адресом
                             if (addresses.Length > 0)
                             {
                                 _activeI2cAddress = addresses[0];
@@ -1464,39 +1572,55 @@ internal sealed partial class ArduinoService
                         }
                         catch (Exception ex) when (ex is InvalidDataException || ex is TimeoutException || ex is InvalidOperationException)
                         {
-                            // Ошибки при сканировании могут быть из-за извлечения EEPROM - это нормально
+                            // ОБРАБОТКА ОШИБОК СКАНИРОВАНИЯ:
+                            // Аналогично полному сканированию - ошибки при извлечении EEPROM нормальны
+                            // Продолжаем без обновления _activeI2cAddress
                             System.Diagnostics.Debug.WriteLine($"[HandleAlert] {device.PortName}: Scan() ошибка (игнорируется): {ex.GetType().Name}");
                         }
                         
                         System.Diagnostics.Debug.WriteLine($"[HandleAlert] {device.PortName}: Lock освобожден");
                     }
                     
-                    // Обновляем UI после сканирования
+                    // ШАГ 5: ОБНОВЛЕНИЕ UI ПОСЛЕ СКАНИРОВАНИЯ
+                    // Обновляем интерфейс сразу после сканирования, чтобы пользователь видел результаты
                     if (device != null && device.IsConnected && _activeDevice == device)
                     {
                         System.Diagnostics.Debug.WriteLine($"[HandleAlert] {device.PortName}: Вызов OnStateChanged()");
                         OnStateChanged();
                         
-                        // Запускаем определение типа памяти и проверку RSWP в фоне (без ожидания)
+                        // ШАГ 6: ФОНОВЫЕ ОПЕРАЦИИ (асинхронно, без блокировки)
+                        // Запускаем определение типа памяти и проверку RSWP в фоне без await
                         // Это нужно для логирования "Обнаружена DDR4 SPD" и "Статус RSWP"
                         // Выполняем асинхронно, чтобы не блокировать обработку следующих алертов
+                        // Если EEPROM будет извлечена во время выполнения, ошибки будут обработаны тихо
                         _ = Task.Run(async () =>
                         {
                             try
                             {
-                                // Определяем тип памяти
+                                // ШАГ 6.1: ОПРЕДЕЛЕНИЕ ТИПА ПАМЯТИ
+                                // Проверяем состояние устройства перед операцией
                                 if (device != null && device.IsConnected && _activeDevice == device)
                                 {
+                                    // Вызываем RefreshMemoryTypeAsync():
+                                    // - Выполняет DetectDdr5() и DetectDdr4() на Arduino
+                                    // - Обновляет _memoryType (Ddr4, Ddr5, Unknown)
+                                    // - Логирует "Обнаружена DDR4 SPD" или "Обнаружена DDR5 SPD"
                                     await RefreshMemoryTypeAsync().ConfigureAwait(false);
                                 }
                                 
-                                // Проверяем RSWP
+                                // ШАГ 6.2: ПРОВЕРКА RSWP (Reversible Software Write Protection)
+                                // Проверяем состояние устройства перед операцией
                                 if (device != null && device.IsConnected && _activeDevice == device)
                                 {
+                                    // Вызываем CheckRswpAsync():
+                                    // - Определяет количество блоков на основе типа памяти (DDR4: 4 блока, DDR5: 8 блоков)
+                                    // - Проверяет состояние защиты каждого блока через GetRswp(block)
+                                    // - Логирует статус каждого блока ("Защищен" / "Не защищен")
                                     await CheckRswpAsync().ConfigureAwait(false);
                                 }
                                 
-                                // Обновляем UI после определения типа памяти и проверки RSWP
+                                // ШАГ 6.3: ФИНАЛЬНОЕ ОБНОВЛЕНИЕ UI
+                                // Обновляем интерфейс после всех операций для отображения типа памяти и RSWP
                                 if (device != null && device.IsConnected && _activeDevice == device)
                                 {
                                     OnStateChanged();
@@ -1504,11 +1628,14 @@ internal sealed partial class ArduinoService
                             }
                             catch (Exception ex) when (ex is TimeoutException || ex is InvalidOperationException || ex is InvalidDataException)
                             {
-                                // Ошибки могут возникать при извлечении EEPROM - это нормально
+                                // ОБРАБОТКА ОШИБОК ФОНОВЫХ ОПЕРАЦИЙ:
+                                // Эти ошибки могут возникать при извлечении EEPROM во время выполнения
+                                // Это нормальное состояние - не логируем как ошибку
                                 System.Diagnostics.Debug.WriteLine($"[HandleAlert] {device?.PortName ?? "Unknown"}: Фоновые операции ошибка (игнорируется): {ex.GetType().Name}");
                             }
                             catch (Exception ex)
                             {
+                                // Неожиданные ошибки логируем для отладки, но не прерываем работу
                                 System.Diagnostics.Debug.WriteLine($"[HandleAlert] {device?.PortName ?? "Unknown"}: Фоновые операции неожиданная ошибка: {ex.GetType().Name}");
                             }
                         });
@@ -1518,9 +1645,14 @@ internal sealed partial class ArduinoService
                 }
                 catch (Exception ex) when (ex is TimeoutException || ex is InvalidOperationException || ex is InvalidDataException)
                 {
-                    // Ошибки могут возникать при извлечении EEPROM - это нормально
+                    // ШАГ 7: ОБРАБОТКА ОШИБОК СКАНИРОВАНИЯ
+                    // Эти ошибки могут возникать при извлечении EEPROM во время сканирования
+                    // Это нормальное состояние - EEPROM может быть извлечена в любой момент
+                    // Не логируем как ошибку и не отключаемся, если устройство все еще подключено
                     System.Diagnostics.Debug.WriteLine($"[HandleAlert] {device?.PortName ?? "Unknown"}: Task.Run ошибка (игнорируется): {ex.GetType().Name}");
+                    
                     // Отключаемся только если действительно потеряна связь с Arduino
+                    // Проверяем !device.IsConnected, а не наличие исключения
                     if (device != null && !device.IsConnected)
                     {
                         System.Diagnostics.Debug.WriteLine($"[HandleAlert] {device.PortName}: Устройство отключено, вызываем DisconnectInternal");
@@ -1529,11 +1661,15 @@ internal sealed partial class ArduinoService
                 }
                 catch (Exception ex)
                 {
+                    // ШАГ 8: ОБРАБОТКА НЕОЖИДАННЫХ ОШИБОК
+                    // Неожиданные ошибки логируем как предупреждения для отладки
+                    // Но не вызываем отключение - могут быть из-за извлечения EEPROM
                     System.Diagnostics.Debug.WriteLine($"[HandleAlert] {device?.PortName ?? "Unknown"}: Task.Run неожиданная ошибка: {ex.GetType().Name} - {ex.Message}");
                     LogWarn($"{device?.PortName ?? "Unknown"}: Неожиданная ошибка при обработке алерта: {ex.Message}");
                 }
             });
         }
+        // ОБРАБОТКА SlaveDecrement: EEPROM извлечена с I2C шины
         else if (e.Code == Hardware.Arduino.AlertCodes.SlaveDecrement)
         {
             System.Diagnostics.Debug.WriteLine($"[HandleAlert] {_activeDevice.PortName}: SlaveDecrement получен");
