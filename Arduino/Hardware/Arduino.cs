@@ -61,22 +61,16 @@ internal sealed class Arduino : IDisposable
     {
         lock (_portLock)
         {
-            System.Diagnostics.Debug.WriteLine($"[Arduino.Connect] {PortName}: начало");
-            Console.WriteLine($"[Arduino.Connect] {PortName}: начало");
-            
             if (IsConnected)
             {
-                System.Diagnostics.Debug.WriteLine($"[Arduino.Connect] {PortName}: уже подключен");
                 return true;
             }
 
             if (string.IsNullOrWhiteSpace(PortName))
             {
-                System.Diagnostics.Debug.WriteLine($"[Arduino.Connect] {PortName}: PortName пуст");
                 throw new InvalidOperationException("Port name must be specified.");
             }
 
-            System.Diagnostics.Debug.WriteLine($"[Arduino.Connect] {PortName}: создание SerialPort - BaudRate: {PortSettings.BaudRate}, Timeout: {PortSettings.Timeout} сек");
             _serialPort = new SerialPort
             {
                 PortName = PortName,
@@ -88,36 +82,21 @@ internal sealed class Arduino : IDisposable
                 ReceivedBytesThreshold = PacketData.MinSize,
             };
 
-            System.Diagnostics.Debug.WriteLine($"[Arduino.Connect] {PortName}: подписка на события DataReceived и ErrorReceived");
             _serialPort.DataReceived += DataReceivedHandler;
             _serialPort.ErrorReceived += ErrorReceivedHandler;
 
             try
             {
-                System.Diagnostics.Debug.WriteLine($"[Arduino.Connect] {PortName}: вызов _serialPort.Open()");
-                var openStartTime = System.Diagnostics.Stopwatch.StartNew();
                 _serialPort.Open();
-                openStartTime.Stop();
-                System.Diagnostics.Debug.WriteLine($"[Arduino.Connect] {PortName}: _serialPort.Open() завершен за {openStartTime.ElapsedMilliseconds} мс");
-                
                 _bytesReceived = 0;
                 _bytesSent = 0;
                 _connectionLostWasRaised = false;
 
-                System.Diagnostics.Debug.WriteLine($"[Arduino.Connect] {PortName}: вызов ExecuteCommand(Command.TEST)");
-                var testStartTime = System.Diagnostics.Stopwatch.StartNew();
                 ExecuteCommand<bool>(Command.TEST);
-                testStartTime.Stop();
-                System.Diagnostics.Debug.WriteLine($"[Arduino.Connect] {PortName}: ExecuteCommand(Command.TEST) завершен за {testStartTime.ElapsedMilliseconds} мс");
-                
-                System.Diagnostics.Debug.WriteLine($"[Arduino.Connect] {PortName}: вызов StartConnectionMonitor()");
                 StartConnectionMonitor();
-                System.Diagnostics.Debug.WriteLine($"[Arduino.Connect] {PortName}: успешно подключен");
             }
-            catch (Exception ex)
+            catch
             {
-                System.Diagnostics.Debug.WriteLine($"[Arduino.Connect] {PortName}: исключение - {ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
-                Console.WriteLine($"[Arduino.Connect] {PortName}: исключение - {ex.GetType().Name}: {ex.Message}");
                 Dispose();
                 throw;
             }
@@ -286,6 +265,7 @@ internal sealed class Arduino : IDisposable
             throw new ArgumentOutOfRangeException(nameof(length));
         }
 
+        // Читаем по 32 байта, начиная с offset=0, точно как в старом коде arduino_spd_87
         List<byte> result = new(length);
         int offset = 0;
 
@@ -750,61 +730,37 @@ internal sealed class Arduino : IDisposable
     {
         if (!IsConnected || _serialPort == null)
         {
-            System.Diagnostics.Debug.WriteLine($"[Arduino.ExecuteCommand] {PortName}: устройство не подключено");
             throw new InvalidOperationException("Device is not connected.");
         }
 
-        var commandName = command.Length > 0 ? $"0x{command[0]:X2}" : "empty";
-        System.Diagnostics.Debug.WriteLine($"[Arduino.ExecuteCommand] {PortName}: начало команды {commandName}, длина: {command.Length}");
-        
         lock (_portLock)
         {
             try
             {
-                System.Diagnostics.Debug.WriteLine($"[Arduino.ExecuteCommand] {PortName}: ClearBuffer()");
                 ClearBuffer();
-                
-                System.Diagnostics.Debug.WriteLine($"[Arduino.ExecuteCommand] {PortName}: отправка команды {commandName}, {command.Length} байт");
-                var writeStartTime = System.Diagnostics.Stopwatch.StartNew();
                 _serialPort.BaseStream.Write(command, 0, command.Length);
                 _serialPort.BaseStream.Flush();
-                writeStartTime.Stop();
-                System.Diagnostics.Debug.WriteLine($"[Arduino.ExecuteCommand] {PortName}: команда отправлена за {writeStartTime.ElapsedMilliseconds} мс");
                 _bytesSent += command.Length;
 
-                System.Diagnostics.Debug.WriteLine($"[Arduino.ExecuteCommand] {PortName}: ожидание ответа, таймаут: {PortSettings.Timeout} сек");
-                var waitStartTime = System.Diagnostics.Stopwatch.StartNew();
-                bool responseReceived = DataReady.WaitOne(TimeSpan.FromSeconds(PortSettings.Timeout));
-                waitStartTime.Stop();
-                
-                if (!responseReceived)
+                if (!DataReady.WaitOne(TimeSpan.FromSeconds(PortSettings.Timeout)))
                 {
-                    System.Diagnostics.Debug.WriteLine($"[Arduino.ExecuteCommand] {PortName}: ТАЙМАУТ! Ожидание ответа заняло {waitStartTime.ElapsedMilliseconds} мс (таймаут: {PortSettings.Timeout} сек)");
-                    Console.WriteLine($"[Arduino.ExecuteCommand] {PortName}: ТАЙМАУТ ответа на команду {commandName}");
                     throw new TimeoutException($"{PortName} response timeout");
                 }
-                
-                System.Diagnostics.Debug.WriteLine($"[Arduino.ExecuteCommand] {PortName}: ответ получен за {waitStartTime.ElapsedMilliseconds} мс");
 
                 if (_response.Type != Header.RESPONSE)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[Arduino.ExecuteCommand] {PortName}: неверный заголовок ответа: {_response.Type} (ожидался {Header.RESPONSE})");
                     throw new InvalidDataException("Invalid response header");
                 }
 
                 if (!_response.IsChecksumValid)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[Arduino.ExecuteCommand] {PortName}: ошибка проверки checksum");
                     throw new InvalidDataException("Checksum validation failed");
                 }
 
-                System.Diagnostics.Debug.WriteLine($"[Arduino.ExecuteCommand] {PortName}: команда {commandName} успешно выполнена, размер ответа: {_response.Body.Length} байт");
                 return _response.Body;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                System.Diagnostics.Debug.WriteLine($"[Arduino.ExecuteCommand] {PortName}: исключение при выполнении команды {commandName}: {ex.GetType().Name} - {ex.Message}\n{ex.StackTrace}");
-                Console.WriteLine($"[Arduino.ExecuteCommand] {PortName}: исключение: {ex.GetType().Name} - {ex.Message}");
                 OnConnectionLost();
                 throw;
             }
@@ -812,7 +768,6 @@ internal sealed class Arduino : IDisposable
             {
                 _response = new PacketData();
                 DataReady.Reset();
-                System.Diagnostics.Debug.WriteLine($"[Arduino.ExecuteCommand] {PortName}: очистка состояния после команды {commandName}");
             }
         }
     }

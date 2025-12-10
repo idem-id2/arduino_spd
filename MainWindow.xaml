@@ -266,7 +266,7 @@
                         <StackPanel>
                             <TextBlock Text="Поиск Arduino" Style="{StaticResource CardTitleStyle}"/>
                             <ListBox x:Name="DevicesListBox"
-                                     MinHeight="60"
+                                     MinHeight="80"
                                      Margin="0,0,0,8"
                                      Background="{StaticResource SurfaceBrush}"
                                      BorderBrush="{StaticResource SurfaceBorderBrush}"

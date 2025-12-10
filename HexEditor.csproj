@@ -21,6 +21,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="arduino_spd_41\**" />
+    <Compile Remove="arduino_spd_87\**" />
     <Compile Remove="DDR4XMPEditor-master\**" />
     <Compile Remove="eeprom\**" />
     <Compile Remove="parse_spd_ddr4\**" />
@@ -28,6 +30,8 @@
     <Compile Remove="parse_spd_ddr5\**" />
     <Compile Remove="SPD-Reader-Writer-20231217\**" />
     <Compile Remove="src\**" />
+    <EmbeddedResource Remove="arduino_spd_41\**" />
+    <EmbeddedResource Remove="arduino_spd_87\**" />
     <EmbeddedResource Remove="DDR4XMPEditor-master\**" />
     <EmbeddedResource Remove="eeprom\**" />
     <EmbeddedResource Remove="parse_spd_ddr4\**" />
@@ -35,6 +39,8 @@
     <EmbeddedResource Remove="parse_spd_ddr5\**" />
     <EmbeddedResource Remove="SPD-Reader-Writer-20231217\**" />
     <EmbeddedResource Remove="src\**" />
+    <None Remove="arduino_spd_41\**" />
+    <None Remove="arduino_spd_87\**" />
     <None Remove="DDR4XMPEditor-master\**" />
     <None Remove="eeprom\**" />
     <None Remove="parse_spd_ddr4\**" />
@@ -42,6 +48,8 @@
     <None Remove="parse_spd_ddr5\**" />
     <None Remove="SPD-Reader-Writer-20231217\**" />
     <None Remove="src\**" />
+    <Page Remove="arduino_spd_41\**" />
+    <Page Remove="arduino_spd_87\**" />
     <Page Remove="DDR4XMPEditor-master\**" />
     <Page Remove="eeprom\**" />
     <Page Remove="parse_spd_ddr4\**" />

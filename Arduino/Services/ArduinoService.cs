@@ -31,6 +31,7 @@ internal sealed partial class ArduinoService
     private byte _activeI2cAddress = 0x50;
     private bool _spdReady;
     private SpdMemoryType _memoryType = SpdMemoryType.Unknown;
+    private byte[]? _fullScanAddresses; // Результаты полного сканирования I2C шины
 
     public ObservableCollection<ArduinoDeviceInfo> Devices { get; } = new();
 
@@ -44,6 +45,7 @@ internal sealed partial class ArduinoService
     public bool IsReading { get; private set; }
     public bool IsSpdReady => _spdReady;
     public SpdMemoryType ActiveMemoryType => _memoryType;
+    public byte[]? GetFullScanAddresses() => _fullScanAddresses;
     public int ActiveRswpBlockCount => _memoryType switch
     {
         SpdMemoryType.Ddr5 => 16,
@@ -69,11 +71,9 @@ internal sealed partial class ArduinoService
     {
         if (IsScanning)
         {
-            LogDebug("ScanAsync: уже идет сканирование, пропускаем");
             return;
         }
 
-        LogDebug("ScanAsync: начало сканирования");
         _scanCancellation?.Cancel();
         _scanCancellation?.Dispose();
         _scanCancellation = new CancellationTokenSource();
@@ -88,16 +88,13 @@ internal sealed partial class ArduinoService
         string[] ports;
         try
         {
-            LogDebug("ScanAsync: получение списка COM-портов...");
             ports = SerialPort.GetPortNames()
                               .OrderBy(p => p, StringComparer.OrdinalIgnoreCase)
                               .ToArray();
-            LogDebug($"ScanAsync: найдено COM-портов: {ports.Length} ({string.Join(", ", ports)})");
         }
         catch (Exception ex)
         {
             LogError($"Не удалось перечислить COM-порты: {ex.Message}");
-            LogDebug($"ScanAsync: исключение при получении портов: {ex.GetType().Name} - {ex.Message}\n{ex.StackTrace}");
             IsScanning = false;
             OnStateChanged();
             return;
@@ -113,27 +110,15 @@ internal sealed partial class ArduinoService
 
         try
         {
-            int portIndex = 0;
             foreach (var port in ports)
             {
-                portIndex++;
-                LogDebug($"ScanAsync: обработка порта {portIndex}/{ports.Length}: {port}");
-                
                 if (token.IsCancellationRequested)
                 {
                     LogWarn("Сканирование Arduino отменено.");
-                    LogDebug($"ScanAsync: отмена запрошена на порту {port}");
                     break;
                 }
 
-                var portStartTime = Stopwatch.StartNew();
-                LogDebug($"ScanAsync: запуск ProbePortWithTimeoutAsync для {port}");
-                
                 var info = await ProbePortWithTimeoutAsync(port, token).ConfigureAwait(true);
-                
-                portStartTime.Stop();
-                LogDebug($"ScanAsync: ProbePortWithTimeoutAsync для {port} завершен за {portStartTime.ElapsedMilliseconds} мс, результат: {(info != null ? "найдено устройство" : "устройство не найдено")}");
-                
                 if (info != null)
                 {
                     discovered.Add(info);
@@ -144,21 +129,13 @@ internal sealed partial class ArduinoService
         catch (OperationCanceledException)
         {
             LogWarn("Сканирование Arduino отменено.");
-            LogDebug("ScanAsync: OperationCanceledException поймана");
-        }
-        catch (Exception ex)
-        {
-            LogError($"ScanAsync: неожиданная ошибка: {ex.Message}");
-            LogDebug($"ScanAsync: исключение в цикле сканирования: {ex.GetType().Name} - {ex.Message}\n{ex.StackTrace}");
         }
         finally
         {
-            LogDebug("ScanAsync: очистка CancellationTokenSource");
             _scanCancellation?.Dispose();
             _scanCancellation = null;
         }
 
-        LogDebug($"ScanAsync: обновление UI, найдено устройств: {discovered.Count}");
         Application.Current.Dispatcher.Invoke(() =>
         {
             Devices.Clear();
@@ -171,7 +148,6 @@ internal sealed partial class ArduinoService
 
         scanStopwatch.Stop();
         LogInfo($"Сканирование Arduino завершено. Проверено портов: {ports.Length}, найдено устройств: {discovered.Count}, длительность: {scanStopwatch.ElapsedMilliseconds} мс.");
-        LogDebug($"ScanAsync: завершение, общее время: {scanStopwatch.ElapsedMilliseconds} мс");
         IsScanning = false;
         OnStateChanged();
     }
@@ -234,6 +210,31 @@ internal sealed partial class ArduinoService
                 LogRswpState(targetPort, rswp);
 
                 LogInfo($"{targetPort}: Проверка шины I2C");
+                // Сначала выполняем полное сканирование всех I2C адресов
+                // Это нужно сделать до быстрого скана, но только если не идет чтение SPD
+                byte[] fullAddresses = Array.Empty<byte>();
+                try
+                {
+                    fullAddresses = device.ScanFull();
+                    if (fullAddresses.Length > 0)
+                    {
+                        var addressList = string.Join(", ", fullAddresses.Select(a => $"0x{a:X2}"));
+                        LogInfo($"{targetPort}: Полное сканирование I2C: найдено {fullAddresses.Length} устройств ({addressList})");
+                    }
+                    else
+                    {
+                        LogInfo($"{targetPort}: Полное сканирование I2C: устройства не найдены");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    LogWarn($"{targetPort}: Не удалось выполнить полное сканирование I2C: {ex.Message}");
+                }
+                
+                // Сохраняем результаты полного сканирования
+                _fullScanAddresses = fullAddresses;
+                
+                // Затем выполняем быстрый скан для определения SPD адресов
                 var addresses = device.Scan();
                 if (addresses.Length > 0)
                 {
@@ -259,6 +260,12 @@ internal sealed partial class ArduinoService
             _activeI2cAddress = detectedAddress;
             _spdReady = spdDetected;
             SpdStateChanged?.Invoke(this, _spdReady);
+            
+            // Очищаем результаты полного сканирования при отключении
+            if (!spdDetected)
+            {
+                _fullScanAddresses = null;
+            }
 
             if (_spdReady)
             {
@@ -321,11 +328,20 @@ internal sealed partial class ArduinoService
 
         try
         {
+            // Определяем тип памяти перед чтением, если он еще не определен
+            // Это гарантирует правильную валидацию размера после чтения
+            if (_memoryType == SpdMemoryType.Unknown)
+            {
+                await RefreshMemoryTypeAsync().ConfigureAwait(true);
+            }
+            
             var data = await Task.Run(() =>
             {
                 lock (_lock)
                 {
                     _activeDevice.I2CAddress = _activeI2cAddress;
+                    // Вызываем ReadSpdDump без параметра - использует значение по умолчанию 512
+                    // Это работает как в старом коде arduino_spd_87
                     return _activeDevice.ReadSpdDump();
                 }
             }).ConfigureAwait(true);
@@ -843,129 +859,68 @@ internal sealed partial class ArduinoService
     private async Task<ArduinoDeviceInfo?> ProbePortWithTimeoutAsync(string portName, CancellationToken token)
     {
         var probeStopwatch = Stopwatch.StartNew();
-        LogDebug($"{portName}: ProbePortWithTimeoutAsync: начало, таймаут: {PortProbeTimeout.TotalSeconds} сек");
 
         try
         {
-            LogDebug($"{portName}: ProbePortWithTimeoutAsync: проверка отмены");
             token.ThrowIfCancellationRequested();
 
-            LogDebug($"{portName}: ProbePortWithTimeoutAsync: создание Task.Run для ProbePort");
             var probeTask = Task.Run(() =>
             {
-                LogDebug($"{portName}: ProbePortWithTimeoutAsync: Task.Run начат, проверка отмены");
                 token.ThrowIfCancellationRequested();
-                LogDebug($"{portName}: ProbePortWithTimeoutAsync: вызов ProbePort");
-                var result = ProbePort(portName);
-                LogDebug($"{portName}: ProbePortWithTimeoutAsync: ProbePort завершен, результат: {(result != null ? "найдено" : "не найдено")}");
-                return result;
+                return ProbePort(portName);
             }, token);
 
-            LogDebug($"{portName}: ProbePortWithTimeoutAsync: создание Task.Delay на {PortProbeTimeout.TotalSeconds} сек");
             var delayTask = Task.Delay(PortProbeTimeout, token);
-            
-            LogDebug($"{portName}: ProbePortWithTimeoutAsync: ожидание Task.WhenAny");
             var completedTask = await Task.WhenAny(probeTask, delayTask).ConfigureAwait(false);
-            LogDebug($"{portName}: ProbePortWithTimeoutAsync: Task.WhenAny завершен, завершилась задача: {(completedTask == probeTask ? "probeTask" : "delayTask")}");
 
             if (completedTask == probeTask)
             {
-                LogDebug($"{portName}: ProbePortWithTimeoutAsync: probeTask завершился первым, получение результата");
                 var info = await probeTask.ConfigureAwait(false);
                 probeStopwatch.Stop();
                 if (info != null)
                 {
                     info.ProbeDurationMs = probeStopwatch.ElapsedMilliseconds;
-                    LogDebug($"{portName}: ProbePortWithTimeoutAsync: устройство найдено за {info.ProbeDurationMs} мс");
-                }
-                else
-                {
-                    LogDebug($"{portName}: ProbePortWithTimeoutAsync: устройство не найдено, время: {probeStopwatch.ElapsedMilliseconds} мс");
                 }
                 return info;
             }
 
-            LogDebug($"{portName}: ProbePortWithTimeoutAsync: delayTask завершился первым - таймаут");
             LogWarn($"{portName}: Тайм-аут проверки.");
-            
-            // Пытаемся отменить probeTask, если он еще выполняется
-            if (!probeTask.IsCompleted)
-            {
-                LogDebug($"{portName}: ProbePortWithTimeoutAsync: probeTask еще выполняется, ожидание завершения...");
-                try
-                {
-                    // Даем немного времени на завершение
-                    await Task.WhenAny(probeTask, Task.Delay(100)).ConfigureAwait(false);
-                    LogDebug($"{portName}: ProbePortWithTimeoutAsync: probeTask статус после ожидания: {probeTask.Status}");
-                }
-                catch (Exception ex)
-                {
-                    LogDebug($"{portName}: ProbePortWithTimeoutAsync: ошибка при ожидании probeTask: {ex.Message}");
-                }
-            }
-            
             return null;
         }
         catch (OperationCanceledException)
         {
-            LogDebug($"{portName}: ProbePortWithTimeoutAsync: OperationCanceledException");
             return null;
         }
         catch (Exception ex)
         {
             LogWarn($"{portName}: probe failed ({ex.Message}).");
-            LogDebug($"{portName}: ProbePortWithTimeoutAsync: исключение: {ex.GetType().Name} - {ex.Message}\n{ex.StackTrace}");
             return null;
         }
         finally
         {
             probeStopwatch.Stop();
-            LogDebug($"{portName}: ProbePortWithTimeoutAsync: завершение, общее время: {probeStopwatch.ElapsedMilliseconds} мс");
         }
     }
 
     private ArduinoDeviceInfo? ProbePort(string portName)
     {
-        var probeStopwatch = Stopwatch.StartNew();
-        LogDebug($"{portName}: ProbePort: начало");
-        
         // Используем отдельные настройки для сканирования портов:
         // таймаут немного больше (3 с), чтобы настоящие устройства успевали ответить,
         // а "пустые" аппаратные COM-порты всё равно быстро освобождались благодаря внешнему PortProbeTimeout.
         var scanPortSettings = new Hardware.Arduino.SerialPortSettings(115200, true, true, 3);
-        LogDebug($"{portName}: ProbePort: настройки порта - BaudRate: {scanPortSettings.BaudRate}, Timeout: {scanPortSettings.Timeout} сек");
         
         LogInfo($"{portName}: Проверка сигнатуры устройства...");
 
-        LogDebug($"{portName}: ProbePort: создание объекта Arduino");
         using var device = new Hardware.Arduino(scanPortSettings, portName);
-        
         try
         {
-            LogDebug($"{portName}: ProbePort: вызов device.Connect()");
-            var connectStartTime = Stopwatch.StartNew();
             device.Connect();
-            connectStartTime.Stop();
-            LogDebug($"{portName}: ProbePort: device.Connect() завершен за {connectStartTime.ElapsedMilliseconds} мс");
             LogInfo($"{portName}: Проверка успешна.");
 
-            LogDebug($"{portName}: ProbePort: получение FirmwareVersion");
-            var firmwareStartTime = Stopwatch.StartNew();
             int firmware = device.FirmwareVersion;
-            firmwareStartTime.Stop();
-            LogDebug($"{portName}: ProbePort: FirmwareVersion получен за {firmwareStartTime.ElapsedMilliseconds} мс: {firmware}");
-            
             string firmwareText = FormatFirmwareVersion(firmware);
-            
-            LogDebug($"{portName}: ProbePort: получение Name");
-            var nameStartTime = Stopwatch.StartNew();
             string name = device.Name;
-            nameStartTime.Stop();
-            LogDebug($"{portName}: ProbePort: Name получен за {nameStartTime.ElapsedMilliseconds} мс: {name}");
 
-            probeStopwatch.Stop();
-            LogDebug($"{portName}: ProbePort: успешно завершен за {probeStopwatch.ElapsedMilliseconds} мс, создание ArduinoDeviceInfo");
-            
             return new ArduinoDeviceInfo
             {
                 Port = portName,
@@ -973,42 +928,28 @@ internal sealed partial class ArduinoService
                 Name = name
             };
         }
-        catch (TimeoutException ex)
+        catch (TimeoutException)
         {
-            probeStopwatch.Stop();
             // Таймаут - порт не содержит Arduino устройство, это нормально
-            LogDebug($"{portName}: ProbePort: TimeoutException за {probeStopwatch.ElapsedMilliseconds} мс - {ex.Message}");
             return null;
         }
         catch (Exception ex)
         {
-            probeStopwatch.Stop();
             LogWarn($"{portName}: Ошибка проверки ({ex.Message}).");
-            LogDebug($"{portName}: ProbePort: исключение за {probeStopwatch.ElapsedMilliseconds} мс - {ex.GetType().Name}: {ex.Message}\n{ex.StackTrace}");
             return null;
         }
         finally
         {
             try
             {
-                LogDebug($"{portName}: ProbePort: проверка IsConnected перед отключением");
                 if (device.IsConnected)
                 {
-                    LogDebug($"{portName}: ProbePort: вызов device.Disconnect()");
-                    var disconnectStartTime = Stopwatch.StartNew();
                     device.Disconnect();
-                    disconnectStartTime.Stop();
-                    LogDebug($"{portName}: ProbePort: device.Disconnect() завершен за {disconnectStartTime.ElapsedMilliseconds} мс");
-                }
-                else
-                {
-                    LogDebug($"{portName}: ProbePort: устройство уже отключено");
                 }
             }
-            catch (Exception ex)
+            catch
             {
                 // Игнорируем ошибки при отключении
-                LogDebug($"{portName}: ProbePort: ошибка при отключении (игнорируется): {ex.Message}");
             }
         }
     }
@@ -1022,9 +963,70 @@ internal sealed partial class ArduinoService
 
         if (e.Code == Hardware.Arduino.AlertCodes.SlaveIncrement)
         {
+            // Сохраняем ссылку на устройство локально, чтобы избежать race condition
+            var device = _activeDevice;
+            if (device == null)
+            {
+                return;
+            }
+            
             _spdReady = true;
             SpdStateChanged?.Invoke(this, _spdReady);
-            LogInfo($"{_activeDevice.PortName}: Обнаружена новая SPD EEPROM");
+            LogInfo($"{device.PortName}: Обнаружена новая SPD EEPROM");
+            
+            // Сначала выполняем полное сканирование всех I2C адресов до быстрого скана
+            // Это нужно сделать до обновления типа памяти и RSWP
+            _ = Task.Run(() =>
+            {
+                try
+                {
+                    // Проверяем, что устройство все еще подключено перед сканированием
+                    if (device == null || !device.IsConnected)
+                    {
+                        return;
+                    }
+                    
+                    lock (_lock)
+                    {
+                        // Повторная проверка после получения lock
+                        if (device == null || !device.IsConnected || _activeDevice != device)
+                        {
+                            return;
+                        }
+                        
+                        device.I2CAddress = _activeI2cAddress;
+                        byte[] fullAddresses = device.ScanFull();
+                        if (fullAddresses.Length > 0)
+                        {
+                            var addressList = string.Join(", ", fullAddresses.Select(a => $"0x{a:X2}"));
+                            LogInfo($"{device.PortName}: Полное сканирование I2C: найдено {fullAddresses.Length} устройств ({addressList})");
+                        }
+                        else
+                        {
+                            LogInfo($"{device.PortName}: Полное сканирование I2C: устройства не найдены");
+                        }
+                        
+                        // Сохраняем результаты полного сканирования
+                        _fullScanAddresses = fullAddresses;
+                        
+                        // Затем выполняем быстрый скан для определения SPD адресов
+                        var addresses = device.Scan();
+                        if (addresses.Length > 0)
+                        {
+                            _activeI2cAddress = addresses[0];
+                        }
+                    }
+                    
+                    // Уведомляем об изменении состояния для обновления UI после завершения сканирования
+                    // Это должно быть вне lock, чтобы не блокировать UI поток
+                    OnStateChanged();
+                }
+                catch (Exception ex)
+                {
+                    LogWarn($"{device?.PortName ?? "Unknown"}: Не удалось выполнить сканирование I2C при обнаружении EEPROM: {ex.Message}");
+                }
+            });
+            
             // Обновляем тип памяти и RSWP при обнаружении нового SPD
             _ = Task.Run(async () =>
             {
@@ -1040,6 +1042,8 @@ internal sealed partial class ArduinoService
             UpdateMemoryType(SpdMemoryType.Unknown);
             // Очищаем состояние RSWP при удалении SPD
             RswpStateChanged?.Invoke(this, Array.Empty<bool>());
+            // Очищаем результаты полного сканирования при извлечении EEPROM
+            _fullScanAddresses = null;
         }
     }
 
@@ -1126,7 +1130,6 @@ internal sealed partial class ArduinoService
     private void LogInfo(string message) => Log("Info", message);
     private void LogWarn(string message) => Log("Warn", message);
     private void LogError(string message) => Log("Error", message);
-    private void LogDebug(string message) => Log("Debug", message);
 
     private void Log(string level, string message)
     {

@@ -1121,37 +1121,28 @@ namespace HexEditor
                     return;
                 }
 
-                // Вызываем ScanFull() в отдельном потоке для полного сканирования I2C шины
-                // Это может занять некоторое время (до 112 адресов * время проверки)
-                Task.Run(() =>
+                // Используем результаты полного сканирования, если они доступны
+                // Полное сканирование выполняется в ConnectAsync перед быстрым сканом
+                byte[]? fullAddresses = _arduinoService.GetFullScanAddresses();
+                if (fullAddresses != null && fullAddresses.Length > 0)
                 {
+                    // Используем результаты полного сканирования
+                    UpdateI2CAddresses(fullAddresses);
+                }
+                else
+                {
+                    // Если полное сканирование еще не выполнено, используем быстрый скан
                     try
                     {
-                        byte[] addresses = device.ScanFull();
-                        Dispatcher.Invoke(() =>
-                        {
-                            UpdateI2CAddresses(addresses);
-                            if (addresses.Length > 0)
-                            {
-                                // Логируем только один раз, чтобы не засорять лог
-                                var addressList = string.Join(", ", addresses.Select(a => $"0x{a:X2}"));
-                                if (!_lastLoggedAddresses?.SequenceEqual(addresses) ?? true)
-                                {
-                                    AppendLog("Info", $"Найдено I2C устройств: {addresses.Length} ({addressList})");
-                                    _lastLoggedAddresses = addresses;
-                                }
-                            }
-                        });
+                        byte[] addresses = device.Scan();
+                        UpdateI2CAddresses(addresses);
                     }
                     catch (Exception ex)
                     {
-                        Dispatcher.Invoke(() =>
-                        {
-                            AppendLog("Error", $"Не удалось получить I2C адреса: {ex.Message}");
-                            UpdateI2CAddresses(Array.Empty<byte>());
-                        });
+                        AppendLog("Error", $"Не удалось получить I2C адреса: {ex.Message}");
+                        UpdateI2CAddresses(Array.Empty<byte>());
                     }
-                });
+                }
             }
             catch (Exception ex)
             {
@@ -1203,6 +1194,11 @@ namespace HexEditor
                 UpdateToggleConnectionButtonState();
                 UpdateReadButtonState();
                 UpdateRswpButtonsState();
+                // Обновляем адреса I2C после изменения состояния (например, после полного сканирования)
+                if (_arduinoService.IsConnected && _arduinoService.IsSpdReady)
+                {
+                    UpdateI2CAddressesFromDevice();
+                }
             });
         }
 
@@ -1420,6 +1416,9 @@ namespace HexEditor
                     // Очищаем подсветки верификации при чтении новых данных
                     ClearVerificationHighlights();
                     HexEditor.LoadData(data);
+                    // Явно сбрасываем выделение и каретку в начало после загрузки данных
+                    HexEditor.ClearSelection();
+                    HexEditor.SetCaretPosition(0);
                     ScheduleSpdInfoUpdate(immediate: true);
                     UpdateSpdEditPanel();
                     UpdateReadButtonState();
@@ -1963,6 +1962,9 @@ namespace HexEditor
 
         private void AppendLog(string level, string message)
         {
+            // Записываем в файл
+            Utils.FileLogger.WriteLog(level, message);
+
             Dispatcher.Invoke(() =>
             {
                 string entry = $"[{level}] {DateTime.Now:dd.MM.yyyy HH:mm:ss}: {message}";
