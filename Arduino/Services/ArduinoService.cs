@@ -1391,7 +1391,9 @@ internal sealed partial class ArduinoService
                     {
                         cancellationToken.ThrowIfCancellationRequested();
                         
-                        if (device == null || !device.IsConnected || _activeDevice != device || !_spdReady)
+                        // Проверяем только подключение устройства, не проверяем _spdReady
+                        // (EEPROM может быть извлечена - это нормально)
+                        if (device == null || !device.IsConnected || _activeDevice != device)
                         {
                             return;
                         }
@@ -1422,12 +1424,13 @@ internal sealed partial class ArduinoService
                     
                     // Проверяем отмену и состояние перед длительными операциями
                     cancellationToken.ThrowIfCancellationRequested();
-                    if (device == null || !device.IsConnected || _activeDevice != device || !_spdReady)
+                    if (device == null || !device.IsConnected || _activeDevice != device)
                     {
                         return;
                     }
                     
                     // Обновляем тип памяти с таймаутом и проверкой отмены
+                    // Если EEPROM извлечена, операция может завершиться с ошибкой - это нормально
                     try
                     {
                         await RefreshMemoryTypeAsync().WaitAsync(OperationTimeout, cancellationToken).ConfigureAwait(false);
@@ -1438,18 +1441,20 @@ internal sealed partial class ArduinoService
                     }
                     catch (Exception ex) when (ex is TimeoutException || ex is InvalidOperationException)
                     {
-                        LogWarn($"{device?.PortName ?? "Unknown"}: Ошибка при обновлении типа памяти: {ex.Message}");
-                        return; // При ошибке не продолжаем
+                        // Ошибка может быть из-за извлечения EEPROM - это нормально, не логируем как ошибку
+                        // Просто выходим без продолжения
+                        return;
                     }
                     
                     // Проверяем отмену и состояние перед проверкой RSWP
                     cancellationToken.ThrowIfCancellationRequested();
-                    if (device == null || !device.IsConnected || _activeDevice != device || !_spdReady)
+                    if (device == null || !device.IsConnected || _activeDevice != device)
                     {
                         return;
                     }
                     
                     // Проверяем RSWP с таймаутом и проверкой отмены
+                    // Если EEPROM извлечена, операция может завершиться с ошибкой - это нормально
                     try
                     {
                         await CheckRswpAsync().WaitAsync(OperationTimeout, cancellationToken).ConfigureAwait(false);
@@ -1460,31 +1465,37 @@ internal sealed partial class ArduinoService
                     }
                     catch (Exception ex) when (ex is TimeoutException || ex is InvalidOperationException)
                     {
-                        LogWarn($"{device?.PortName ?? "Unknown"}: Ошибка при проверке RSWP: {ex.Message}");
-                        return; // При ошибке не продолжаем
+                        // Ошибка может быть из-за извлечения EEPROM - это нормально, не логируем как ошибку
+                        // Просто выходим без продолжения
+                        return;
                     }
                     
                     // Обновляем UI только если все операции завершились успешно и не были отменены
                     cancellationToken.ThrowIfCancellationRequested();
-                    if (device != null && device.IsConnected && _activeDevice == device && _spdReady)
+                    if (device != null && device.IsConnected && _activeDevice == device)
                     {
                         OnStateChanged();
                     }
                 }
                 catch (OperationCanceledException)
                 {
-                    // Операция отменена - это нормально при новом алерте или отключении
+                    // Операция отменена - это нормально при новом алерте или извлечении EEPROM
                 }
                 catch (Exception ex) when (ex is TimeoutException || ex is InvalidOperationException || ex is InvalidDataException)
                 {
-                    LogWarn($"{device?.PortName ?? "Unknown"}: Ошибка при обработке алерта: {ex.Message}");
+                    // Ошибки могут возникать при извлечении EEPROM - это нормально
+                    // Отключаемся только если действительно потеряна связь с Arduino
                     if (device != null && !device.IsConnected)
                     {
+                        // Только если устройство действительно отключено, вызываем DisconnectInternal
                         DisconnectInternal(false);
                     }
+                    // Иначе просто игнорируем ошибку (EEPROM может быть извлечена)
                 }
                 catch (Exception ex)
                 {
+                    // Неожиданные ошибки логируем, но не отключаемся
+                    // (могут быть из-за извлечения EEPROM)
                     LogWarn($"{device?.PortName ?? "Unknown"}: Неожиданная ошибка при обработке алерта: {ex.Message}");
                 }
                 finally

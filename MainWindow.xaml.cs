@@ -1139,7 +1139,12 @@ namespace HexEditor
                     }
                     catch (Exception ex)
                     {
-                        AppendLog("Error", $"Не удалось получить I2C адреса: {ex.Message}");
+                        // Ошибка может быть из-за извлечения EEPROM - это нормально
+                        // Логируем только если устройство действительно отключено
+                        if (!device.IsConnected)
+                        {
+                            AppendLog("Error", $"Не удалось получить I2C адреса: {ex.Message}");
+                        }
                         UpdateI2CAddresses(Array.Empty<byte>());
                     }
                 }
