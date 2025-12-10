@@ -39,7 +39,7 @@
                     <TextBox x:Name="PartNumberTextBox"
                              Grid.Column="1"
                              FontSize="14"
-                             FontFamily="Consolas"
+                             FontFamily="{DynamicResource ApplicationFontFamily}"
                              Padding="8,6"
                              VerticalContentAlignment="Center"
                              TextChanged="PartNumberTextBox_TextChanged"

@@ -389,7 +389,7 @@
                                     <DataTemplate>
                                         <TextBlock Text="{Binding}"
                                                    FontSize="12"
-                                                   FontFamily="Consolas"
+                                                   FontFamily="{DynamicResource ApplicationFontFamily}"
                                                    Foreground="{StaticResource PrimaryTextBrush}"
                                                    Margin="0,2"/>
                                     </DataTemplate>
@@ -553,7 +553,7 @@
                                              Foreground="{StaticResource PrimaryTextBrush}"
                                              BorderBrush="{StaticResource SurfaceBorderBrush}"
                                              BorderThickness="1"
-                                             FontFamily="Consolas"
+                                             FontFamily="{DynamicResource ApplicationFontFamily}"
                                              FontSize="11"
                                              HorizontalContentAlignment="Stretch"
                                              ScrollViewer.VerticalScrollBarVisibility="Auto"
@@ -597,7 +597,7 @@
                                          Foreground="{StaticResource PrimaryTextBrush}"
                                          BorderBrush="{StaticResource SurfaceBorderBrush}"
                                          BorderThickness="1"
-                                         FontFamily="Consolas"
+                                         FontFamily="{DynamicResource ApplicationFontFamily}"
                                          FontSize="11"
                                          HorizontalContentAlignment="Stretch"
                                          ScrollViewer.VerticalScrollBarVisibility="Auto"

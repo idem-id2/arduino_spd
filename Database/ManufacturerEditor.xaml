@@ -91,13 +91,13 @@
                                     Width="100">
                     <DataGridTextColumn.ElementStyle>
                         <Style TargetType="TextBlock">
-                            <Setter Property="FontFamily" Value="Consolas"/>
+                            <Setter Property="FontFamily" Value="{DynamicResource ApplicationFontFamily}"/>
                             <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}"/>
                         </Style>
                     </DataGridTextColumn.ElementStyle>
                     <DataGridTextColumn.EditingElementStyle>
                         <Style TargetType="TextBox">
-                            <Setter Property="FontFamily" Value="Consolas"/>
+                            <Setter Property="FontFamily" Value="{DynamicResource ApplicationFontFamily}"/>
                             <Setter Property="CharacterCasing" Value="Upper"/>
                             <Setter Property="MaxLength" Value="4"/>
                             <EventSetter Event="PreviewTextInput" Handler="IdHexTextBox_PreviewTextInput"/>

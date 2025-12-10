@@ -1407,7 +1407,7 @@ namespace HexEditor.SpdDecoder
                         Text = "Value",
                         FontSize = 12,
                         FontWeight = FontWeights.Bold,
-                        FontFamily = new FontFamily("Consolas"),
+                        FontFamily = (FontFamily)TryFindResource("ApplicationFontFamily") ?? new FontFamily("Consolas"),
                         Foreground = (Brush)TryFindResource("PrimaryTextBrush"),
                         Margin = new Thickness(0, 0, 12, 8)
                     };
@@ -1454,7 +1454,7 @@ namespace HexEditor.SpdDecoder
                         {
                             Text = item.Value,
                             FontSize = 11,
-                            FontFamily = new FontFamily("Consolas"),
+                            FontFamily = (FontFamily)TryFindResource("ApplicationFontFamily") ?? new FontFamily("Consolas"),
                             FontWeight = FontWeights.SemiBold,
                             Foreground = (Brush)TryFindResource("PrimaryTextBrush"),
                             Background = Brushes.Transparent,
@@ -1597,7 +1597,7 @@ namespace HexEditor.SpdDecoder
                     Text = "Offset",
                     FontSize = 12,
                     FontWeight = FontWeights.Bold,
-                    FontFamily = new FontFamily("Consolas"),
+                    FontFamily = (FontFamily)TryFindResource("ApplicationFontFamily") ?? new FontFamily("Consolas"),
                     Foreground = (Brush)TryFindResource("PrimaryTextBrush"),
                     Margin = new Thickness(0, 0, 8, 8)
                 };
@@ -1611,7 +1611,7 @@ namespace HexEditor.SpdDecoder
                     Text = "Value",
                     FontSize = 12,
                     FontWeight = FontWeights.Bold,
-                    FontFamily = new FontFamily("Consolas"),
+                    FontFamily = (FontFamily)TryFindResource("ApplicationFontFamily") ?? new FontFamily("Consolas"),
                     Foreground = (Brush)TryFindResource("PrimaryTextBrush"),
                     Margin = new Thickness(0, 0, 8, 8)
                 };
@@ -1655,7 +1655,7 @@ namespace HexEditor.SpdDecoder
                     {
                         Text = $"0x{kvp.Key:X2}",
                         FontSize = 12,
-                        FontFamily = new FontFamily("Consolas"),
+                        FontFamily = (FontFamily)TryFindResource("ApplicationFontFamily") ?? new FontFamily("Consolas"),
                         Foreground = (Brush)TryFindResource("SecondaryTextBrush"),
                         Margin = new Thickness(0, 0, 8, 4)
                     };
@@ -1668,7 +1668,7 @@ namespace HexEditor.SpdDecoder
                     {
                         Text = $"0x{kvp.Value.Value:X2}",
                         FontSize = 12,
-                        FontFamily = new FontFamily("Consolas"),
+                        FontFamily = (FontFamily)TryFindResource("ApplicationFontFamily") ?? new FontFamily("Consolas"),
                         Foreground = (Brush)TryFindResource("PrimaryTextBrush"),
                         Margin = new Thickness(0, 0, 8, 4)
                     };
@@ -1708,7 +1708,7 @@ namespace HexEditor.SpdDecoder
             {
                 Text = $"Original Part Number: {result.OriginalPartNumber}",
                 FontSize = 12,
-                FontFamily = new FontFamily("Consolas"),
+                FontFamily = (FontFamily)TryFindResource("ApplicationFontFamily") ?? new FontFamily("Consolas"),
                 Foreground = (Brush)TryFindResource("MutedTextBrush"),
                 Background = Brushes.Transparent,
                 BorderThickness = new Thickness(0),
