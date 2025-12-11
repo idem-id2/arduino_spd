@@ -642,7 +642,8 @@ namespace HexEditor
                 SpdInfoPanel.UpdateSpdData(data, forcedType);
                 
                 // Update HPE SmartMemory panel
-                HpeSmartMemoryPanel?.UpdateSpdData(data);
+                bool isArduinoMode = _arduinoService.IsConnected;
+                HpeSmartMemoryPanel?.UpdateSpdData(data, isArduinoMode);
                 
                 UpdateCrcState(data);
             }

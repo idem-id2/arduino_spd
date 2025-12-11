@@ -1,0 +1,164 @@
+<UserControl x:Class="HexEditor.SpdDecoder.HpeSmartMemory.HpeSmartMemoryPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             mc:Ignorable="d"
+             d:DesignHeight="200" d:DesignWidth="600"
+             HorizontalAlignment="Stretch"
+             VerticalAlignment="Stretch">
+    <Grid HorizontalAlignment="Stretch"
+          VerticalAlignment="Stretch">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        
+        <ScrollViewer Grid.Row="0"
+                      VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Disabled"
+                      HorizontalAlignment="Stretch"
+                      VerticalAlignment="Stretch">
+            <StackPanel x:Name="MainContainer"
+                        HorizontalAlignment="Stretch"
+                        Margin="12">
+                
+                <!-- Заголовок -->
+                <TextBlock Text="HPE SmartMemory Information"
+                           FontSize="16"
+                           FontWeight="Bold"
+                           Margin="0,0,0,16"
+                           Foreground="{StaticResource PrimaryTextBrush}"/>
+                
+                <!-- Информация о модуле -->
+                <Border Style="{StaticResource SectionBlockStyle}"
+                        Margin="0,0,0,12">
+                    <StackPanel>
+                        <TextBlock Text="MODULE INFORMATION"
+                                   Style="{StaticResource CardTitleStyle}"/>
+                        
+                        <!-- HPT Marker -->
+                        <Grid MinHeight="28" Margin="0,2,0,2" Background="{StaticResource ZebraEvenBrush}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="200"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="HptMarkerLabel"
+                                     Grid.Column="0"
+                                     Style="{StaticResource SpdInfoLabelStyle}"
+                                     Text="HPT Marker"
+                                     IsReadOnly="True"/>
+                            <TextBox x:Name="HptMarkerValue"
+                                     Grid.Column="1"
+                                     Style="{StaticResource SpdInfoValueStyle}"
+                                     Text="—"
+                                     IsReadOnly="True"/>
+                        </Grid>
+                        
+                        <!-- Secure ID -->
+                        <Grid MinHeight="28" Margin="0,2,0,2" Background="{StaticResource ZebraOddBrush}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="200"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="SecureIdLabel"
+                                     Grid.Column="0"
+                                     Style="{StaticResource SpdInfoLabelStyle}"
+                                     Text="Secure ID"
+                                     IsReadOnly="True"/>
+                            <TextBox x:Name="SecureIdValue"
+                                     Grid.Column="1"
+                                     Style="{StaticResource SpdInfoValueStyle}"
+                                     Text="—"
+                                     IsReadOnly="True"/>
+                        </Grid>
+                        
+                        <!-- HPE Part Number -->
+                        <Grid MinHeight="28" Margin="0,2,0,2" Background="{StaticResource ZebraEvenBrush}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="200"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="HpePartNumberLabel"
+                                     Grid.Column="0"
+                                     Style="{StaticResource SpdInfoLabelStyle}"
+                                     Text="HPE Part Number"
+                                     IsReadOnly="True"/>
+                            <TextBox x:Name="HpePartNumberValue"
+                                     Grid.Column="1"
+                                     Style="{StaticResource SpdInfoValueStyle}"
+                                     Text="—"
+                                     IsReadOnly="True"
+                                     FontFamily="Consolas"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+                
+                <!-- Sensor Registers -->
+                <Border Style="{StaticResource SectionBlockStyle}"
+                        Margin="0,0,0,12">
+                    <StackPanel>
+                        <TextBlock Text="SENSOR REGISTERS"
+                                   Style="{StaticResource CardTitleStyle}"/>
+                        
+                        <!-- Mode -->
+                        <Grid MinHeight="28" Margin="0,2,0,2" Background="{StaticResource ZebraEvenBrush}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="200"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="ModeLabel"
+                                     Grid.Column="0"
+                                     Style="{StaticResource SpdInfoLabelStyle}"
+                                     Text="Mode"
+                                     IsReadOnly="True"/>
+                            <TextBox x:Name="ModeValue"
+                                     Grid.Column="1"
+                                     Style="{StaticResource SpdInfoValueStyle}"
+                                     Text="—"
+                                     IsReadOnly="True"/>
+                        </Grid>
+                        
+                        <!-- Sensor Register 6 -->
+                        <Grid MinHeight="28" Margin="0,2,0,2" Background="{StaticResource ZebraOddBrush}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="200"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="SensorReg6Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource SpdInfoLabelStyle}"
+                                     Text="Sensor Register 6"
+                                     IsReadOnly="True"/>
+                            <TextBox x:Name="SensorReg6Value"
+                                     Grid.Column="1"
+                                     Style="{StaticResource SpdInfoValueStyle}"
+                                     Text="—"
+                                     IsReadOnly="True"
+                                     FontFamily="Consolas"/>
+                        </Grid>
+                        
+                        <!-- Sensor Register 7 -->
+                        <Grid MinHeight="28" Margin="0,2,0,2" Background="{StaticResource ZebraEvenBrush}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="200"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="SensorReg7Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource SpdInfoLabelStyle}"
+                                     Text="Sensor Register 7"
+                                     IsReadOnly="True"/>
+                            <TextBox x:Name="SensorReg7Value"
+                                     Grid.Column="1"
+                                     Style="{StaticResource SpdInfoValueStyle}"
+                                     Text="—"
+                                     IsReadOnly="True"
+                                     FontFamily="Consolas"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+                
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

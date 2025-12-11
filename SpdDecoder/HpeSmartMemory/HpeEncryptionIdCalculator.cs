@@ -82,7 +82,7 @@ namespace HexEditor.SpdDecoder.HpeSmartMemory
         /// Это 32-битное значение, которое должно совпадать с рассчитанным Encryption ID.
         /// </summary>
         /// <param name="spdData">SPD данные модуля памяти</param>
-        /// <returns>Secure ID (32-битное значение) или null, если данных недостаточно</returns>
+        /// <returns>Secure ID (32-битное значение) или null, если данных недостаточно или значение невалидно</returns>
         public static uint? ReadSecureId(byte[] spdData)
         {
             if (spdData == null || spdData.Length < SPD_SECURE_ID_END)
@@ -91,7 +91,16 @@ namespace HexEditor.SpdDecoder.HpeSmartMemory
             }
 
             // Читаем 4 байта в формате little-endian (unsigned int)
-            return BitConverter.ToUInt32(spdData, SPD_SECURE_ID_START);
+            uint secureId = BitConverter.ToUInt32(spdData, SPD_SECURE_ID_START);
+            
+            // Проверяем, что значение не является "пустым" (не все нули и не 0xFFFFFFFF)
+            // 0x00000000 и 0xFFFFFFFF обычно означают отсутствие валидного Secure ID
+            if (secureId == 0x00000000 || secureId == 0xFFFFFFFF)
+            {
+                return null;
+            }
+            
+            return secureId;
         }
 
         /// <summary>
@@ -116,12 +125,27 @@ namespace HexEditor.SpdDecoder.HpeSmartMemory
         }
 
         /// <summary>
+        /// Результат автоматического определения Sensor Registers
+        /// </summary>
+        public class AutoDetectResult
+        {
+            public string PresetName { get; set; } = string.Empty;
+            public ushort Reg6 { get; set; }
+            public ushort Reg7 { get; set; }
+            public uint CalculatedEncryptionId { get; set; }
+        }
+
+        /// <summary>
         /// Автоматическое определение Sensor Registers путем перебора известных значений
         /// </summary>
         /// <param name="spdData">SPD данные модуля памяти</param>
         /// <param name="secureId">Secure ID из SPD</param>
-        /// <returns>Кортеж (sensorReg6, sensorReg7) или null, если совпадение не найдено</returns>
-        public static (ushort reg6, ushort reg7)? AutoDetectSensorRegisters(byte[] spdData, uint secureId)
+        /// <param name="logCallback">Опциональный callback для логирования процесса (presetName, reg6, reg7, encryptionId, secureId, isMatch)</param>
+        /// <returns>Результат определения или null, если совпадение не найдено</returns>
+        public static AutoDetectResult? AutoDetectSensorRegisters(
+            byte[] spdData, 
+            uint secureId,
+            Action<string, ushort, ushort, uint, uint, bool>? logCallback = null)
         {
             if (spdData == null)
             {
@@ -131,26 +155,39 @@ namespace HexEditor.SpdDecoder.HpeSmartMemory
             // Предустановленные значения Sensor Registers
             var presetValues = new Dictionary<string, (ushort reg6, ushort reg7)>
             {
-                { "S34TS04A - Ablic", (0x1C85, 0x2221) },
-                { "STTS2004 - STMicroelectronics", (0x104A, 0x2201) },
-                { "MCP98244 - Microchip", (0x0054, 0x2201) },
-                { "TSE2004GB2B0 - Renesas", (0x00F8, 0xEE25) }
+                { "S34TS04A - Ablic (1C85, 2221)", (0x1C85, 0x2221) },
+                { "STTS2004 - STMicroelectronics (104A, 2201)", (0x104A, 0x2201) },
+                { "MCP98244 - Microchip (0054, 2201)", (0x0054, 0x2201) },
+                { "TSE2004GB2B0 - Renesas (00F8, EE25)", (0x00F8, 0xEE25) }
             };
 
             // Перебор всех известных значений
-            foreach (var (_, (reg6, reg7)) in presetValues)
+            foreach (var (presetName, (reg6, reg7)) in presetValues)
             {
                 try
                 {
                     var encryptionId = CalculateEncryptionId(spdData, reg6, reg7);
-                    if (encryptionId == secureId)
+                    bool isMatch = encryptionId == secureId;
+                    
+                    // Логирование каждого варианта
+                    logCallback?.Invoke(presetName, reg6, reg7, encryptionId, secureId, isMatch);
+                    
+                    if (isMatch)
                     {
-                        return (reg6, reg7);
+                        // Найдено совпадение!
+                        return new AutoDetectResult
+                        {
+                            PresetName = presetName,
+                            Reg6 = reg6,
+                            Reg7 = reg7,
+                            CalculatedEncryptionId = encryptionId
+                        };
                     }
                 }
                 catch
                 {
-                    // Игнорируем ошибки при переборе
+                    // Логируем ошибку, но продолжаем проверку
+                    logCallback?.Invoke(presetName, 0, 0, 0, secureId, false);
                     continue;
                 }
             }

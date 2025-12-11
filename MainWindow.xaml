@@ -7,6 +7,7 @@
         xmlns:hex="clr-namespace:HexEditor.HexEdit"
         xmlns:database="clr-namespace:HexEditor.Database"
         xmlns:spd="clr-namespace:HexEditor.SpdDecoder"
+        xmlns:hpe="clr-namespace:HexEditor.SpdDecoder.HpeSmartMemory"
         mc:Ignorable="d"
         Title="SPD-RW-EDIT"
         Height="1100"
@@ -695,7 +696,7 @@
                 <TabItem Header="HPE SmartMemory">
                     <Grid HorizontalAlignment="Stretch"
                           VerticalAlignment="Stretch">
-                        <spd:HpeSmartMemoryPanel x:Name="HpeSmartMemoryPanel"
+                        <hpe:HpeSmartMemoryPanel x:Name="HpeSmartMemoryPanel"
                                                  Margin="12"
                                                  HorizontalAlignment="Stretch"
                                                  VerticalAlignment="Stretch"/>
