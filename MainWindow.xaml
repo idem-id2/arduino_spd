@@ -562,9 +562,35 @@
                                              SelectionMode="Single">
                                         <ListBox.ItemTemplate>
                                             <DataTemplate>
-                                                <TextBlock Text="{Binding}"
-                                                           TextWrapping="Wrap"
-                                                           Margin="4,2"/>
+                                                <TextBlock TextWrapping="Wrap" Margin="4,2">
+                                                    <Run Text="[" FontWeight="SemiBold"/>
+                                                    <Run Text="{Binding Level}">
+                                                        <Run.Style>
+                                                            <Style TargetType="Run">
+                                                                <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}"/>
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding Level}" Value="Error">
+                                                                        <Setter Property="Foreground" Value="{StaticResource ErrorBrush}"/>
+                                                                    </DataTrigger>
+                                                                    <DataTrigger Binding="{Binding Level}" Value="Warn">
+                                                                        <Setter Property="Foreground" Value="{StaticResource WarningBrush}"/>
+                                                                    </DataTrigger>
+                                                                    <DataTrigger Binding="{Binding Level}" Value="Info">
+                                                                        <Setter Property="Foreground" Value="{StaticResource InfoBrush}"/>
+                                                                    </DataTrigger>
+                                                                    <DataTrigger Binding="{Binding Level}" Value="Debug">
+                                                                        <Setter Property="Foreground" Value="{StaticResource MutedTextBrush}"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Run.Style>
+                                                    </Run>
+                                                    <Run Text="] " FontWeight="SemiBold"/>
+                                                    <Run Text="{Binding Timestamp, StringFormat='{}{0:dd.MM.yyyy HH:mm:ss}'}" 
+                                                         Foreground="{StaticResource MutedTextBrush}"/>
+                                                    <Run Text=": "/>
+                                                    <Run Text="{Binding Message}"/>
+                                                </TextBlock>
                                             </DataTemplate>
                                         </ListBox.ItemTemplate>
                                         <ListBox.ContextMenu>
@@ -611,13 +637,39 @@
                                          ScrollViewer.VerticalScrollBarVisibility="Auto"
                                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                                          SelectionMode="Single">
-                                    <ListBox.ItemTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text="{Binding}"
-                                                       TextWrapping="Wrap"
-                                                       Margin="4,2"/>
-                                        </DataTemplate>
-                                    </ListBox.ItemTemplate>
+                                        <ListBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <TextBlock TextWrapping="Wrap" Margin="4,2">
+                                                    <Run Text="[" FontWeight="SemiBold"/>
+                                                    <Run Text="{Binding Level}">
+                                                        <Run.Style>
+                                                            <Style TargetType="Run">
+                                                                <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}"/>
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding Level}" Value="Error">
+                                                                        <Setter Property="Foreground" Value="{StaticResource ErrorBrush}"/>
+                                                                    </DataTrigger>
+                                                                    <DataTrigger Binding="{Binding Level}" Value="Warn">
+                                                                        <Setter Property="Foreground" Value="{StaticResource WarningBrush}"/>
+                                                                    </DataTrigger>
+                                                                    <DataTrigger Binding="{Binding Level}" Value="Info">
+                                                                        <Setter Property="Foreground" Value="{StaticResource InfoBrush}"/>
+                                                                    </DataTrigger>
+                                                                    <DataTrigger Binding="{Binding Level}" Value="Debug">
+                                                                        <Setter Property="Foreground" Value="{StaticResource MutedTextBrush}"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Run.Style>
+                                                    </Run>
+                                                    <Run Text="] " FontWeight="SemiBold"/>
+                                                    <Run Text="{Binding Timestamp, StringFormat='{}{0:dd.MM.yyyy HH:mm:ss}'}" 
+                                                         Foreground="{StaticResource MutedTextBrush}"/>
+                                                    <Run Text=": "/>
+                                                    <Run Text="{Binding Message}"/>
+                                                </TextBlock>
+                                            </DataTemplate>
+                                        </ListBox.ItemTemplate>
                                     <ListBox.ContextMenu>
                                         <ContextMenu>
                                             <MenuItem Header="Скопировать строку"

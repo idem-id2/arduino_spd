@@ -1962,14 +1962,14 @@ namespace HexEditor
             var contextMenu = menuItem?.Parent as ContextMenu;
             var listBox = contextMenu?.PlacementTarget as ListBox;
             
-            if (listBox?.SelectedItem is not string selected || string.IsNullOrEmpty(selected))
+            if (listBox?.SelectedItem is not LogEntry entry)
             {
                 return;
             }
 
             try
             {
-                Clipboard.SetText(selected);
+                Clipboard.SetText(entry.FormattedText);
             }
             catch (Exception ex)
             {
@@ -1986,7 +1986,7 @@ namespace HexEditor
 
             try
             {
-                Clipboard.SetText(string.Join(Environment.NewLine, _logEntries));
+                Clipboard.SetText(string.Join(Environment.NewLine, _logEntries.Select(e => e.FormattedText)));
             }
             catch (Exception ex)
             {
