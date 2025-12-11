@@ -1378,8 +1378,10 @@ namespace HexEditor.SpdDecoder
             }
 
             // Supply Voltage (byte 11, bit 0)
+            // Применяем только если значение явно указано (не пустая строка)
             if (Data.Length > 11 &&
-                fieldValues.TryGetValue("SupplyVoltageOperable", out string? voltageText))
+                fieldValues.TryGetValue("SupplyVoltageOperable", out string? voltageText) &&
+                !string.IsNullOrWhiteSpace(voltageText))
             {
                 bool operable = voltageText == "True" || voltageText == "true";
                 byte byte11 = Data[11];

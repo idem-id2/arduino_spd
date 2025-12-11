@@ -4,7 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              mc:Ignorable="d"
-             d:DesignHeight="600" d:DesignWidth="420"
+             d:DesignHeight="1522" d:DesignWidth="420"
              HorizontalAlignment="Stretch"
              VerticalAlignment="Stretch">
     <Grid HorizontalAlignment="Stretch"
@@ -13,28 +13,676 @@
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
-        
+
         <ScrollViewer Grid.Row="0"
                       VerticalScrollBarVisibility="Auto"
                       HorizontalScrollBarVisibility="Disabled"
                       HorizontalAlignment="Stretch"
                       VerticalAlignment="Stretch">
-            <StackPanel x:Name="DynamicFieldsContainer"
+            <StackPanel x:Name="FieldsContainer"
                         HorizontalAlignment="Stretch"
-                        Margin="0,0,8,0">
-                <!-- Dynamic sections will be added here by BuildDynamicUI() -->
+                        Margin="0,0,4,0">
+
+                <!-- MEMORY MODULE Section -->
+                <Border x:Name="ModuleSectionBorder"
+                        Style="{StaticResource SectionBlockStyle}"
+                        Margin="0,0,0,6">
+                    <StackPanel>
+                        <TextBlock Text="MEMORY MODULE"
+                                   Style="{StaticResource CardTitleStyle}"/>
+
+                        <!-- Manufacturer -->
+                        <Grid MinHeight="28" Margin="0,2,0,2" Background="{StaticResource ZebraEvenBrush}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="200"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="ModuleInfo_Manufacturer_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource SpdInfoLabelStyle}"
+                                     Text="Manufacturer"
+                                     IsReadOnly="True"/>
+                            <TextBox x:Name="ModuleInfo_Manufacturer_Value"
+                                     Grid.Column="1"
+                                     Style="{StaticResource SpdInfoValueStyle}"
+                                     Text="—"
+                                     IsReadOnly="True"/>
+                        </Grid>
+
+                        <!-- Part Number -->
+                        <Grid MinHeight="28" Margin="0,2,0,2" Background="{StaticResource ZebraOddBrush}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="200"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="ModuleInfo_PartNumber_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource SpdInfoLabelStyle}"
+                                     Text="Part Number"
+                                     IsReadOnly="True"/>
+                            <TextBox x:Name="ModuleInfo_PartNumber_Value"
+                                     Grid.Column="1"
+                                     Style="{StaticResource SpdInfoValueStyle}"
+                                     Text="—"
+                                     IsReadOnly="True"/>
+                        </Grid>
+
+                        <!-- Serial Number -->
+                        <Grid MinHeight="28" Margin="0,2,0,2" Background="{StaticResource ZebraEvenBrush}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="200"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="ModuleInfo_SerialNumber_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource SpdInfoLabelStyle}"
+                                     Text="Serial Number"
+                                     IsReadOnly="True"/>
+                            <TextBox x:Name="ModuleInfo_SerialNumber_Value"
+                                     Grid.Column="1"
+                                     Style="{StaticResource SpdInfoValueStyle}"
+                                     Text="—"
+                                     IsReadOnly="True"/>
+                        </Grid>
+
+                        <!-- Specific Part -->
+                        <Grid MinHeight="28" Margin="0,2,0,2" Background="{StaticResource ZebraOddBrush}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="200"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="ModuleInfo_SpecificPart_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource SpdInfoLabelStyle}"
+                                     Text="Specific Part"
+                                     IsReadOnly="True"/>
+                            <TextBox x:Name="ModuleInfo_SpecificPart_Value"
+                                     Grid.Column="1"
+                                     Style="{StaticResource SpdInfoValueStyle}"
+                                     Text="—"
+                                     IsReadOnly="True"/>
+                        </Grid>
+
+                        <!-- JEDEC DIMM Label -->
+                        <Grid MinHeight="28" Margin="0,2,0,2" Background="{StaticResource ZebraEvenBrush}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="200"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="ModuleInfo_JedecDimmLabel_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource SpdInfoLabelStyle}"
+                                     Text="JEDEC DIMM Label"
+                                     IsReadOnly="True"/>
+                            <TextBox x:Name="ModuleInfo_JedecDimmLabel_Value"
+                                     Grid.Column="1"
+                                     Style="{StaticResource SpdInfoValueStyle}"
+                                     Text="—"
+                                     FontWeight="SemiBold"
+                                     IsReadOnly="True"/>
+                        </Grid>
+
+                        <!-- Architecture -->
+                        <Grid MinHeight="28" Margin="0,2,0,2" Background="{StaticResource ZebraOddBrush}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="200"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="ModuleInfo_Architecture_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource SpdInfoLabelStyle}"
+                                     Text="Architecture"
+                                     IsReadOnly="True"/>
+                            <TextBox x:Name="ModuleInfo_Architecture_Value"
+                                     Grid.Column="1"
+                                     Style="{StaticResource SpdInfoValueStyle}"
+                                     Text="—"
+                                     IsReadOnly="True"/>
+                        </Grid>
+
+                        <!-- Speed Grade -->
+                        <Grid MinHeight="28" Margin="0,2,0,2" Background="{StaticResource ZebraEvenBrush}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="200"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="ModuleInfo_SpeedGrade_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource SpdInfoLabelStyle}"
+                                     Text="Speed Grade"
+                                     IsReadOnly="True"/>
+                            <TextBox x:Name="ModuleInfo_SpeedGrade_Value"
+                                     Grid.Column="1"
+                                     Style="{StaticResource SpdInfoValueStyle}"
+                                     Text="—"
+                                     IsReadOnly="True"/>
+                        </Grid>
+
+                        <!-- Capacity -->
+                        <Grid MinHeight="28" Margin="0,2,0,2" Background="{StaticResource ZebraOddBrush}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="200"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="ModuleInfo_Capacity_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource SpdInfoLabelStyle}"
+                                     Text="Capacity"
+                                     IsReadOnly="True"/>
+                            <TextBox x:Name="ModuleInfo_Capacity_Value"
+                                     Grid.Column="1"
+                                     Style="{StaticResource SpdInfoValueStyle}"
+                                     Text="—"
+                                     IsReadOnly="True"/>
+                        </Grid>
+
+                        <!-- Organization -->
+                        <Grid MinHeight="28" Margin="0,2,0,2" Background="{StaticResource ZebraEvenBrush}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="200"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="ModuleInfo_Organization_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource SpdInfoLabelStyle}"
+                                     Text="Organization"
+                                     IsReadOnly="True"/>
+                            <TextBox x:Name="ModuleInfo_Organization_Value"
+                                     Grid.Column="1"
+                                     Style="{StaticResource SpdInfoValueStyle}"
+                                     Text="—"
+                                     IsReadOnly="True"/>
+                        </Grid>
+
+                        <!-- Thermal Sensor -->
+                        <Grid MinHeight="28" Margin="0,2,0,2" Background="{StaticResource ZebraOddBrush}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="200"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="ModuleInfo_ThermalSensor_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource SpdInfoLabelStyle}"
+                                     Text="Thermal Sensor"
+                                     IsReadOnly="True"/>
+                            <TextBox x:Name="ModuleInfo_ThermalSensor_Value"
+                                     Grid.Column="1"
+                                     Style="{StaticResource SpdInfoValueStyle}"
+                                     Text="—"
+                                     IsReadOnly="True"/>
+                        </Grid>
+
+                        <!-- Module Height -->
+                        <Grid MinHeight="28" Margin="0,2,0,2" Background="{StaticResource ZebraEvenBrush}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="200"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="ModuleInfo_ModuleHeight_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource SpdInfoLabelStyle}"
+                                     Text="Module Height"
+                                     IsReadOnly="True"/>
+                            <TextBox x:Name="ModuleInfo_ModuleHeight_Value"
+                                     Grid.Column="1"
+                                     Style="{StaticResource SpdInfoValueStyle}"
+                                     Text="—"
+                                     IsReadOnly="True"/>
+                        </Grid>
+
+                        <!-- Module Thickness -->
+                        <Grid MinHeight="28" Margin="0,2,0,2" Background="{StaticResource ZebraOddBrush}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="200"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="ModuleInfo_ModuleThickness_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource SpdInfoLabelStyle}"
+                                     Text="Module Thickness"
+                                     IsReadOnly="True"/>
+                            <TextBox x:Name="ModuleInfo_ModuleThickness_Value"
+                                     Grid.Column="1"
+                                     Style="{StaticResource SpdInfoValueStyle}"
+                                     Text="—"
+                                     IsReadOnly="True"/>
+                        </Grid>
+
+                        <!-- Register & Buffer Manufacturer -->
+                        <Grid MinHeight="28" Margin="0,2,0,2" Background="{StaticResource ZebraEvenBrush}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="200"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="ModuleInfo_RegisterBufferManufacturer_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource SpdInfoLabelStyle}"
+                                     Text="Register &amp; Buffer Manufacturer"
+                                     IsReadOnly="True"/>
+                            <TextBox x:Name="ModuleInfo_RegisterBufferManufacturer_Value"
+                                     Grid.Column="1"
+                                     Style="{StaticResource SpdInfoValueStyle}"
+                                     Text="—"
+                                     IsReadOnly="True"/>
+                        </Grid>
+
+                        <!-- Register Model -->
+                        <Grid MinHeight="28" Margin="0,2,0,2" Background="{StaticResource ZebraOddBrush}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="200"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="ModuleInfo_RegisterModel_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource SpdInfoLabelStyle}"
+                                     Text="*Register Model"
+                                     IsReadOnly="True"/>
+                            <TextBox x:Name="ModuleInfo_RegisterModel_Value"
+                                     Grid.Column="1"
+                                     Style="{StaticResource SpdInfoValueStyle}"
+                                     Text="—"
+                                     IsReadOnly="True"/>
+                        </Grid>
+
+                        <!-- Revision / Raw Card -->
+                        <Grid MinHeight="28" Margin="0,2,0,2" Background="{StaticResource ZebraEvenBrush}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="200"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="ModuleInfo_RevisionRawCard_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource SpdInfoLabelStyle}"
+                                     Text="Revision / Raw Card"
+                                     IsReadOnly="True"/>
+                            <TextBox x:Name="ModuleInfo_RevisionRawCard_Value"
+                                     Grid.Column="1"
+                                     Style="{StaticResource SpdInfoValueStyle}"
+                                     Text="—"
+                                     IsReadOnly="True"/>
+                        </Grid>
+
+                        <!-- Address Mapping -->
+                        <Grid MinHeight="28" Margin="0,2,0,2" Background="{StaticResource ZebraOddBrush}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="200"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="ModuleInfo_AddressMapping_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource SpdInfoLabelStyle}"
+                                     Text="Address Mapping"
+                                     IsReadOnly="True"/>
+                            <TextBox x:Name="ModuleInfo_AddressMapping_Value"
+                                     Grid.Column="1"
+                                     Style="{StaticResource SpdInfoValueStyle}"
+                                     Text="—"
+                                     IsReadOnly="True"/>
+                        </Grid>
+
+                        <!-- Manufacturing Date -->
+                        <Grid MinHeight="28" Margin="0,2,0,2" Background="{StaticResource ZebraEvenBrush}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="200"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="ModuleInfo_ManufacturingDate_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource SpdInfoLabelStyle}"
+                                     Text="Manufacturing Date"
+                                     IsReadOnly="True"/>
+                            <TextBox x:Name="ModuleInfo_ManufacturingDate_Value"
+                                     Grid.Column="1"
+                                     Style="{StaticResource SpdInfoValueStyle}"
+                                     Text="—"
+                                     IsReadOnly="True"/>
+                        </Grid>
+
+                        <!-- Manufacturing Location -->
+                        <Grid MinHeight="28" Margin="0,2,0,2" Background="{StaticResource ZebraOddBrush}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="200"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="ModuleInfo_ManufacturingLocation_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource SpdInfoLabelStyle}"
+                                     Text="Manufacturing Location"
+                                     IsReadOnly="True"/>
+                            <TextBox x:Name="ModuleInfo_ManufacturingLocation_Value"
+                                     Grid.Column="1"
+                                     Style="{StaticResource SpdInfoValueStyle}"
+                                     Text="—"
+                                     IsReadOnly="True"/>
+                        </Grid>
+
+                        <!-- CRC -->
+                        <Grid MinHeight="28" Margin="0,2,0,2" Background="{StaticResource ZebraEvenBrush}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="200"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="ModuleInfo_Crc_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource SpdInfoLabelStyle}"
+                                     Text="CRC"
+                                     IsReadOnly="True"/>
+                            <TextBox x:Name="ModuleInfo_Crc_Value"
+                                     Grid.Column="1"
+                                     Style="{StaticResource SpdInfoValueStyle}"
+                                     Text="—"
+                                     IsReadOnly="True"/>
+                        </Grid>
+
+                        <!-- CRC Block 0 -->
+                        <Grid MinHeight="28" Margin="0,2,0,2" Background="{StaticResource ZebraOddBrush}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="200"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="ModuleInfo_CrcBlock0_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource SpdInfoLabelStyle}"
+                                     Text="Block 0 (0x00-0x7D)"
+                                     IsReadOnly="True"/>
+                            <TextBox x:Name="ModuleInfo_CrcBlock0_Value"
+                                     Grid.Column="1"
+                                     Style="{StaticResource SpdInfoValueStyle}"
+                                     Text="—"
+                                     IsReadOnly="True"/>
+                        </Grid>
+
+                        <!-- CRC Block 1 -->
+                        <Grid MinHeight="28" Margin="0,2,0,2" Background="{StaticResource ZebraEvenBrush}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="200"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="ModuleInfo_CrcBlock1_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource SpdInfoLabelStyle}"
+                                     Text="Block 1 (0x80-0xFD)"
+                                     IsReadOnly="True"/>
+                            <TextBox x:Name="ModuleInfo_CrcBlock1_Value"
+                                     Grid.Column="1"
+                                     Style="{StaticResource SpdInfoValueStyle}"
+                                     Text="—"
+                                     IsReadOnly="True"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- DRAM COMPONENTS Section -->
+                <Border x:Name="DramSectionBorder"
+                        Style="{StaticResource SectionBlockStyle}">
+                    <StackPanel>
+                        <TextBlock Text="DRAM COMPONENTS"
+                                   Style="{StaticResource CardTitleStyle}"/>
+
+                        <!-- Manufacturer -->
+                        <Grid MinHeight="28" Margin="0,2,0,2" Background="{StaticResource ZebraEvenBrush}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="200"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="DramInfo_Manufacturer_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource SpdInfoLabelStyle}"
+                                     Text="Manufacturer"
+                                     IsReadOnly="True"/>
+                            <TextBox x:Name="DramInfo_Manufacturer_Value"
+                                     Grid.Column="1"
+                                     Style="{StaticResource SpdInfoValueStyle}"
+                                     Text="—"
+                                     IsReadOnly="True"/>
+                        </Grid>
+
+                        <!-- Part Number -->
+                        <Grid MinHeight="28" Margin="0,2,0,2" Background="{StaticResource ZebraOddBrush}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="200"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="DramInfo_DramPartNumber_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource SpdInfoLabelStyle}"
+                                     Text="*Part Number"
+                                     IsReadOnly="True"/>
+                            <TextBox x:Name="DramInfo_DramPartNumber_Value"
+                                     Grid.Column="1"
+                                     Style="{StaticResource SpdInfoValueStyle}"
+                                     Text="—"
+                                     IsReadOnly="True"/>
+                        </Grid>
+
+                        <!-- Package -->
+                        <Grid MinHeight="28" Margin="0,2,0,2" Background="{StaticResource ZebraEvenBrush}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="200"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="DramInfo_Package_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource SpdInfoLabelStyle}"
+                                     Text="Package"
+                                     IsReadOnly="True"/>
+                            <TextBox x:Name="DramInfo_Package_Value"
+                                     Grid.Column="1"
+                                     Style="{StaticResource SpdInfoValueStyle}"
+                                     Text="—"
+                                     IsReadOnly="True"/>
+                        </Grid>
+
+                        <!-- Die Density / Count -->
+                        <Grid MinHeight="28" Margin="0,2,0,2" Background="{StaticResource ZebraOddBrush}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="200"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="DramInfo_DieDensityCount_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource SpdInfoLabelStyle}"
+                                     Text="*Die Density / Count"
+                                     IsReadOnly="True"/>
+                            <TextBox x:Name="DramInfo_DieDensityCount_Value"
+                                     Grid.Column="1"
+                                     Style="{StaticResource SpdInfoValueStyle}"
+                                     Text="—"
+                                     IsReadOnly="True"/>
+                        </Grid>
+
+                        <!-- Composition -->
+                        <Grid MinHeight="28" Margin="0,2,0,2" Background="{StaticResource ZebraEvenBrush}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="200"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="DramInfo_Composition_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource SpdInfoLabelStyle}"
+                                     Text="Composition"
+                                     IsReadOnly="True"/>
+                            <TextBox x:Name="DramInfo_Composition_Value"
+                                     Grid.Column="1"
+                                     Style="{StaticResource SpdInfoValueStyle}"
+                                     Text="—"
+                                     IsReadOnly="True"/>
+                        </Grid>
+
+                        <!-- Input Clock Frequency -->
+                        <Grid MinHeight="28" Margin="0,2,0,2" Background="{StaticResource ZebraOddBrush}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="200"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="DramInfo_InputClockFrequency_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource SpdInfoLabelStyle}"
+                                     Text="Input Clock Frequency"
+                                     IsReadOnly="True"/>
+                            <TextBox x:Name="DramInfo_InputClockFrequency_Value"
+                                     Grid.Column="1"
+                                     Style="{StaticResource SpdInfoValueStyle}"
+                                     Text="—"
+                                     IsReadOnly="True"/>
+                        </Grid>
+
+                        <!-- Addressing -->
+                        <Grid MinHeight="28" Margin="0,2,0,2" Background="{StaticResource ZebraEvenBrush}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="200"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="DramInfo_Addressing_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource SpdInfoLabelStyle}"
+                                     Text="Addressing"
+                                     IsReadOnly="True"/>
+                            <TextBox x:Name="DramInfo_Addressing_Value"
+                                     Grid.Column="1"
+                                     Style="{StaticResource SpdInfoValueStyle}"
+                                     Text="—"
+                                     IsReadOnly="True"/>
+                        </Grid>
+
+                        <!-- Minimum Timing Delays -->
+                        <Grid MinHeight="28" Margin="0,2,0,2" Background="{StaticResource ZebraOddBrush}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="200"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="DramInfo_MinimumTimingDelays_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource SpdInfoLabelStyle}"
+                                     Text="Minimum Timing Delays"
+                                     IsReadOnly="True"/>
+                            <TextBox x:Name="DramInfo_MinimumTimingDelays_Value"
+                                     Grid.Column="1"
+                                     Style="{StaticResource SpdInfoValueStyle}"
+                                     Text="—"
+                                     IsReadOnly="True"/>
+                        </Grid>
+
+                        <!-- Read Latencies Supported -->
+                        <Grid MinHeight="28" Margin="0,2,0,2" Background="{StaticResource ZebraEvenBrush}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="200"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="DramInfo_ReadLatenciesSupported_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource SpdInfoLabelStyle}"
+                                     Text="Read Latencies Supported"
+                                     IsReadOnly="True"/>
+                            <TextBox x:Name="DramInfo_ReadLatenciesSupported_Value"
+                                     Grid.Column="1"
+                                     Style="{StaticResource SpdInfoValueStyle}"
+                                     Text="—"
+                                     IsReadOnly="True"/>
+                        </Grid>
+
+                        <!-- Supply Voltage -->
+                        <Grid MinHeight="28" Margin="0,2,0,2" Background="{StaticResource ZebraOddBrush}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="200"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="DramInfo_SupplyVoltage_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource SpdInfoLabelStyle}"
+                                     Text="Supply Voltage"
+                                     IsReadOnly="True"/>
+                            <TextBox x:Name="DramInfo_SupplyVoltage_Value"
+                                     Grid.Column="1"
+                                     Style="{StaticResource SpdInfoValueStyle}"
+                                     Text="—"
+                                     IsReadOnly="True"/>
+                        </Grid>
+
+                        <!-- SPD Revision -->
+                        <Grid MinHeight="28" Margin="0,2,0,2" Background="{StaticResource ZebraEvenBrush}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="200"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="DramInfo_SpdRevision_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource SpdInfoLabelStyle}"
+                                     Text="SPD Revision"
+                                     IsReadOnly="True"/>
+                            <TextBox x:Name="DramInfo_SpdRevision_Value"
+                                     Grid.Column="1"
+                                     Style="{StaticResource SpdInfoValueStyle}"
+                                     Text="—"
+                                     IsReadOnly="True"/>
+                        </Grid>
+
+                        <!-- XMP Certified -->
+                        <Grid MinHeight="28" Margin="0,2,0,2" Background="{StaticResource ZebraOddBrush}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="200"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="DramInfo_XmpCertified_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource SpdInfoLabelStyle}"
+                                     Text="XMP Certified"
+                                     IsReadOnly="True"/>
+                            <TextBox x:Name="DramInfo_XmpCertified_Value"
+                                     Grid.Column="1"
+                                     Style="{StaticResource SpdInfoValueStyle}"
+                                     Text="—"
+                                     IsReadOnly="True"/>
+                        </Grid>
+
+                        <!-- XMP Extreme -->
+                        <Grid MinHeight="28" Margin="0,2,0,2" Background="{StaticResource ZebraEvenBrush}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="200"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="DramInfo_XmpExtreme_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource SpdInfoLabelStyle}"
+                                     Text="XMP Extreme"
+                                     IsReadOnly="True"/>
+                            <TextBox x:Name="DramInfo_XmpExtreme_Value"
+                                     Grid.Column="1"
+                                     Style="{StaticResource SpdInfoValueStyle}"
+                                     Text="—"
+                                     IsReadOnly="True"/>
+                        </Grid>
+
+                        <!-- XMP Revision -->
+                        <Grid MinHeight="28" Margin="0,2,0,2" Background="{StaticResource ZebraOddBrush}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="200"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="DramInfo_XmpRevision_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource SpdInfoLabelStyle}"
+                                     Text="XMP Revision"
+                                     IsReadOnly="True"/>
+                            <TextBox x:Name="DramInfo_XmpRevision_Value"
+                                     Grid.Column="1"
+                                     Style="{StaticResource SpdInfoValueStyle}"
+                                     Text="—"
+                                     IsReadOnly="True"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
             </StackPanel>
         </ScrollViewer>
-        
+
         <!-- Copy Button at bottom -->
         <Button x:Name="CopyAllButton"
                 Grid.Row="1"
                 Content="Copy All Data"
                 Click="CopyAllButton_Click"
                 HorizontalAlignment="Right"
-                Margin="0,8,0,0"
+                Margin="0,4,0,0"
                 MinWidth="140"
                 Style="{StaticResource CommandButtonStyle}"/>
     </Grid>
 </UserControl>
-

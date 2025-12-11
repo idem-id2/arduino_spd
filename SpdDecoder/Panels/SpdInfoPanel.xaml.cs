@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
@@ -82,7 +83,7 @@ namespace HexEditor.SpdDecoder
         private static readonly Thickness BorderPadding = new Thickness(12);
         private static readonly Thickness TitleMargin = new Thickness(0, 0, 0, 12);
         private static readonly Thickness RowGridMargin = new Thickness(0);
-        private static readonly GridLength LabelColumnWidth = new GridLength(150);
+        private static readonly GridLength LabelColumnWidth = new GridLength(200);
         private static readonly GridLength ValueColumnWidth = new GridLength(1, GridUnitType.Star);
 
         private Brush? _cachedZebraEvenBrush;
@@ -92,9 +93,9 @@ namespace HexEditor.SpdDecoder
         private Style? _cachedSectionBlockStyle;
         private SolidColorBrush? _cachedHighlightForeground;
         
-        // Простой throttling для подсветки (предотвращает избыточные вызовы при быстром движении мыши)
-        private System.Windows.Threading.DispatcherTimer? _highlightTimer;
-        private IReadOnlyList<(long offset, int length)>? _pendingRanges;
+        // Кешированные кисти для CRC фона (избегаем создания новых объектов)
+        private SolidColorBrush? _cachedCrcOkBrush;
+        private SolidColorBrush? _cachedCrcBadBrush;
         
         // Простая задержка для очистки подсветки (позволяет контекстному меню открыться)
         private System.Windows.Threading.DispatcherTimer? _clearTimer;
@@ -131,21 +132,6 @@ namespace HexEditor.SpdDecoder
         /// </summary>
         private void InitializeTimers()
         {
-            // Таймер для throttling подсветки
-            _highlightTimer = new System.Windows.Threading.DispatcherTimer
-            {
-                Interval = TimeSpan.FromMilliseconds(50)
-            };
-            _highlightTimer.Tick += (_, _) =>
-            {
-                if (_pendingRanges != null && !_isScrolling)
-                {
-                    HighlightBytes?.Invoke(_pendingRanges);
-                }
-                _pendingRanges = null;
-                _highlightTimer.Stop();
-            };
-            
             // Таймер для очистки подсветки и отслеживания прокрутки
             _clearTimer = new System.Windows.Threading.DispatcherTimer
             {
@@ -167,7 +153,6 @@ namespace HexEditor.SpdDecoder
         
         private void OnUnloaded(object sender, RoutedEventArgs e)
         {
-            _highlightTimer?.Stop();
             _clearTimer?.Stop();
         }
         
@@ -356,161 +341,313 @@ namespace HexEditor.SpdDecoder
 
         private void BuildDynamicUI()
         {
-            if (DynamicFieldsContainer == null)
-                return;
+            // Заполняем статические поля Module Info
+            UpdateModuleInfoFields();
 
-            DynamicFieldsContainer.Children.Clear();
-
-            // MEMORY MODULE Section
-            if (_lastModuleInfo != null && _lastModuleInfo.Count > 0)
-            {
-                var moduleSection = CreateCategorySection("MEMORY MODULE", _lastModuleInfo);
-                DynamicFieldsContainer.Children.Add(moduleSection);
-            }
-
-            // DRAM COMPONENTS Section
-            if (_lastDramInfo != null && _lastDramInfo.Count > 0)
-            {
-                var dramSection = CreateCategorySection("DRAM COMPONENTS", _lastDramInfo);
-                DynamicFieldsContainer.Children.Add(dramSection);
-            }
+            // Заполняем статические поля DRAM Info
+            UpdateDramInfoFields();
         }
 
-        private FrameworkElement CreateCategorySection(string title, List<InfoItem> items)
+        private void UpdateModuleInfoFields()
         {
-            var border = new Border();
-            if (_cachedSectionBlockStyle != null)
+            if (_lastModuleInfo == null || _lastModuleInfo.Count == 0)
             {
-                border.Style = _cachedSectionBlockStyle;
-            }
-            else
-            {
-                // Fallback если стиль не найден
-                border.Background = _cachedZebraEvenBrush ?? new SolidColorBrush(Colors.White);
-                border.BorderBrush = _cachedSurfaceBorderBrush;
-                border.BorderThickness = CachedBorderThickness;
-                border.Margin = BorderMargin;
-                border.Padding = BorderPadding;
+                // Очищаем все поля
+                ClearModuleInfoFields();
+                return;
             }
 
-            var stackPanel = new StackPanel();
+            // Создаем словарь для быстрого поиска по Label
+            var moduleInfoDict = _lastModuleInfo.ToDictionary(item => item.Label, item => item);
 
-            // Заголовок секции
-            var titleBlock = new TextBlock
+            // Заполняем каждое поле
+            UpdateField("ModuleInfo_Manufacturer", moduleInfoDict, FieldLabels.Manufacturer);
+            UpdateField("ModuleInfo_PartNumber", moduleInfoDict, FieldLabels.PartNumber);
+            UpdateField("ModuleInfo_SerialNumber", moduleInfoDict, FieldLabels.SerialNumber);
+            UpdateField("ModuleInfo_SpecificPart", moduleInfoDict, FieldLabels.SpecificPart);
+            UpdateField("ModuleInfo_JedecDimmLabel", moduleInfoDict, FieldLabels.JedecDimmLabel, isHighlighted: true);
+            UpdateField("ModuleInfo_Architecture", moduleInfoDict, FieldLabels.Architecture);
+            UpdateField("ModuleInfo_SpeedGrade", moduleInfoDict, FieldLabels.SpeedGrade);
+            UpdateField("ModuleInfo_Capacity", moduleInfoDict, FieldLabels.Capacity);
+            UpdateField("ModuleInfo_Organization", moduleInfoDict, FieldLabels.Organization);
+            UpdateField("ModuleInfo_ThermalSensor", moduleInfoDict, FieldLabels.ThermalSensor);
+            UpdateField("ModuleInfo_ModuleHeight", moduleInfoDict, FieldLabels.ModuleHeight);
+            UpdateField("ModuleInfo_ModuleThickness", moduleInfoDict, FieldLabels.ModuleThickness);
+            UpdateField("ModuleInfo_RegisterBufferManufacturer", moduleInfoDict, FieldLabels.RegisterBufferManufacturer);
+            UpdateField("ModuleInfo_RegisterModel", moduleInfoDict, FieldLabels.RegisterModel);
+            UpdateField("ModuleInfo_RevisionRawCard", moduleInfoDict, FieldLabels.RevisionRawCard);
+            UpdateField("ModuleInfo_AddressMapping", moduleInfoDict, FieldLabels.AddressMapping);
+            UpdateField("ModuleInfo_ManufacturingDate", moduleInfoDict, FieldLabels.ManufacturingDate);
+            UpdateField("ModuleInfo_ManufacturingLocation", moduleInfoDict, FieldLabels.ManufacturingLocation);
+            UpdateField("ModuleInfo_Crc", moduleInfoDict, FieldLabels.Crc, updateCrcBackground: true);
+            UpdateField("ModuleInfo_CrcBlock0", moduleInfoDict, FieldLabels.CrcBlock0);
+            UpdateField("ModuleInfo_CrcBlock1", moduleInfoDict, FieldLabels.CrcBlock1);
+        }
+
+        private void UpdateDramInfoFields()
+        {
+            if (_lastDramInfo == null || _lastDramInfo.Count == 0)
             {
-                Text = title,
-                Style = (Style)TryFindResource("CardTitleStyle") ?? Application.Current.TryFindResource("CardTitleStyle") as Style
-            };
-            if (titleBlock.Style == null)
-            {
-                // Fallback если стиль не найден
-                titleBlock.FontWeight = FontWeights.SemiBold;
-                titleBlock.FontSize = 14;
-                titleBlock.Foreground = _cachedPrimaryTextBrush;
-                titleBlock.Margin = TitleMargin;
+                // Очищаем все поля
+                ClearDramInfoFields();
+                return;
             }
-            stackPanel.Children.Add(titleBlock);
 
-            // Создаем отдельный Grid для каждой строки
-            // Используем for вместо foreach для оптимизации (избегаем O(n²) сложности IndexOf)
-            for (int i = 0; i < items.Count; i++)
+            // Создаем словарь для быстрого поиска по Label
+            var dramInfoDict = _lastDramInfo.ToDictionary(item => item.Label, item => item);
+
+            // Заполняем каждое поле
+            UpdateField("DramInfo_Manufacturer", dramInfoDict, FieldLabels.Manufacturer);
+            UpdateField("DramInfo_DramPartNumber", dramInfoDict, FieldLabels.DramPartNumber);
+            UpdateField("DramInfo_Package", dramInfoDict, FieldLabels.Package);
+            UpdateField("DramInfo_DieDensityCount", dramInfoDict, FieldLabels.DieDensityCount);
+            UpdateField("DramInfo_Composition", dramInfoDict, FieldLabels.Composition);
+            UpdateField("DramInfo_InputClockFrequency", dramInfoDict, FieldLabels.InputClockFrequency);
+            UpdateField("DramInfo_Addressing", dramInfoDict, FieldLabels.Addressing);
+            UpdateField("DramInfo_MinimumTimingDelays", dramInfoDict, FieldLabels.MinimumTimingDelays);
+            UpdateField("DramInfo_ReadLatenciesSupported", dramInfoDict, FieldLabels.ReadLatenciesSupported);
+            UpdateField("DramInfo_SupplyVoltage", dramInfoDict, FieldLabels.SupplyVoltage);
+            UpdateField("DramInfo_SpdRevision", dramInfoDict, FieldLabels.SpdRevision);
+            UpdateField("DramInfo_XmpCertified", dramInfoDict, FieldLabels.XmpCertified);
+            UpdateField("DramInfo_XmpExtreme", dramInfoDict, FieldLabels.XmpExtreme);
+            UpdateField("DramInfo_XmpRevision", dramInfoDict, FieldLabels.XmpRevision);
+        }
+
+        private void UpdateField(string fieldNamePrefix, Dictionary<string, InfoItem> infoDict, string label, bool isHighlighted = false, bool updateCrcBackground = false)
+        {
+            var valueControl = FindName($"{fieldNamePrefix}_Value") as TextBox;
+            if (valueControl == null) return;
+
+            var labelControl = FindName($"{fieldNamePrefix}_Label") as TextBox;
+            
+            // Находим родительский Grid для изменения фона (для CRC)
+            var gridControl = valueControl.Parent as Grid;
+            
+            if (infoDict.TryGetValue(label, out var item))
             {
-                var item = items[i];
-                
-                // Определяем цвет фона: для CRC строк используем цветовую индикацию статуса
-                Brush rowBackground;
-                if (item.Label == FieldLabels.Crc)
+                string valueText = string.IsNullOrWhiteSpace(item.Value) ? "—" : item.Value;
+                valueControl.Text = valueText;
+                valueControl.FontWeight = (isHighlighted || item.IsHighlighted) ? FontWeights.SemiBold : FontWeights.Normal;
+                valueControl.Foreground = (isHighlighted || item.IsHighlighted) 
+                    ? (_cachedHighlightForeground ?? _cachedPrimaryTextBrush) 
+                    : _cachedPrimaryTextBrush;
+
+                // Обновляем цвет фона для CRC строки (используем кешированные кисти)
+                if (updateCrcBackground && gridControl != null)
                 {
-                    // Светло-зеленый для OK, светло-красный для BAD
-                    if (item.Value.Contains("OK", StringComparison.OrdinalIgnoreCase))
+                    if (valueText.Contains("OK", StringComparison.OrdinalIgnoreCase))
                     {
-                        rowBackground = new SolidColorBrush(Color.FromArgb(0x40, 0x90, 0xEE, 0x90)); // LightGreen с прозрачностью
+                        // Светло-зелёный для OK (кешируем кисть для избежания аллокаций)
+                        if (_cachedCrcOkBrush == null)
+                        {
+                            _cachedCrcOkBrush = new SolidColorBrush(Color.FromArgb(0x40, 0x90, 0xEE, 0x90));
+                            _cachedCrcOkBrush.Freeze(); // Замораживаем для потокобезопасности и производительности
+                        }
+                        gridControl.Background = _cachedCrcOkBrush;
                     }
-                    else if (item.Value.Contains("BAD", StringComparison.OrdinalIgnoreCase))
+                    else if (valueText.Contains("BAD", StringComparison.OrdinalIgnoreCase))
                     {
-                        rowBackground = new SolidColorBrush(Color.FromArgb(0x40, 0xFF, 0x6B, 0x6B)); // LightCoral с прозрачностью
+                        // Светло-красный для BAD (кешируем кисть для избежания аллокаций)
+                        if (_cachedCrcBadBrush == null)
+                        {
+                            _cachedCrcBadBrush = new SolidColorBrush(Color.FromArgb(0x40, 0xFF, 0x6B, 0x6B));
+                            _cachedCrcBadBrush.Freeze(); // Замораживаем для потокобезопасности и производительности
+                        }
+                        gridControl.Background = _cachedCrcBadBrush;
                     }
                     else
                     {
-                        // Fallback на обычный zebra-цвет
-                        rowBackground = (i % 2 == 0) ? (_cachedZebraEvenBrush ?? new SolidColorBrush(Colors.White)) : (_cachedZebraOddBrush ?? new SolidColorBrush(Color.FromRgb(0xF5, 0xF5, 0xF5)));
+                        // Обычный цвет (zebra)
+                        gridControl.Background = _cachedZebraEvenBrush ?? new SolidColorBrush(Colors.White);
                     }
                 }
-                else
-                {
-                    // Чередование цветов: четные (0,2,4...) - белый, нечетные (1,3,5...) - серый
-                    rowBackground = (i % 2 == 0) ? (_cachedZebraEvenBrush ?? new SolidColorBrush(Colors.White)) : (_cachedZebraOddBrush ?? new SolidColorBrush(Color.FromRgb(0xF5, 0xF5, 0xF5)));
-                }
-                
-                var rowGrid = new Grid
-                {
-                    Margin = RowGridMargin,
-                    MinHeight = RowMinHeight,
-                    Background = rowBackground
-                };
-                rowGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = LabelColumnWidth });
-                rowGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = ValueColumnWidth });
 
-                // Label
-                var label = new TextBox
-                {
-                    Text = item.Label,
-                    Style = _cachedLabelStyle,
-                    VerticalAlignment = VerticalAlignment.Center,
-                    Margin = RowMargin,
-                    IsReadOnly = true,
-                    IsReadOnlyCaretVisible = false
-                };
-                
-                // Сохраняем данные для контекстного меню в Tag (используем RowData для единообразия)
-                // Ranges не нужны для label, но используем RowData для консистентности
-                label.Tag = new RowData(item.Label, item.Value, null!);
-                label.ContextMenuOpening += OnContextMenuOpening;
-                
-                Grid.SetColumn(label, 0);
-                rowGrid.Children.Add(label);
-
-                // Value
-                var valueText = string.IsNullOrWhiteSpace(item.Value) ? "—" : item.Value;
-                var valueBox = new TextBox
-                {
-                    Text = valueText,
-                    Style = _cachedValueStyle,
-                    FontWeight = item.IsHighlighted ? FontWeights.SemiBold : FontWeights.Normal,
-                    Foreground = item.IsHighlighted ? _cachedHighlightForeground : _cachedPrimaryTextBrush,
-                    TextWrapping = TextWrapping.Wrap,
-                    VerticalAlignment = VerticalAlignment.Center,
-                    Margin = RowMargin,
-                    IsReadOnly = true,
-                    IsReadOnlyCaretVisible = false
-                };
-                
-                // Сохраняем данные для контекстного меню в Tag (используем RowData для единообразия)
-                valueBox.Tag = new RowData(item.Label, item.Value, null!);
-                valueBox.ContextMenuOpening += OnContextMenuOpening;
-                
-                Grid.SetColumn(valueBox, 1);
-                rowGrid.Children.Add(valueBox);
-
-                // Сохраняем данные для контекстного меню и ranges в Tag для rowGrid
-                // Оптимизация: используем Tag вместо замыканий для избежания утечек памяти
+                // Сохраняем данные для контекстного меню и подсветки
+                // Важно: получаем ranges независимо от того, определено ли значение
                 var ranges = GetHighlightRanges(item);
-                rowGrid.Tag = new RowData(item.Label, item.Value, ranges);
-                rowGrid.ContextMenuOpening += OnContextMenuOpening;
+                var rowData = new RowData(item.Label, item.Value, ranges);
+                valueControl.Tag = rowData;
                 
-                // Используем один общий обработчик для всех rowGrid (оптимизация производительности)
-                // Это предотвращает создание множества замыканий и обработчиков
+                // Устанавливаем обработчики событий для подсветки на Value
+                // Подсветка работает, если есть ranges, даже если значение не определено (Value = "—")
+                valueControl.MouseEnter -= OnValueControlMouseEnter;
+                valueControl.MouseLeave -= OnValueControlMouseLeave;
+                valueControl.PreviewMouseRightButtonDown -= OnValueControlPreviewMouseRightButtonDown;
+                valueControl.ContextMenuOpening -= OnContextMenuOpening;
+                
                 if (ranges != null)
                 {
-                    rowGrid.MouseEnter += OnRowGridMouseEnter;
-                    rowGrid.MouseLeave += OnRowGridMouseLeave;
-                    rowGrid.PreviewMouseRightButtonDown += OnRowGridPreviewMouseRightButtonDown;
+                    // Если есть ranges, устанавливаем обработчики для подсветки
+                    valueControl.MouseEnter += OnValueControlMouseEnter;
+                    valueControl.MouseLeave += OnValueControlMouseLeave;
+                    valueControl.PreviewMouseRightButtonDown += OnValueControlPreviewMouseRightButtonDown;
                 }
-
-                stackPanel.Children.Add(rowGrid);
+                // Контекстное меню всегда доступно
+                valueControl.ContextMenuOpening += OnContextMenuOpening;
+                
+                // Устанавливаем обработчики событий для подсветки на Label тоже
+                if (labelControl != null)
+                {
+                    labelControl.Tag = rowData;
+                    
+                    labelControl.MouseEnter -= OnValueControlMouseEnter;
+                    labelControl.MouseLeave -= OnValueControlMouseLeave;
+                    labelControl.PreviewMouseRightButtonDown -= OnValueControlPreviewMouseRightButtonDown;
+                    labelControl.ContextMenuOpening -= OnContextMenuOpening;
+                    
+                    if (ranges != null)
+                    {
+                        // Если есть ranges, устанавливаем обработчики для подсветки
+                        labelControl.MouseEnter += OnValueControlMouseEnter;
+                        labelControl.MouseLeave += OnValueControlMouseLeave;
+                        labelControl.PreviewMouseRightButtonDown += OnValueControlPreviewMouseRightButtonDown;
+                    }
+                    // Контекстное меню всегда доступно
+                    labelControl.ContextMenuOpening += OnContextMenuOpening;
+                }
             }
-            border.Child = stackPanel;
-            return border;
+            else
+            {
+                valueControl.Text = "—";
+                valueControl.FontWeight = FontWeights.Normal;
+                valueControl.Foreground = _cachedPrimaryTextBrush;
+                valueControl.Tag = null;
+                
+                // Сбрасываем фон для CRC, если поле пустое
+                if (updateCrcBackground && gridControl != null)
+                {
+                    gridControl.Background = _cachedZebraEvenBrush ?? new SolidColorBrush(Colors.White);
+                }
+                
+                // Удаляем обработчики с Value
+                valueControl.MouseEnter -= OnValueControlMouseEnter;
+                valueControl.MouseLeave -= OnValueControlMouseLeave;
+                valueControl.PreviewMouseRightButtonDown -= OnValueControlPreviewMouseRightButtonDown;
+                valueControl.ContextMenuOpening -= OnContextMenuOpening;
+                
+                // Удаляем обработчики с Label
+                if (labelControl != null)
+                {
+                    labelControl.Tag = null;
+                    labelControl.MouseEnter -= OnValueControlMouseEnter;
+                    labelControl.MouseLeave -= OnValueControlMouseLeave;
+                    labelControl.PreviewMouseRightButtonDown -= OnValueControlPreviewMouseRightButtonDown;
+                    labelControl.ContextMenuOpening -= OnContextMenuOpening;
+                }
+            }
+        }
+
+        private void ClearModuleInfoFields()
+        {
+            var fieldNames = new[]
+            {
+                "ModuleInfo_Manufacturer", "ModuleInfo_PartNumber", "ModuleInfo_SerialNumber",
+                "ModuleInfo_SpecificPart", "ModuleInfo_JedecDimmLabel", "ModuleInfo_Architecture",
+                "ModuleInfo_SpeedGrade", "ModuleInfo_Capacity", "ModuleInfo_Organization",
+                "ModuleInfo_ThermalSensor", "ModuleInfo_ModuleHeight", "ModuleInfo_ModuleThickness",
+                "ModuleInfo_RegisterBufferManufacturer", "ModuleInfo_RegisterModel",
+                "ModuleInfo_RevisionRawCard", "ModuleInfo_AddressMapping", "ModuleInfo_ManufacturingDate",
+                "ModuleInfo_ManufacturingLocation", "ModuleInfo_Crc", "ModuleInfo_CrcBlock0", "ModuleInfo_CrcBlock1"
+            };
+
+            foreach (var fieldName in fieldNames)
+            {
+                var valueControl = FindName($"{fieldName}_Value") as TextBox;
+                if (valueControl != null)
+                {
+                    valueControl.Text = "—";
+                    valueControl.FontWeight = FontWeights.Normal;
+                    valueControl.Foreground = _cachedPrimaryTextBrush;
+                    valueControl.Tag = null;
+                    
+                    // Сбрасываем фон для CRC строки
+                    if (fieldName == "ModuleInfo_Crc")
+                    {
+                        var gridControl = valueControl.Parent as Grid;
+                        if (gridControl != null)
+                        {
+                            gridControl.Background = _cachedZebraEvenBrush ?? new SolidColorBrush(Colors.White);
+                        }
+                    }
+                    
+                    valueControl.MouseEnter -= OnValueControlMouseEnter;
+                    valueControl.MouseLeave -= OnValueControlMouseLeave;
+                    valueControl.PreviewMouseRightButtonDown -= OnValueControlPreviewMouseRightButtonDown;
+                    valueControl.ContextMenuOpening -= OnContextMenuOpening;
+                }
+            }
+        }
+
+        private void ClearDramInfoFields()
+        {
+            var fieldNames = new[]
+            {
+                "DramInfo_Manufacturer", "DramInfo_DramPartNumber", "DramInfo_Package",
+                "DramInfo_DieDensityCount", "DramInfo_Composition", "DramInfo_InputClockFrequency",
+                "DramInfo_Addressing", "DramInfo_MinimumTimingDelays", "DramInfo_ReadLatenciesSupported",
+                "DramInfo_SupplyVoltage", "DramInfo_SpdRevision", "DramInfo_XmpCertified",
+                "DramInfo_XmpExtreme", "DramInfo_XmpRevision"
+            };
+
+            foreach (var fieldName in fieldNames)
+            {
+                var valueControl = FindName($"{fieldName}_Value") as TextBox;
+                var labelControl = FindName($"{fieldName}_Label") as TextBox;
+                
+                if (valueControl != null)
+                {
+                    valueControl.Text = "—";
+                    valueControl.FontWeight = FontWeights.Normal;
+                    valueControl.Foreground = _cachedPrimaryTextBrush;
+                    valueControl.Tag = null;
+                    
+                    // Удаляем обработчики с Value
+                    valueControl.MouseEnter -= OnValueControlMouseEnter;
+                    valueControl.MouseLeave -= OnValueControlMouseLeave;
+                    valueControl.PreviewMouseRightButtonDown -= OnValueControlPreviewMouseRightButtonDown;
+                    valueControl.ContextMenuOpening -= OnContextMenuOpening;
+                }
+                
+                // Удаляем обработчики с Label
+                if (labelControl != null)
+                {
+                    labelControl.Tag = null;
+                    labelControl.MouseEnter -= OnValueControlMouseEnter;
+                    labelControl.MouseLeave -= OnValueControlMouseLeave;
+                    labelControl.PreviewMouseRightButtonDown -= OnValueControlPreviewMouseRightButtonDown;
+                    labelControl.ContextMenuOpening -= OnContextMenuOpening;
+                }
+            }
+        }
+
+        private void OnValueControlMouseEnter(object sender, MouseEventArgs e)
+        {
+            // Быстрая проверка: если прокрутка активна, не обрабатываем событие
+            if (_isScrolling) return;
+            
+            // Получаем данные из Tag (быстрая операция, без аллокаций)
+            var rowData = (sender as FrameworkElement)?.Tag as RowData;
+            if (rowData?.Ranges == null) return;
+            
+            // Останавливаем таймер очистки для предотвращения мерцания
+            _clearTimer?.Stop();
+            
+            // Вызываем подсветку сразу для мгновенной реакции
+            // Throttling уже есть в MainWindow (10ms), поэтому дополнительная задержка не нужна
+            HighlightBytes?.Invoke(rowData.Ranges);
+        }
+
+        private void OnValueControlMouseLeave(object sender, MouseEventArgs e)
+        {
+            if (_isScrolling || _isContextMenuOpen) return;
+            
+            _clearTimer?.Stop();
+            _clearTimer?.Start();
+        }
+
+        private void OnValueControlPreviewMouseRightButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            _isContextMenuOpen = true;
         }
 
         // TODO: Timing table - реализовать позже
@@ -526,6 +663,11 @@ namespace HexEditor.SpdDecoder
 
 
 
+        /// <summary>
+        /// Получает диапазоны байтов для подсветки из InfoItem.
+        /// Важно: работает независимо от того, определено ли значение (Value).
+        /// Если есть ByteOffset и ByteLength, подсветка будет работать даже если Value = "—".
+        /// </summary>
         private IReadOnlyList<(long offset, int length)>? GetHighlightRanges(InfoItem item)
         {
             if (item.ByteRanges != null && item.ByteRanges.Count > 0)
@@ -533,6 +675,8 @@ namespace HexEditor.SpdDecoder
                 return item.ByteRanges;
             }
 
+            // Проверяем ByteOffset и ByteLength независимо от значения
+            // Это позволяет подсветке работать даже для неопределенных значений
             if (item.ByteOffset.HasValue && item.ByteLength.HasValue)
             {
                 return new List<(long offset, int length)>
@@ -544,40 +688,7 @@ namespace HexEditor.SpdDecoder
             return null;
         }
 
-        /// <summary>
-        /// Простой обработчик MouseEnter - вызывает подсветку с throttling
-        /// </summary>
-        private void OnRowGridMouseEnter(object sender, MouseEventArgs e)
-        {
-            if (_isScrolling) return;
-            
-            var rowData = (sender as FrameworkElement)?.Tag as RowData;
-            if (rowData?.Ranges == null) return;
-            
-            _clearTimer?.Stop();
-            _pendingRanges = rowData.Ranges;
-            _highlightTimer?.Stop();
-            _highlightTimer?.Start();
-        }
-        
-        /// <summary>
-        /// Простой обработчик MouseLeave - очищает подсветку с задержкой
-        /// </summary>
-        private void OnRowGridMouseLeave(object sender, MouseEventArgs e)
-        {
-            if (_isScrolling || _isContextMenuOpen) return;
-            
-            _clearTimer?.Stop();
-            _clearTimer?.Start();
-        }
-        
-        /// <summary>
-        /// Обработчик правой кнопки мыши - предотвращает закрытие контекстного меню
-        /// </summary>
-        private void OnRowGridPreviewMouseRightButtonDown(object sender, MouseButtonEventArgs e)
-        {
-            _isContextMenuOpen = true;
-        }
+        // Старые обработчики OnRowGrid* удалены - теперь используем OnValueControl* для статических полей
         
         /// <summary>
         /// Вспомогательный класс для хранения данных строки в Tag (оптимизация производительности)

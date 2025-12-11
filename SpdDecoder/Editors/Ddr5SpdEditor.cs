@@ -22,9 +22,11 @@ namespace HexEditor.SpdDecoder
                 return fields;
 
             // Module Manufacturer (bytes 512-513)
+            // JEDEC Standard: Byte 512 = Manufacturer Code (LSB), Byte 513 = Continuation Code (MSB)
+            // Format: (continuationCode << 8) | manufacturerCode (same as DDR4)
             if (Data.Length > 513)
             {
-                ushort manufacturerId = (ushort)(Data[512] | (Data[513] << 8));
+                ushort manufacturerId = (ushort)((Data[513] << 8) | Data[512]);
                 string manufacturerIdHex = manufacturerId.ToString("X4");
 
                 // Загружаем список производителей
@@ -53,6 +55,7 @@ namespace HexEditor.SpdDecoder
             }
 
             // Module Part Number (bytes 521-550, 30 bytes ASCII)
+            // Всегда 30 байт, оставшие байты заполняются пробелами
             if (Data.Length > 550)
             {
                 var partNumber = new System.Text.StringBuilder();
@@ -62,15 +65,19 @@ namespace HexEditor.SpdDecoder
                     if (Data[i] >= 32 && Data[i] <= 126)
                         partNumber.Append((char)Data[i]);
                 }
+                
+                // Обрезаем завершающие пробелы для отображения в UI (чтобы можно было редактировать)
+                // При сохранении пробелы будут автоматически дополнены до 30 байт
+                string partNumberStr = partNumber.ToString().TrimEnd();
 
                 fields.Add(new EditField
                 {
                     Id = "ModulePartNumber",
                     Label = "Module Part Number",
-                    Value = partNumber.ToString(),
+                    Value = partNumberStr,
                     Type = EditFieldType.TextBox,
                     MaxLength = 30,
-                    ToolTip = "Bytes 521-550: Module Part Number (30 bytes ASCII)",
+                    ToolTip = "Bytes 521-550: Module Part Number (30 bytes ASCII, padded with spaces)",
                     Category = "MemoryModule"
                 });
             }
@@ -126,9 +133,11 @@ namespace HexEditor.SpdDecoder
             }
 
             // DRAM Manufacturer (bytes 552-553)
+            // JEDEC Standard: Byte 552 = Manufacturer Code (LSB), Byte 553 = Continuation Code (MSB)
+            // Format: (continuationCode << 8) | manufacturerCode (same as DDR4)
             if (Data.Length > 553)
             {
-                ushort dramManufacturerId = (ushort)(Data[552] | (Data[553] << 8));
+                ushort dramManufacturerId = (ushort)((Data[553] << 8) | Data[552]);
                 string dramManufacturerIdHex = dramManufacturerId.ToString("X4");
 
                 var dramManufacturerItems = new List<ComboBoxItem>();
@@ -340,8 +349,10 @@ namespace HexEditor.SpdDecoder
 
                 if (ushort.TryParse(hexString, System.Globalization.NumberStyles.HexNumber, null, out ushort manufacturerId))
                 {
-                    byte newByte512 = (byte)(manufacturerId & 0xFF);
-                    byte newByte513 = (byte)(manufacturerId >> 8);
+                    // JEDEC Standard: Byte 512 = Manufacturer Code (LSB), Byte 513 = Continuation Code (MSB)
+                    // Format: (continuationCode << 8) | manufacturerCode (same as DDR4)
+                    byte newByte512 = (byte)(manufacturerId & 0xFF);  // LSB (Manufacturer Code)
+                    byte newByte513 = (byte)(manufacturerId >> 8);   // MSB (Continuation Code)
                     
                     if (Data[512] != newByte512)
                     {
@@ -367,8 +378,10 @@ namespace HexEditor.SpdDecoder
 
                 if (ushort.TryParse(hexString, System.Globalization.NumberStyles.HexNumber, null, out ushort dramManufacturerId))
                 {
-                    byte newByte552 = (byte)(dramManufacturerId & 0xFF);
-                    byte newByte553 = (byte)(dramManufacturerId >> 8);
+                    // JEDEC Standard: Byte 552 = Manufacturer Code (LSB), Byte 553 = Continuation Code (MSB)
+                    // Format: (continuationCode << 8) | manufacturerCode (same as DDR4)
+                    byte newByte552 = (byte)(dramManufacturerId & 0xFF);  // LSB (Manufacturer Code)
+                    byte newByte553 = (byte)(dramManufacturerId >> 8);   // MSB (Continuation Code)
                     
                     if (Data[552] != newByte552)
                     {
@@ -380,6 +393,21 @@ namespace HexEditor.SpdDecoder
                         Data[553] = newByte553;
                         changes.Add(new SpdEditPanel.ByteChange { Offset = 553, NewData = new[] { newByte553 } });
                     }
+                }
+            }
+
+            // Module Part Number (bytes 521-550, 30 bytes ASCII)
+            // Всегда заполняем все 30 байт, дополняя пробелами
+            if (fieldValues.TryGetValue("ModulePartNumber", out string? partNumber) && Data.Length > 550)
+            {
+                byte[] oldPartNumber = new byte[30];
+                Array.Copy(Data, 521, oldPartNumber, 0, 30);
+                WriteAsciiString(Data, 521, 550, partNumber);
+                byte[] newPartNumber = new byte[30];
+                Array.Copy(Data, 521, newPartNumber, 0, 30);
+                if (!oldPartNumber.SequenceEqual(newPartNumber))
+                {
+                    changes.Add(new SpdEditPanel.ByteChange { Offset = 521, NewData = newPartNumber });
                 }
             }
 

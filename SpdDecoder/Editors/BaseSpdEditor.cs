@@ -80,9 +80,13 @@ namespace HexEditor.SpdDecoder
             }
 
             // Module Part Number (bytes 329-348)
+            // Всегда 20 байт, оставшие байты заполняются пробелами
             if (Data.Length > 348)
             {
                 string partNumber = ReadAsciiString(329, 348);
+                // Обрезаем завершающие пробелы для отображения в UI (чтобы можно было редактировать)
+                // При сохранении пробелы будут автоматически дополнены до 20 байт
+                partNumber = partNumber.TrimEnd();
                 fields.Add(new EditField
                 {
                     Id = "ModulePartNumber",
@@ -90,7 +94,7 @@ namespace HexEditor.SpdDecoder
                     Value = partNumber,
                     Type = EditFieldType.TextBox,
                     MaxLength = 20,
-                    ToolTip = "Bytes 329-348: Module Part Number (ASCII, max 20 chars)",
+                    ToolTip = "Bytes 329-348: Module Part Number (ASCII, 20 bytes, padded with spaces)",
                     Category = "MemoryModule"
                 });
             }
@@ -340,20 +344,31 @@ namespace HexEditor.SpdDecoder
             }
 
             // Manufacturing Date (bytes 323-324)
-            if (fieldValues.TryGetValue("ModuleYear", out string? yearText) &&
-                fieldValues.TryGetValue("ModuleWeek", out string? weekText) &&
-                TryParseBcd(yearText, out byte yearByte) &&
-                TryParseBcd(weekText, out byte weekByte))
+            // JEDEC Standard: Byte 323 = Year (BCD), Byte 324 = Week (BCD)
+            // Применяем Year и Week независимо, так как они могут редактироваться отдельно
+            if (fieldValues.TryGetValue("ModuleYear", out string? yearText))
             {
-                if (Data[323] != yearByte)
+                if (TryParseBcd(yearText, out byte yearByte))
                 {
-                    Data[323] = yearByte;
-                    changes.Add(new SpdEditPanel.ByteChange { Offset = 323, NewData = new[] { yearByte } });
+                    // Byte 323 = Year (BCD, 00-99 = 2000-2099)
+                    if (Data.Length > 323 && Data[323] != yearByte)
+                    {
+                        Data[323] = yearByte;
+                        changes.Add(new SpdEditPanel.ByteChange { Offset = 323, NewData = new[] { yearByte } });
+                    }
                 }
-                if (Data[324] != weekByte)
+            }
+
+            if (fieldValues.TryGetValue("ModuleWeek", out string? weekText))
+            {
+                if (TryParseBcd(weekText, out byte weekByte))
                 {
-                    Data[324] = weekByte;
-                    changes.Add(new SpdEditPanel.ByteChange { Offset = 324, NewData = new[] { weekByte } });
+                    // Byte 324 = Week (BCD, 01-52)
+                    if (Data.Length > 324 && Data[324] != weekByte)
+                    {
+                        Data[324] = weekByte;
+                        changes.Add(new SpdEditPanel.ByteChange { Offset = 324, NewData = new[] { weekByte } });
+                    }
                 }
             }
 
@@ -462,21 +477,33 @@ namespace HexEditor.SpdDecoder
             if (text == null)
                 text = "";
 
-            // Ограничиваем длину строки (как в примере DDR4XMPEditor)
+            // Вычисляем максимальный размер (всегда заполняем весь диапазон)
             int maxSize = end - start + 1;
+            
+            // Преобразуем middle dot обратно в пробелы (если они были заменены в UI)
+            text = text.Replace('·', ' ');
+            
+            // Ограничиваем длину строки, если она превышает максимум
             string str = text.Length > maxSize ? text.Substring(0, maxSize) : text;
-
-            // Clear the range
-            for (int i = start; i <= end && i < data.Length; i++)
+            
+            // Дополняем пробелами до нужной длины (всегда заполняем все 20 байт для Part Number)
+            if (str.Length < maxSize)
             {
-                data[i] = 0;
+                str = str.PadRight(maxSize, ' ');
             }
 
-            // Write the string byte by byte (сохраняем пробелы, как в примере DDR4XMPEditor)
-            // Записываем каждый символ как байт, включая пробелы
-            for (int i = 0; i < str.Length && (start + i) < data.Length && (start + i) <= end; i++)
+            // Записываем строку байт за байтом (всегда заполняем весь диапазон пробелами)
+            for (int i = 0; i < maxSize && (start + i) < data.Length && (start + i) <= end; i++)
             {
-                data[start + i] = (byte)str[i];
+                if (i < str.Length)
+                {
+                    data[start + i] = (byte)str[i];
+                }
+                else
+                {
+                    // Дополняем пробелами, если строка короче
+                    data[start + i] = (byte)' ';
+                }
             }
         }
 

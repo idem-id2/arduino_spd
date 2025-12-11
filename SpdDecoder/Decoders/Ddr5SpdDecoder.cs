@@ -84,12 +84,12 @@ namespace HexEditor.SpdDecoder
             try
             {
                 // Module Manufacturer: bytes 512-513 (JEDEC Manufacturer ID)
-                // Byte 512: Continuation Code (биты 6-0, бит 7 - parity)
-                // Byte 513: Manufacturer Code (биты 6-0, бит 7 - parity)
+                // JEDEC Standard: Byte 512 = Manufacturer Code (LSB), Byte 513 = Continuation Code (MSB)
+                // Format: (continuationCode << 8) | manufacturerCode (same as DDR4)
                 moduleInfo.Add(new SpdInfoPanel.InfoItem
                 {
                     Label = SpdInfoPanel.FieldLabels.Manufacturer,
-                    Value = GetManufacturerName(Data[512], Data[513]),
+                    Value = GetManufacturerName(Data[513], Data[512]),
                     ByteOffset = 512,
                     ByteLength = 2
                 });
@@ -454,7 +454,9 @@ namespace HexEditor.SpdDecoder
                 dramInfo.Add(new SpdInfoPanel.InfoItem
                 {
                     Label = SpdInfoPanel.FieldLabels.Manufacturer,
-                    Value = GetManufacturerName(Data[552], Data[553]),
+                    // JEDEC Standard: Byte 552 = Manufacturer Code (LSB), Byte 553 = Continuation Code (MSB)
+                    // Format: (continuationCode << 8) | manufacturerCode (same as DDR4)
+                    Value = GetManufacturerName(Data[553], Data[552]),
                     ByteOffset = 552,
                     ByteLength = 2
                 });

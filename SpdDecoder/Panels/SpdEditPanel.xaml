@@ -4,23 +4,1059 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              mc:Ignorable="d"
-             d:DesignHeight="600" d:DesignWidth="420"
+             d:DesignHeight="2148.198" d:DesignWidth="420"
              HorizontalAlignment="Stretch"
              VerticalAlignment="Stretch">
     <Grid HorizontalAlignment="Stretch"
           VerticalAlignment="Stretch">
-        
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
         <ScrollViewer Grid.Row="0"
                       VerticalScrollBarVisibility="Auto"
                       HorizontalScrollBarVisibility="Disabled"
                       HorizontalAlignment="Stretch"
                       VerticalAlignment="Stretch">
-            <StackPanel x:Name="DynamicFieldsContainer"
+            <StackPanel x:Name="FieldsContainer"
                         HorizontalAlignment="Stretch"
                         Margin="0,0,8,0">
-                <!-- Dynamic sections will be added here by BuildDynamicUI() -->
+
+                <!-- MEMORY MODULE Section -->
+                <Border x:Name="MemoryModuleSection"
+                        Style="{StaticResource SectionBlockStyle}"
+                        Margin="0,0,0,12"
+                        Visibility="Collapsed"
+                        d:Visibility="Visible">
+                    <StackPanel>
+                        <TextBlock Text="MEMORY MODULE"
+                                   Style="{StaticResource CardTitleStyle}"/>
+
+                        <!-- Module Manufacturer (DDR4, DDR5) -->
+                        <Grid x:Name="EditField_ModuleManufacturer"
+                              MinHeight="28"
+                              Margin="0,4,0,4"
+                              Visibility="Collapsed"
+                              d:Visibility="Visible">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="150"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="EditField_ModuleManufacturer_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource EditFieldLabelStyle}"
+                                     Text="Manufacturer"
+                                     IsReadOnly="True"
+                                     Margin="0,0,4,0"/>
+                            <ComboBox x:Name="EditField_ModuleManufacturer_Value"
+                                      Grid.Column="1"
+                                      Style="{StaticResource EditFieldComboBoxStyle}"
+                                      Margin="0,0,4,0"/>
+                        </Grid>
+
+                        <!-- Module Part Number (DDR4, DDR5) -->
+                        <Grid x:Name="EditField_ModulePartNumber"
+                              MinHeight="28"
+                              Margin="0,4,0,4"
+                              Visibility="Collapsed"
+                              d:Visibility="Visible">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="150"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="EditField_ModulePartNumber_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource EditFieldLabelStyle}"
+                                     Text="Part Number"
+                                     IsReadOnly="True"
+                                     Margin="0,0,4,0"/>
+                            <TextBox x:Name="EditField_ModulePartNumber_Value"
+                                     Grid.Column="1"
+                                     Style="{StaticResource EditFieldValueStyle}"
+                                     Margin="0,0,4,0"/>
+                        </Grid>
+
+                        <!-- Module Serial Number (DDR4, DDR5) -->
+                        <Grid x:Name="EditField_ModuleSerialNumber"
+                              MinHeight="28"
+                              Margin="0,4,0,4"
+                              Visibility="Collapsed"
+                              d:Visibility="Visible">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="150"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="EditField_ModuleSerialNumber_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource EditFieldLabelStyle}"
+                                     Text="Serial Number"
+                                     IsReadOnly="True"
+                                     Margin="0,0,4,0"/>
+                            <TextBox x:Name="EditField_ModuleSerialNumber_Value"
+                                     Grid.Column="1"
+                                     Style="{StaticResource EditFieldValueStyle}"
+                                     Margin="0,0,4,0"/>
+                        </Grid>
+
+                        <!-- Manufacturing Date (Year + Week) (DDR4) -->
+                        <Grid x:Name="EditField_ModuleYear"
+                              MinHeight="28"
+                              Margin="0,4,0,4"
+                              Visibility="Collapsed"
+                              d:Visibility="Visible">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="150"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="10"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="EditField_ModuleYear_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource EditFieldLabelStyle}"
+                                     Text="Manufacturing Date"
+                                     IsReadOnly="True"
+                                     Margin="0,0,4,0"/>
+                            <ComboBox x:Name="EditField_ModuleYear_Value"
+                                      Grid.Column="1"
+                                      Style="{StaticResource EditFieldComboBoxStyle}"
+                                      Margin="0,0,4,0"/>
+                            <ComboBox x:Name="EditField_ModuleWeek_Value"
+                                      Grid.Column="3"
+                                      Style="{StaticResource EditFieldComboBoxStyle}"
+                                      Margin="0,0,4,0"/>
+                        </Grid>
+
+                        <!-- Manufacturing Location (DDR4, DDR5) -->
+                        <Grid x:Name="EditField_ModuleLocation"
+                              MinHeight="28"
+                              Margin="0,4,0,4"
+                              Visibility="Collapsed"
+                              d:Visibility="Visible">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="150"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="EditField_ModuleLocation_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource EditFieldLabelStyle}"
+                                     Text="Manufacturing Location"
+                                     IsReadOnly="True"
+                                     Margin="0,0,4,0"/>
+                            <TextBox x:Name="EditField_ModuleLocation_Value"
+                                     Grid.Column="1"
+                                     Style="{StaticResource EditFieldValueStyle}"
+                                     Margin="0,0,4,0"/>
+                        </Grid>
+
+                        <!-- Module Type (DDR4, DDR5) -->
+                        <Grid x:Name="EditField_ModuleType"
+                              MinHeight="28"
+                              Margin="0,4,0,4"
+                              Visibility="Collapsed"
+                              d:Visibility="Visible">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="150"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="EditField_ModuleType_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource EditFieldLabelStyle}"
+                                     Text="Module Type"
+                                     IsReadOnly="True"
+                                     Margin="0,0,4,0"/>
+                            <ComboBox x:Name="EditField_ModuleType_Value"
+                                      Grid.Column="1"
+                                      Style="{StaticResource EditFieldComboBoxStyle}"
+                                      Margin="0,0,4,0"/>
+                        </Grid>
+
+                        <!-- SPD Revision Major (DDR4, DDR5) -->
+                        <Grid x:Name="EditField_SpdRevisionMajor"
+                              MinHeight="28"
+                              Margin="0,4,0,4"
+                              Visibility="Collapsed"
+                              d:Visibility="Visible">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="150"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="EditField_SpdRevisionMajor_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource EditFieldLabelStyle}"
+                                     Text="SPD Revision (Major)"
+                                     IsReadOnly="True"
+                                     Margin="0,0,4,0"/>
+                            <TextBox x:Name="EditField_SpdRevisionMajor_Value"
+                                     Grid.Column="1"
+                                     Style="{StaticResource EditFieldValueStyle}"
+                                     Margin="0,0,4,0"/>
+                        </Grid>
+
+                        <!-- SPD Revision Minor (DDR4, DDR5) -->
+                        <Grid x:Name="EditField_SpdRevisionMinor"
+                              MinHeight="28"
+                              Margin="0,4,0,4"
+                              Visibility="Collapsed"
+                              d:Visibility="Visible">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="150"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="EditField_SpdRevisionMinor_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource EditFieldLabelStyle}"
+                                     Text="SPD Revision (Minor)"
+                                     IsReadOnly="True"
+                                     Margin="0,0,4,0"/>
+                            <TextBox x:Name="EditField_SpdRevisionMinor_Value"
+                                     Grid.Column="1"
+                                     Style="{StaticResource EditFieldValueStyle}"
+                                     Margin="0,0,4,0"/>
+                        </Grid>
+
+                        <!-- Memory Type (DDR4, DDR5) -->
+                        <Grid x:Name="EditField_MemoryType"
+                              MinHeight="28"
+                              Margin="0,4,0,4"
+                              Visibility="Collapsed"
+                              d:Visibility="Visible">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="150"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="EditField_MemoryType_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource EditFieldLabelStyle}"
+                                     Text="Memory Type"
+                                     IsReadOnly="True"
+                                     Margin="0,0,4,0"/>
+                            <ComboBox x:Name="EditField_MemoryType_Value"
+                                      Grid.Column="1"
+                                      Style="{StaticResource EditFieldComboBoxStyle}"
+                                      IsEnabled="False"
+                                      Margin="0,0,4,0"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- DENSITY & DIE Section -->
+                <Border x:Name="DensityDieSection"
+                        Style="{StaticResource SectionBlockStyle}"
+                        Margin="0,0,0,12"
+                        Visibility="Collapsed"
+                        d:Visibility="Visible">
+                    <StackPanel>
+                        <TextBlock Text="DENSITY &amp; DIE"
+                                   Style="{StaticResource CardTitleStyle}"/>
+
+                        <!-- Density (DDR4) -->
+                        <Grid x:Name="EditField_Density"
+                              MinHeight="28"
+                              Margin="0,4,0,4"
+                              Visibility="Collapsed"
+                              d:Visibility="Visible">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="150"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="EditField_Density_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource EditFieldLabelStyle}"
+                                     Text="Die Density"
+                                     IsReadOnly="True"
+                                     Margin="0,0,4,0"/>
+                            <ComboBox x:Name="EditField_Density_Value"
+                                      Grid.Column="1"
+                                      Style="{StaticResource EditFieldComboBoxStyle}"
+                                      Margin="0,0,4,0"/>
+                        </Grid>
+
+                        <!-- Package Monolithic (DDR4) -->
+                        <Grid x:Name="EditField_PackageMonolithic"
+                              MinHeight="28"
+                              Margin="0,4,0,4"
+                              Visibility="Collapsed"
+                              d:Visibility="Visible">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="150"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="EditField_PackageMonolithic_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource EditFieldLabelStyle}"
+                                     Text="Package Type"
+                                     IsReadOnly="True"
+                                     Margin="0,0,4,0"/>
+                            <ComboBox x:Name="EditField_PackageMonolithic_Value"
+                                      Grid.Column="1"
+                                      Style="{StaticResource EditFieldComboBoxStyle}"
+                                      Margin="0,0,4,0"/>
+                        </Grid>
+
+                        <!-- Package Die Count (DDR4) -->
+                        <Grid x:Name="EditField_PackageDieCount"
+                              MinHeight="28"
+                              Margin="0,4,0,4"
+                              Visibility="Collapsed"
+                              d:Visibility="Visible">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="150"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="EditField_PackageDieCount_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource EditFieldLabelStyle}"
+                                     Text="Die Count"
+                                     IsReadOnly="True"
+                                     Margin="0,0,4,0"/>
+                            <ComboBox x:Name="EditField_PackageDieCount_Value"
+                                      Grid.Column="1"
+                                      Style="{StaticResource EditFieldComboBoxStyle}"
+                                      Margin="0,0,4,0"/>
+                        </Grid>
+
+                        <!-- Banks (DDR4) -->
+                        <Grid x:Name="EditField_Banks"
+                              MinHeight="28"
+                              Margin="0,4,0,4"
+                              Visibility="Collapsed"
+                              d:Visibility="Visible">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="150"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="EditField_Banks_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource EditFieldLabelStyle}"
+                                     Text="Banks"
+                                     IsReadOnly="True"
+                                     Margin="0,0,4,0"/>
+                            <ComboBox x:Name="EditField_Banks_Value"
+                                      Grid.Column="1"
+                                      Style="{StaticResource EditFieldComboBoxStyle}"
+                                      Margin="0,0,4,0"/>
+                        </Grid>
+
+                        <!-- Bank Groups (DDR4) -->
+                        <Grid x:Name="EditField_BankGroups"
+                              MinHeight="28"
+                              Margin="0,4,0,4"
+                              Visibility="Collapsed"
+                              d:Visibility="Visible">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="150"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="EditField_BankGroups_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource EditFieldLabelStyle}"
+                                     Text="Bank Groups"
+                                     IsReadOnly="True"
+                                     Margin="0,0,4,0"/>
+                            <ComboBox x:Name="EditField_BankGroups_Value"
+                                      Grid.Column="1"
+                                      Style="{StaticResource EditFieldComboBoxStyle}"
+                                      Margin="0,0,4,0"/>
+                        </Grid>
+
+                        <!-- Column Addresses (DDR4) -->
+                        <Grid x:Name="EditField_ColumnAddresses"
+                              MinHeight="28"
+                              Margin="0,4,0,4"
+                              Visibility="Collapsed"
+                              d:Visibility="Visible">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="150"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="EditField_ColumnAddresses_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource EditFieldLabelStyle}"
+                                     Text="Column Addresses"
+                                     IsReadOnly="True"
+                                     Margin="0,0,4,0"/>
+                            <ComboBox x:Name="EditField_ColumnAddresses_Value"
+                                      Grid.Column="1"
+                                      Style="{StaticResource EditFieldComboBoxStyle}"
+                                      Margin="0,0,4,0"/>
+                        </Grid>
+
+                        <!-- Row Addresses (DDR4) -->
+                        <Grid x:Name="EditField_RowAddresses"
+                              MinHeight="28"
+                              Margin="0,4,0,4"
+                              Visibility="Collapsed"
+                              d:Visibility="Visible">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="150"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="EditField_RowAddresses_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource EditFieldLabelStyle}"
+                                     Text="Row Addresses"
+                                     IsReadOnly="True"
+                                     Margin="0,0,4,0"/>
+                            <ComboBox x:Name="EditField_RowAddresses_Value"
+                                      Grid.Column="1"
+                                      Style="{StaticResource EditFieldComboBoxStyle}"
+                                      Margin="0,0,4,0"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- DRAM COMPONENTS Section -->
+                <Border x:Name="DramComponentsSection"
+                        Style="{StaticResource SectionBlockStyle}"
+                        Margin="0,0,0,12"
+                        Visibility="Collapsed"
+                        d:Visibility="Visible">
+                    <StackPanel>
+                        <TextBlock Text="DRAM COMPONENTS"
+                                   Style="{StaticResource CardTitleStyle}"/>
+
+                        <!-- DRAM Manufacturer (DDR4, DDR5) -->
+                        <Grid x:Name="EditField_DramManufacturer"
+                              MinHeight="28"
+                              Margin="0,4,0,4"
+                              Visibility="Collapsed"
+                              d:Visibility="Visible">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="150"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="EditField_DramManufacturer_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource EditFieldLabelStyle}"
+                                     Text="DRAM Manufacturer"
+                                     IsReadOnly="True"
+                                     Margin="0,0,4,0"/>
+                            <ComboBox x:Name="EditField_DramManufacturer_Value"
+                                      Grid.Column="1"
+                                      Style="{StaticResource EditFieldComboBoxStyle}"
+                                      Margin="0,0,4,0"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- TIMING PARAMETERS Section -->
+                <Border x:Name="TimingSection"
+                        Style="{StaticResource SectionBlockStyle}"
+                        Margin="0,0,0,12"
+                        Visibility="Collapsed"
+                        d:Visibility="Visible">
+                    <StackPanel>
+                        <TextBlock Text="TIMING PARAMETERS"
+                                   Style="{StaticResource CardTitleStyle}"/>
+
+                        <!-- tCK MTB -->
+                        <Grid x:Name="EditField_TimingTckMtb"
+                              MinHeight="28"
+                              Margin="0,4,0,4"
+                              Visibility="Collapsed"
+                              d:Visibility="Visible">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="150"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="EditField_TimingTckMtb_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource EditFieldLabelStyle}"
+                                     Text="tCK (Clock Period) MTB"
+                                     IsReadOnly="True"
+                                     Margin="0,0,4,0"/>
+                            <TextBox x:Name="EditField_TimingTckMtb_Value"
+                                     Grid.Column="1"
+                                     Style="{StaticResource EditFieldValueStyle}"
+                                     Margin="0,0,4,0"/>
+                        </Grid>
+
+                        <!-- tCK FTB (DDR4, DDR5) -->
+                        <Grid x:Name="EditField_TimingTckFtb"
+                              MinHeight="28"
+                              Margin="0,4,0,4"
+                              Visibility="Collapsed"
+                              d:Visibility="Visible">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="150"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="EditField_TimingTckFtb_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource EditFieldLabelStyle}"
+                                     Text="tCK (Clock Period) FTB"
+                                     IsReadOnly="True"
+                                     Margin="0,0,4,0"/>
+                            <TextBox x:Name="EditField_TimingTckFtb_Value"
+                                     Grid.Column="1"
+                                     Style="{StaticResource EditFieldValueStyle}"
+                                     Margin="0,0,4,0"/>
+                        </Grid>
+
+                        <!-- tAA MTB (DDR4, DDR5) -->
+                        <Grid x:Name="EditField_TimingTaaMtb"
+                              MinHeight="28"
+                              Margin="0,4,0,4"
+                              Visibility="Collapsed"
+                              d:Visibility="Visible">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="150"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="EditField_TimingTaaMtb_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource EditFieldLabelStyle}"
+                                     Text="CAS Latency (tAA) MTB"
+                                     IsReadOnly="True"
+                                     Margin="0,0,4,0"/>
+                            <TextBox x:Name="EditField_TimingTaaMtb_Value"
+                                     Grid.Column="1"
+                                     Style="{StaticResource EditFieldValueStyle}"
+                                     Margin="0,0,4,0"/>
+                        </Grid>
+
+                        <!-- tAA FTB (DDR4) -->
+                        <Grid x:Name="EditField_TimingTaaFtb"
+                              MinHeight="28"
+                              Margin="0,4,0,4"
+                              Visibility="Collapsed"
+                              d:Visibility="Visible">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="150"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="EditField_TimingTaaFtb_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource EditFieldLabelStyle}"
+                                     Text="CAS Latency (tAA) FTB"
+                                     IsReadOnly="True"
+                                     Margin="0,0,4,0"/>
+                            <TextBox x:Name="EditField_TimingTaaFtb_Value"
+                                     Grid.Column="1"
+                                     Style="{StaticResource EditFieldValueStyle}"
+                                     Margin="0,0,4,0"/>
+                        </Grid>
+
+                        <!-- tRCD MTB (DDR4, DDR5) -->
+                        <Grid x:Name="EditField_TimingTrcdMtb"
+                              MinHeight="28"
+                              Margin="0,4,0,4"
+                              Visibility="Collapsed"
+                              d:Visibility="Visible">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="150"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="EditField_TimingTrcdMtb_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource EditFieldLabelStyle}"
+                                     Text="tRCD MTB"
+                                     IsReadOnly="True"
+                                     Margin="0,0,4,0"/>
+                            <TextBox x:Name="EditField_TimingTrcdMtb_Value"
+                                     Grid.Column="1"
+                                     Style="{StaticResource EditFieldValueStyle}"
+                                     Margin="0,0,4,0"/>
+                        </Grid>
+
+                        <!-- tRCD FTB (DDR4, DDR5) -->
+                        <Grid x:Name="EditField_TimingTrcdFtb"
+                              MinHeight="28"
+                              Margin="0,4,0,4"
+                              Visibility="Collapsed"
+                              d:Visibility="Visible">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="150"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="EditField_TimingTrcdFtb_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource EditFieldLabelStyle}"
+                                     Text="tRCD FTB"
+                                     IsReadOnly="True"
+                                     Margin="0,0,4,0"/>
+                            <TextBox x:Name="EditField_TimingTrcdFtb_Value"
+                                     Grid.Column="1"
+                                     Style="{StaticResource EditFieldValueStyle}"
+                                     Margin="0,0,4,0"/>
+                        </Grid>
+
+                        <!-- tRP MTB (DDR4, DDR5) -->
+                        <Grid x:Name="EditField_TimingTrpMtb"
+                              MinHeight="28"
+                              Margin="0,4,0,4"
+                              Visibility="Collapsed"
+                              d:Visibility="Visible">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="150"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="EditField_TimingTrpMtb_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource EditFieldLabelStyle}"
+                                     Text="tRP MTB"
+                                     IsReadOnly="True"
+                                     Margin="0,0,4,0"/>
+                            <TextBox x:Name="EditField_TimingTrpMtb_Value"
+                                     Grid.Column="1"
+                                     Style="{StaticResource EditFieldValueStyle}"
+                                     Margin="0,0,4,0"/>
+                        </Grid>
+
+                        <!-- tRP FTB (DDR4, DDR5) -->
+                        <Grid x:Name="EditField_TimingTrpFtb"
+                              MinHeight="28"
+                              Margin="0,4,0,4"
+                              Visibility="Collapsed"
+                              d:Visibility="Visible">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="150"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="EditField_TimingTrpFtb_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource EditFieldLabelStyle}"
+                                     Text="tRP FTB"
+                                     IsReadOnly="True"
+                                     Margin="0,0,4,0"/>
+                            <TextBox x:Name="EditField_TimingTrpFtb_Value"
+                                     Grid.Column="1"
+                                     Style="{StaticResource EditFieldValueStyle}"
+                                     Margin="0,0,4,0"/>
+                        </Grid>
+
+                        <!-- tRAS (DDR4) -->
+                        <Grid x:Name="EditField_TimingTras"
+                              MinHeight="28"
+                              Margin="0,4,0,4"
+                              Visibility="Collapsed"
+                              d:Visibility="Visible">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="150"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="EditField_TimingTras_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource EditFieldLabelStyle}"
+                                     Text="tRAS"
+                                     IsReadOnly="True"
+                                     Margin="0,0,4,0"/>
+                            <TextBox x:Name="EditField_TimingTras_Value"
+                                     Grid.Column="1"
+                                     Style="{StaticResource EditFieldValueStyle}"
+                                     Margin="0,0,4,0"/>
+                        </Grid>
+
+                        <!-- tRC (DDR4) -->
+                        <Grid x:Name="EditField_TimingTrc"
+                              MinHeight="28"
+                              Margin="0,4,0,4"
+                              Visibility="Collapsed"
+                              d:Visibility="Visible">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="150"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="EditField_TimingTrc_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource EditFieldLabelStyle}"
+                                     Text="tRC"
+                                     IsReadOnly="True"
+                                     Margin="0,0,4,0"/>
+                            <TextBox x:Name="EditField_TimingTrc_Value"
+                                     Grid.Column="1"
+                                     Style="{StaticResource EditFieldValueStyle}"
+                                     Margin="0,0,4,0"/>
+                        </Grid>
+
+                        <!-- tRC FTB (DDR4) -->
+                        <Grid x:Name="EditField_TimingTrcFtb"
+                              MinHeight="28"
+                              Margin="0,4,0,4"
+                              Visibility="Collapsed"
+                              d:Visibility="Visible">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="150"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="EditField_TimingTrcFtb_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource EditFieldLabelStyle}"
+                                     Text="tRC FTB"
+                                     IsReadOnly="True"
+                                     Margin="0,0,4,0"/>
+                            <TextBox x:Name="EditField_TimingTrcFtb_Value"
+                                     Grid.Column="1"
+                                     Style="{StaticResource EditFieldValueStyle}"
+                                     Margin="0,0,4,0"/>
+                        </Grid>
+
+                        <!-- tFAW (DDR4) -->
+                        <Grid x:Name="EditField_TimingTfaw"
+                              MinHeight="28"
+                              Margin="0,4,0,4"
+                              Visibility="Collapsed"
+                              d:Visibility="Visible">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="150"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="EditField_TimingTfaw_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource EditFieldLabelStyle}"
+                                     Text="tFAW"
+                                     IsReadOnly="True"
+                                     Margin="0,0,4,0"/>
+                            <TextBox x:Name="EditField_TimingTfaw_Value"
+                                     Grid.Column="1"
+                                     Style="{StaticResource EditFieldValueStyle}"
+                                     Margin="0,0,4,0"/>
+                        </Grid>
+
+                        <!-- tRRD_S MTB (DDR4) -->
+                        <Grid x:Name="EditField_TimingTrrdSMtb"
+                              MinHeight="28"
+                              Margin="0,4,0,4"
+                              Visibility="Collapsed"
+                              d:Visibility="Visible">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="150"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="EditField_TimingTrrdSMtb_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource EditFieldLabelStyle}"
+                                     Text="tRRD_S MTB"
+                                     IsReadOnly="True"
+                                     Margin="0,0,4,0"/>
+                            <TextBox x:Name="EditField_TimingTrrdSMtb_Value"
+                                     Grid.Column="1"
+                                     Style="{StaticResource EditFieldValueStyle}"
+                                     Margin="0,0,4,0"/>
+                        </Grid>
+
+                        <!-- tRRD_S FTB (DDR4) -->
+                        <Grid x:Name="EditField_TimingTrrdSFtb"
+                              MinHeight="28"
+                              Margin="0,4,0,4"
+                              Visibility="Collapsed"
+                              d:Visibility="Visible">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="150"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="EditField_TimingTrrdSFtb_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource EditFieldLabelStyle}"
+                                     Text="tRRD_S FTB"
+                                     IsReadOnly="True"
+                                     Margin="0,0,4,0"/>
+                            <TextBox x:Name="EditField_TimingTrrdSFtb_Value"
+                                     Grid.Column="1"
+                                     Style="{StaticResource EditFieldValueStyle}"
+                                     Margin="0,0,4,0"/>
+                        </Grid>
+
+                        <!-- tRRD_L MTB (DDR4) -->
+                        <Grid x:Name="EditField_TimingTrrdLMtb"
+                              MinHeight="28"
+                              Margin="0,4,0,4"
+                              Visibility="Collapsed"
+                              d:Visibility="Visible">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="150"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="EditField_TimingTrrdLMtb_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource EditFieldLabelStyle}"
+                                     Text="tRRD_L MTB"
+                                     IsReadOnly="True"
+                                     Margin="0,0,4,0"/>
+                            <TextBox x:Name="EditField_TimingTrrdLMtb_Value"
+                                     Grid.Column="1"
+                                     Style="{StaticResource EditFieldValueStyle}"
+                                     Margin="0,0,4,0"/>
+                        </Grid>
+
+                        <!-- tRRD_L FTB (DDR4) -->
+                        <Grid x:Name="EditField_TimingTrrdLFtb"
+                              MinHeight="28"
+                              Margin="0,4,0,4"
+                              Visibility="Collapsed"
+                              d:Visibility="Visible">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="150"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="EditField_TimingTrrdLFtb_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource EditFieldLabelStyle}"
+                                     Text="tRRD_L FTB"
+                                     IsReadOnly="True"
+                                     Margin="0,0,4,0"/>
+                            <TextBox x:Name="EditField_TimingTrrdLFtb_Value"
+                                     Grid.Column="1"
+                                     Style="{StaticResource EditFieldValueStyle}"
+                                     Margin="0,0,4,0"/>
+                        </Grid>
+
+                        <!-- CCD_L MTB (DDR4) -->
+                        <Grid x:Name="EditField_TimingCcdlMtb"
+                              MinHeight="28"
+                              Margin="0,4,0,4"
+                              Visibility="Collapsed"
+                              d:Visibility="Visible">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="150"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="EditField_TimingCcdlMtb_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource EditFieldLabelStyle}"
+                                     Text="CCD_L MTB"
+                                     IsReadOnly="True"
+                                     Margin="0,0,4,0"/>
+                            <TextBox x:Name="EditField_TimingCcdlMtb_Value"
+                                     Grid.Column="1"
+                                     Style="{StaticResource EditFieldValueStyle}"
+                                     Margin="0,0,4,0"/>
+                        </Grid>
+
+                        <!-- CCD_L FTB (DDR4) -->
+                        <Grid x:Name="EditField_TimingCcdlFtb"
+                              MinHeight="28"
+                              Margin="0,4,0,4"
+                              Visibility="Collapsed"
+                              d:Visibility="Visible">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="150"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="EditField_TimingCcdlFtb_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource EditFieldLabelStyle}"
+                                     Text="CCD_L FTB"
+                                     IsReadOnly="True"
+                                     Margin="0,0,4,0"/>
+                            <TextBox x:Name="EditField_TimingCcdlFtb_Value"
+                                     Grid.Column="1"
+                                     Style="{StaticResource EditFieldValueStyle}"
+                                     Margin="0,0,4,0"/>
+                        </Grid>
+
+                        <!-- tWR (DDR4) -->
+                        <Grid x:Name="EditField_TimingTwr"
+                              MinHeight="28"
+                              Margin="0,4,0,4"
+                              Visibility="Collapsed"
+                              d:Visibility="Visible">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="150"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="EditField_TimingTwr_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource EditFieldLabelStyle}"
+                                     Text="tWR"
+                                     IsReadOnly="True"
+                                     Margin="0,0,4,0"/>
+                            <TextBox x:Name="EditField_TimingTwr_Value"
+                                     Grid.Column="1"
+                                     Style="{StaticResource EditFieldValueStyle}"
+                                     Margin="0,0,4,0"/>
+                        </Grid>
+
+                        <!-- tWTR_S (DDR4) -->
+                        <Grid x:Name="EditField_TimingTwtrs"
+                              MinHeight="28"
+                              Margin="0,4,0,4"
+                              Visibility="Collapsed"
+                              d:Visibility="Visible">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="150"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="EditField_TimingTwtrs_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource EditFieldLabelStyle}"
+                                     Text="tWTR_S"
+                                     IsReadOnly="True"
+                                     Margin="0,0,4,0"/>
+                            <TextBox x:Name="EditField_TimingTwtrs_Value"
+                                     Grid.Column="1"
+                                     Style="{StaticResource EditFieldValueStyle}"
+                                     Margin="0,0,4,0"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- MODULE CONFIGURATION Section -->
+                <Border x:Name="ModuleConfigSection"
+                        Style="{StaticResource SectionBlockStyle}"
+                        Margin="0,0,0,12"
+                        Visibility="Collapsed"
+                        d:Visibility="Visible">
+                    <StackPanel>
+                        <TextBlock Text="MODULE CONFIGURATION"
+                                   Style="{StaticResource CardTitleStyle}"/>
+
+                        <!-- Module Ranks (DDR4, DDR5) -->
+                        <Grid x:Name="EditField_ModuleRanks"
+                              MinHeight="28"
+                              Margin="0,4,0,4"
+                              Visibility="Collapsed"
+                              d:Visibility="Visible">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="150"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="EditField_ModuleRanks_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource EditFieldLabelStyle}"
+                                     Text="Module Ranks"
+                                     IsReadOnly="True"
+                                     Margin="0,0,4,0"/>
+                            <ComboBox x:Name="EditField_ModuleRanks_Value"
+                                      Grid.Column="1"
+                                      Style="{StaticResource EditFieldComboBoxStyle}"
+                                      Margin="0,0,4,0"/>
+                        </Grid>
+
+                        <!-- Device Width (DDR4, DDR5) -->
+                        <Grid x:Name="EditField_DeviceWidth"
+                              MinHeight="28"
+                              Margin="0,4,0,4"
+                              Visibility="Collapsed"
+                              d:Visibility="Visible">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="150"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="EditField_DeviceWidth_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource EditFieldLabelStyle}"
+                                     Text="Device Width"
+                                     IsReadOnly="True"
+                                     Margin="0,0,4,0"/>
+                            <ComboBox x:Name="EditField_DeviceWidth_Value"
+                                      Grid.Column="1"
+                                      Style="{StaticResource EditFieldComboBoxStyle}"
+                                      Margin="0,0,4,0"/>
+                        </Grid>
+
+                        <!-- Primary Bus Width (DDR4, DDR5) -->
+                        <Grid x:Name="EditField_PrimaryBusWidth"
+                              MinHeight="28"
+                              Margin="0,4,0,4"
+                              Visibility="Collapsed"
+                              d:Visibility="Visible">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="150"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="EditField_PrimaryBusWidth_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource EditFieldLabelStyle}"
+                                     Text="Primary Bus Width"
+                                     IsReadOnly="True"
+                                     Margin="0,0,4,0"/>
+                            <ComboBox x:Name="EditField_PrimaryBusWidth_Value"
+                                      Grid.Column="1"
+                                      Style="{StaticResource EditFieldComboBoxStyle}"
+                                      Margin="0,0,4,0"/>
+                        </Grid>
+
+                        <!-- Has ECC (DDR4) -->
+                        <Grid x:Name="EditField_HasEcc"
+                              MinHeight="28"
+                              Margin="0,4,0,4"
+                              Visibility="Collapsed"
+                              d:Visibility="Visible">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="150"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="EditField_HasEcc_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource EditFieldLabelStyle}"
+                                     Text="Has ECC"
+                                     IsReadOnly="True"
+                                     Margin="0,0,4,0"/>
+                            <CheckBox x:Name="EditField_HasEcc_Value"
+                                      Grid.Column="1"
+                                      Content="Enabled"
+                                      Margin="0,0,4,0"/>
+                        </Grid>
+
+                        <!-- Rank Mix (DDR4) -->
+                        <Grid x:Name="EditField_RankMix"
+                              MinHeight="28"
+                              Margin="0,4,0,4"
+                              Visibility="Collapsed"
+                              d:Visibility="Visible">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="150"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="EditField_RankMix_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource EditFieldLabelStyle}"
+                                     Text="Rank Mix"
+                                     IsReadOnly="True"
+                                     Margin="0,0,4,0"/>
+                            <ComboBox x:Name="EditField_RankMix_Value"
+                                      Grid.Column="1"
+                                      Style="{StaticResource EditFieldComboBoxStyle}"
+                                      Margin="0,0,4,0"/>
+                        </Grid>
+
+                        <!-- Thermal Sensor (DDR4, DDR5) -->
+                        <Grid x:Name="EditField_ThermalSensor"
+                              MinHeight="28"
+                              Margin="0,4,0,4"
+                              Visibility="Collapsed"
+                              d:Visibility="Visible">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="150"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="EditField_ThermalSensor_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource EditFieldLabelStyle}"
+                                     Text="Thermal Sensor"
+                                     IsReadOnly="True"
+                                     Margin="0,0,4,0"/>
+                            <CheckBox x:Name="EditField_ThermalSensor_Value"
+                                      Grid.Column="1"
+                                      Content="Enabled"
+                                      Margin="0,0,4,0"/>
+                        </Grid>
+
+                        <!-- Supply Voltage Operable (DDR4) -->
+                        <Grid x:Name="EditField_SupplyVoltageOperable"
+                              MinHeight="28"
+                              Margin="0,4,0,4"
+                              Visibility="Collapsed"
+                              d:Visibility="Visible">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="150"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="EditField_SupplyVoltageOperable_Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource EditFieldLabelStyle}"
+                                     Text="Supply Voltage Operable"
+                                     IsReadOnly="True"
+                                     Margin="0,0,4,0"/>
+                            <CheckBox x:Name="EditField_SupplyVoltageOperable_Value"
+                                      Grid.Column="1"
+                                      Content="Enabled"
+                                      Margin="0,0,4,0"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
             </StackPanel>
         </ScrollViewer>
     </Grid>
 </UserControl>
-
