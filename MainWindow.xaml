@@ -554,7 +554,7 @@
                                              Foreground="{StaticResource PrimaryTextBrush}"
                                              BorderBrush="{StaticResource SurfaceBorderBrush}"
                                              BorderThickness="1"
-                                             FontFamily="{DynamicResource ApplicationFontFamily}"
+                                             FontFamily="Segoe UI"
                                              FontSize="11"
                                              HorizontalContentAlignment="Stretch"
                                              ScrollViewer.VerticalScrollBarVisibility="Auto"
@@ -563,33 +563,35 @@
                                         <ListBox.ItemTemplate>
                                             <DataTemplate>
                                                 <TextBlock TextWrapping="Wrap" Margin="4,2">
-                                                    <Run Text="[" FontWeight="SemiBold"/>
-                                                    <Run Text="{Binding Level}">
-                                                        <Run.Style>
-                                                            <Style TargetType="Run">
-                                                                <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}"/>
-                                                                <Style.Triggers>
-                                                                    <DataTrigger Binding="{Binding Level}" Value="Error">
-                                                                        <Setter Property="Foreground" Value="{StaticResource ErrorBrush}"/>
-                                                                    </DataTrigger>
-                                                                    <DataTrigger Binding="{Binding Level}" Value="Warn">
-                                                                        <Setter Property="Foreground" Value="{StaticResource WarningBrush}"/>
-                                                                    </DataTrigger>
-                                                                    <DataTrigger Binding="{Binding Level}" Value="Info">
-                                                                        <Setter Property="Foreground" Value="{StaticResource InfoBrush}"/>
-                                                                    </DataTrigger>
-                                                                    <DataTrigger Binding="{Binding Level}" Value="Debug">
-                                                                        <Setter Property="Foreground" Value="{StaticResource MutedTextBrush}"/>
-                                                                    </DataTrigger>
-                                                                </Style.Triggers>
-                                                            </Style>
-                                                        </Run.Style>
-                                                    </Run>
-                                                    <Run Text="] " FontWeight="SemiBold"/>
-                                                    <Run Text="{Binding Timestamp, StringFormat='{}{0:dd.MM.yyyy HH:mm:ss}'}" 
-                                                         Foreground="{StaticResource MutedTextBrush}"/>
-                                                    <Run Text=": "/>
-                                                    <Run Text="{Binding Message}"/>
+                                                    <TextBlock.Inlines>
+                                                        <Run Text="["/>
+                                                        <Run Text="{Binding Level}">
+                                                            <Run.Style>
+                                                                <Style TargetType="Run">
+                                                                    <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}"/>
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding Level}" Value="Error">
+                                                                            <Setter Property="Foreground" Value="{StaticResource ErrorBrush}"/>
+                                                                        </DataTrigger>
+                                                                        <DataTrigger Binding="{Binding Level}" Value="Warn">
+                                                                            <Setter Property="Foreground" Value="{StaticResource WarningBrush}"/>
+                                                                        </DataTrigger>
+                                                                        <DataTrigger Binding="{Binding Level}" Value="Info">
+                                                                            <Setter Property="Foreground" Value="{StaticResource InfoBrush}"/>
+                                                                        </DataTrigger>
+                                                                        <DataTrigger Binding="{Binding Level}" Value="Debug">
+                                                                            <Setter Property="Foreground" Value="{StaticResource MutedTextBrush}"/>
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </Run.Style>
+                                                        </Run>
+                                                        <Run Text="] "/>
+                                                        <Run Text="{Binding FormattedTimestamp}" 
+                                                             Foreground="{StaticResource MutedTextBrush}"/>
+                                                        <Run Text=": "/>
+                                                        <Run Text="{Binding Message}"/>
+                                                    </TextBlock.Inlines>
                                                 </TextBlock>
                                             </DataTemplate>
                                         </ListBox.ItemTemplate>
@@ -631,7 +633,7 @@
                                          Foreground="{StaticResource PrimaryTextBrush}"
                                          BorderBrush="{StaticResource SurfaceBorderBrush}"
                                          BorderThickness="1"
-                                         FontFamily="{DynamicResource ApplicationFontFamily}"
+                                         FontFamily="Segoe UI"
                                          FontSize="11"
                                          HorizontalContentAlignment="Stretch"
                                          ScrollViewer.VerticalScrollBarVisibility="Auto"
@@ -640,33 +642,35 @@
                                         <ListBox.ItemTemplate>
                                             <DataTemplate>
                                                 <TextBlock TextWrapping="Wrap" Margin="4,2">
-                                                    <Run Text="[" FontWeight="SemiBold"/>
-                                                    <Run Text="{Binding Level}">
-                                                        <Run.Style>
-                                                            <Style TargetType="Run">
-                                                                <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}"/>
-                                                                <Style.Triggers>
-                                                                    <DataTrigger Binding="{Binding Level}" Value="Error">
-                                                                        <Setter Property="Foreground" Value="{StaticResource ErrorBrush}"/>
-                                                                    </DataTrigger>
-                                                                    <DataTrigger Binding="{Binding Level}" Value="Warn">
-                                                                        <Setter Property="Foreground" Value="{StaticResource WarningBrush}"/>
-                                                                    </DataTrigger>
-                                                                    <DataTrigger Binding="{Binding Level}" Value="Info">
-                                                                        <Setter Property="Foreground" Value="{StaticResource InfoBrush}"/>
-                                                                    </DataTrigger>
-                                                                    <DataTrigger Binding="{Binding Level}" Value="Debug">
-                                                                        <Setter Property="Foreground" Value="{StaticResource MutedTextBrush}"/>
-                                                                    </DataTrigger>
-                                                                </Style.Triggers>
-                                                            </Style>
-                                                        </Run.Style>
-                                                    </Run>
-                                                    <Run Text="] " FontWeight="SemiBold"/>
-                                                    <Run Text="{Binding Timestamp, StringFormat='{}{0:dd.MM.yyyy HH:mm:ss}'}" 
-                                                         Foreground="{StaticResource MutedTextBrush}"/>
-                                                    <Run Text=": "/>
-                                                    <Run Text="{Binding Message}"/>
+                                                    <TextBlock.Inlines>
+                                                        <Run Text="["/>
+                                                        <Run Text="{Binding Level}">
+                                                            <Run.Style>
+                                                                <Style TargetType="Run">
+                                                                    <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}"/>
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding Level}" Value="Error">
+                                                                            <Setter Property="Foreground" Value="{StaticResource ErrorBrush}"/>
+                                                                        </DataTrigger>
+                                                                        <DataTrigger Binding="{Binding Level}" Value="Warn">
+                                                                            <Setter Property="Foreground" Value="{StaticResource WarningBrush}"/>
+                                                                        </DataTrigger>
+                                                                        <DataTrigger Binding="{Binding Level}" Value="Info">
+                                                                            <Setter Property="Foreground" Value="{StaticResource InfoBrush}"/>
+                                                                        </DataTrigger>
+                                                                        <DataTrigger Binding="{Binding Level}" Value="Debug">
+                                                                            <Setter Property="Foreground" Value="{StaticResource MutedTextBrush}"/>
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </Run.Style>
+                                                        </Run>
+                                                        <Run Text="] "/>
+                                                        <Run Text="{Binding FormattedTimestamp}" 
+                                                             Foreground="{StaticResource MutedTextBrush}"/>
+                                                        <Run Text=": "/>
+                                                        <Run Text="{Binding Message}"/>
+                                                    </TextBlock.Inlines>
                                                 </TextBlock>
                                             </DataTemplate>
                                         </ListBox.ItemTemplate>

@@ -34,6 +34,7 @@ namespace HexEditor
         public string Message { get; set; } = string.Empty;
         public DateTime Timestamp { get; set; }
         public string FormattedText { get; set; } = string.Empty;
+        public string FormattedTimestamp { get; set; } = string.Empty;
     }
 
     public partial class MainWindow : Window
@@ -2007,6 +2008,7 @@ namespace HexEditor
                     Level = level,
                     Message = message,
                     Timestamp = timestamp,
+                    FormattedTimestamp = timestamp.ToString("dd.MM.yyyy HH:mm:ss"),
                     FormattedText = $"[{level}] {timestamp:dd.MM.yyyy HH:mm:ss}: {message}"
                 };
                 
