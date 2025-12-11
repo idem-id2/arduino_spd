@@ -4,7 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              mc:Ignorable="d"
-             d:DesignHeight="200" d:DesignWidth="600"
+             d:DesignHeight="549" d:DesignWidth="600"
              HorizontalAlignment="Stretch"
              VerticalAlignment="Stretch">
     <Grid HorizontalAlignment="Stretch"
@@ -100,7 +100,7 @@
                         <TextBlock Text="SENSOR REGISTERS"
                                    Style="{StaticResource CardTitleStyle}"/>
                         
-                        <!-- Mode -->
+                        <!-- Режим -->
                         <Grid MinHeight="28" Margin="0,2,0,2" Background="{StaticResource ZebraEvenBrush}">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="200"/>
@@ -109,7 +109,7 @@
                             <TextBox x:Name="ModeLabel"
                                      Grid.Column="0"
                                      Style="{StaticResource SpdInfoLabelStyle}"
-                                     Text="Mode"
+                                     Text="Режим"
                                      IsReadOnly="True"/>
                             <TextBox x:Name="ModeValue"
                                      Grid.Column="1"
@@ -118,8 +118,32 @@
                                      IsReadOnly="True"/>
                         </Grid>
                         
-                        <!-- Sensor Register 6 -->
+                        <!-- Модель -->
                         <Grid MinHeight="28" Margin="0,2,0,2" Background="{StaticResource ZebraOddBrush}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="200"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="PresetLabel"
+                                     Grid.Column="0"
+                                     Style="{StaticResource SpdInfoLabelStyle}"
+                                     Text="Модель"
+                                     IsReadOnly="True"/>
+                            <ComboBox x:Name="PresetComboBox"
+                                      Grid.Column="1"
+                                      SelectionChanged="PresetComboBox_SelectionChanged"
+                                      Margin="4,2,4,2"
+                                      VerticalContentAlignment="Center">
+                                <ComboBoxItem Content="—" Tag=""/>
+                                <ComboBoxItem Content="S34TS04A - Ablic (1C85, 2221)" Tag="1C85,2221"/>
+                                <ComboBoxItem Content="STTS2004 - STMicroelectronics (104A, 2201)" Tag="104A,2201"/>
+                                <ComboBoxItem Content="MCP98244 - Microchip (0054, 2201)" Tag="0054,2201"/>
+                                <ComboBoxItem Content="TSE2004GB2B0 - Renesas (00F8, EE25)" Tag="00F8,EE25"/>
+                            </ComboBox>
+                        </Grid>
+                        
+                        <!-- Sensor Register 6 -->
+                        <Grid MinHeight="28" Margin="0,2,0,2" Background="{StaticResource ZebraEvenBrush}">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="200"/>
                                 <ColumnDefinition Width="*"/>
@@ -138,7 +162,7 @@
                         </Grid>
                         
                         <!-- Sensor Register 7 -->
-                        <Grid MinHeight="28" Margin="0,2,0,2" Background="{StaticResource ZebraEvenBrush}">
+                        <Grid MinHeight="28" Margin="0,2,0,2" Background="{StaticResource ZebraOddBrush}">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="200"/>
                                 <ColumnDefinition Width="*"/>

@@ -2,6 +2,7 @@ using System;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
+using System.Globalization;
 
 namespace HexEditor.SpdDecoder.HpeSmartMemory
 {
@@ -18,6 +19,12 @@ namespace HexEditor.SpdDecoder.HpeSmartMemory
         public HpeSmartMemoryPanel()
         {
             InitializeComponent();
+            
+            // Инициализация ComboBox - выбор первого элемента (пустое значение)
+            if (PresetComboBox != null && PresetComboBox.Items.Count > 0)
+            {
+                PresetComboBox.SelectedIndex = 0;
+            }
         }
 
         /// <summary>
@@ -120,6 +127,96 @@ namespace HexEditor.SpdDecoder.HpeSmartMemory
                 if (sensorReg7.HasValue)
                 {
                     reg7Value.Text = $"0x{sensorReg7.Value:X4}";
+                }
+                else
+                {
+                    reg7Value.Text = "—";
+                }
+            }
+        }
+
+        /// <summary>
+        /// Обработчик изменения выбора пресета
+        /// </summary>
+        private void PresetComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (PresetComboBox?.SelectedItem == null)
+            {
+                return;
+            }
+
+            // Получаем Tag из выбранного элемента
+            string? tagValue = null;
+            
+            if (PresetComboBox.SelectedItem is ComboBoxItem item)
+            {
+                tagValue = item.Tag?.ToString();
+            }
+            else
+            {
+                // Fallback: пытаемся получить через Content или другие способы
+                var selectedItem = PresetComboBox.SelectedItem;
+                var tagProperty = selectedItem.GetType().GetProperty("Tag");
+                if (tagProperty != null)
+                {
+                    tagValue = tagProperty.GetValue(selectedItem)?.ToString();
+                }
+            }
+
+            if (string.IsNullOrEmpty(tagValue))
+            {
+                // Пустое значение - очищаем регистры
+                UpdateSensorRegistersFromPreset(null, null);
+                return;
+            }
+
+            // Парсим Tag в формате "Reg6,Reg7" (например, "1C85,2221")
+            string[] parts = tagValue.Split(',');
+            if (parts.Length == 2)
+            {
+                try
+                {
+                    // Конвертируем HEX строки в ushort
+                    ushort reg6 = ushort.Parse(parts[0].Trim(), NumberStyles.HexNumber, CultureInfo.InvariantCulture);
+                    ushort reg7 = ushort.Parse(parts[1].Trim(), NumberStyles.HexNumber, CultureInfo.InvariantCulture);
+                    
+                    UpdateSensorRegistersFromPreset(reg6, reg7);
+                }
+                catch (Exception ex)
+                {
+                    // В случае ошибки парсинга просто очищаем
+                    System.Diagnostics.Debug.WriteLine($"Error parsing preset values: {ex.Message}");
+                    UpdateSensorRegistersFromPreset(null, null);
+                }
+            }
+            else
+            {
+                UpdateSensorRegistersFromPreset(null, null);
+            }
+        }
+
+        /// <summary>
+        /// Обновление Sensor Registers из выбранного пресета
+        /// </summary>
+        private void UpdateSensorRegistersFromPreset(ushort? reg6, ushort? reg7)
+        {
+            if (FindName("SensorReg6Value") is TextBox reg6Value)
+            {
+                if (reg6.HasValue)
+                {
+                    reg6Value.Text = $"0x{reg6.Value:X4}";
+                }
+                else
+                {
+                    reg6Value.Text = "—";
+                }
+            }
+            
+            if (FindName("SensorReg7Value") is TextBox reg7Value)
+            {
+                if (reg7.HasValue)
+                {
+                    reg7Value.Text = $"0x{reg7.Value:X4}";
                 }
                 else
                 {
