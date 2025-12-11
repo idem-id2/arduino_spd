@@ -1,0 +1,253 @@
+<UserControl x:Class="HexEditor.SpdDecoder.HpeSmartMemoryPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             mc:Ignorable="d"
+             d:DesignHeight="800" d:DesignWidth="600"
+             HorizontalAlignment="Stretch"
+             VerticalAlignment="Stretch">
+    <Grid HorizontalAlignment="Stretch"
+          VerticalAlignment="Stretch">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        
+        <ScrollViewer Grid.Row="0"
+                      VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Disabled"
+                      HorizontalAlignment="Stretch"
+                      VerticalAlignment="Stretch">
+            <StackPanel x:Name="MainContainer"
+                        HorizontalAlignment="Stretch"
+                        Margin="12">
+                
+                <!-- Заголовок -->
+                <TextBlock Text="HPE SmartMemory Encryption ID Calculator"
+                           FontSize="16"
+                           FontWeight="Bold"
+                           Margin="0,0,0,16"
+                           Foreground="{StaticResource PrimaryTextBrush}"/>
+                
+                <!-- Информация о модуле -->
+                <Border Style="{StaticResource SectionBlockStyle}"
+                        Margin="0,0,0,12">
+                    <StackPanel>
+                        <TextBlock Text="MODULE INFORMATION"
+                                   Style="{StaticResource CardTitleStyle}"/>
+                        
+                        <!-- HPT Marker -->
+                        <Grid MinHeight="28" Margin="0,2,0,2" Background="{StaticResource ZebraEvenBrush}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="200"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="HptMarkerLabel"
+                                     Grid.Column="0"
+                                     Style="{StaticResource SpdInfoLabelStyle}"
+                                     Text="HPT Marker"
+                                     IsReadOnly="True"/>
+                            <TextBox x:Name="HptMarkerValue"
+                                     Grid.Column="1"
+                                     Style="{StaticResource SpdInfoValueStyle}"
+                                     Text="—"
+                                     IsReadOnly="True"/>
+                        </Grid>
+                        
+                        <!-- Secure ID -->
+                        <Grid MinHeight="28" Margin="0,2,0,2" Background="{StaticResource ZebraOddBrush}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="200"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="SecureIdLabel"
+                                     Grid.Column="0"
+                                     Style="{StaticResource SpdInfoLabelStyle}"
+                                     Text="Secure ID (from SPD)"
+                                     IsReadOnly="True"/>
+                            <TextBox x:Name="SecureIdValue"
+                                     Grid.Column="1"
+                                     Style="{StaticResource SpdInfoValueStyle}"
+                                     Text="—"
+                                     IsReadOnly="True"
+                                     FontFamily="Consolas"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+                
+                <!-- Sensor Registers -->
+                <Border Style="{StaticResource SectionBlockStyle}"
+                        Margin="0,0,0,12">
+                    <StackPanel>
+                        <TextBlock Text="SENSOR REGISTERS"
+                                   Style="{StaticResource CardTitleStyle}"/>
+                        
+                        <!-- Preset Selection -->
+                        <Grid MinHeight="28" Margin="0,2,0,8" Background="{StaticResource ZebraEvenBrush}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="200"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="PresetLabel"
+                                     Grid.Column="0"
+                                     Style="{StaticResource SpdInfoLabelStyle}"
+                                     Text="Preset"
+                                     IsReadOnly="True"/>
+                            <ComboBox x:Name="PresetComboBox"
+                                      Grid.Column="1"
+                                      SelectionChanged="PresetComboBox_SelectionChanged"
+                                      Margin="0,0,4,0"
+                                      VerticalAlignment="Center">
+                                <ComboBoxItem Content="S34TS04A - Ablic (1C85, 2221)" Tag="1C85,2221"/>
+                                <ComboBoxItem Content="STTS2004 - STMicroelectronics (104A, 2201)" Tag="104A,2201"/>
+                                <ComboBoxItem Content="MCP98244 - Microchip (0054, 2201)" Tag="0054,2201"/>
+                                <ComboBoxItem Content="TSE2004GB2B0 - Renesas (00F8, EE25)" Tag="00F8,EE25"/>
+                            </ComboBox>
+                        </Grid>
+                        
+                        <!-- Sensor Register 6 -->
+                        <Grid MinHeight="28" Margin="0,2,0,2" Background="{StaticResource ZebraOddBrush}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="200"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="SensorReg6Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource SpdInfoLabelStyle}"
+                                     Text="Sensor Register 6"
+                                     IsReadOnly="True"/>
+                            <TextBox x:Name="SensorReg6Value"
+                                     Grid.Column="1"
+                                     Style="{StaticResource SpdInfoValueStyle}"
+                                     Text="1C85"
+                                     FontFamily="Consolas"
+                                     PreviewTextInput="SensorReg_PreviewTextInput"
+                                     PreviewKeyDown="SensorReg_PreviewKeyDown"
+                                     TextChanged="SensorReg6Value_TextChanged"/>
+                        </Grid>
+                        
+                        <!-- Sensor Register 7 -->
+                        <Grid MinHeight="28" Margin="0,2,0,2" Background="{StaticResource ZebraEvenBrush}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="200"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="SensorReg7Label"
+                                     Grid.Column="0"
+                                     Style="{StaticResource SpdInfoLabelStyle}"
+                                     Text="Sensor Register 7"
+                                     IsReadOnly="True"/>
+                            <TextBox x:Name="SensorReg7Value"
+                                     Grid.Column="1"
+                                     Style="{StaticResource SpdInfoValueStyle}"
+                                     Text="2221"
+                                     FontFamily="Consolas"
+                                     PreviewTextInput="SensorReg_PreviewTextInput"
+                                     PreviewKeyDown="SensorReg_PreviewKeyDown"
+                                     TextChanged="SensorReg7Value_TextChanged"/>
+                        </Grid>
+                        
+                        <!-- Auto Detect Button -->
+                        <Button x:Name="AutoDetectButton"
+                                Content="Auto Detect Sensor Registers"
+                                Click="AutoDetectButton_Click"
+                                Margin="0,8,0,0"
+                                HorizontalAlignment="Left"
+                                Padding="12,6"/>
+                    </StackPanel>
+                </Border>
+                
+                <!-- Calculation Results -->
+                <Border Style="{StaticResource SectionBlockStyle}"
+                        Margin="0,0,0,12">
+                    <StackPanel>
+                        <TextBlock Text="CALCULATION RESULTS"
+                                   Style="{StaticResource CardTitleStyle}"/>
+                        
+                        <!-- Encryption ID -->
+                        <Grid MinHeight="28" Margin="0,2,0,2" Background="{StaticResource ZebraEvenBrush}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="200"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="EncryptionIdLabel"
+                                     Grid.Column="0"
+                                     Style="{StaticResource SpdInfoLabelStyle}"
+                                     Text="Encryption ID (calculated)"
+                                     IsReadOnly="True"/>
+                            <TextBox x:Name="EncryptionIdValue"
+                                     Grid.Column="1"
+                                     Style="{StaticResource SpdInfoValueStyle}"
+                                     Text="—"
+                                     IsReadOnly="True"
+                                     FontFamily="Consolas"/>
+                        </Grid>
+                        
+                        <!-- Match Status -->
+                        <Grid MinHeight="28" Margin="0,2,0,2" Background="{StaticResource ZebraOddBrush}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="200"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="MatchLabel"
+                                     Grid.Column="0"
+                                     Style="{StaticResource SpdInfoLabelStyle}"
+                                     Text="Match Status"
+                                     IsReadOnly="True"/>
+                            <TextBox x:Name="MatchValue"
+                                     Grid.Column="1"
+                                     Style="{StaticResource SpdInfoValueStyle}"
+                                     Text="—"
+                                     IsReadOnly="True"
+                                     FontWeight="Bold"/>
+                        </Grid>
+                        
+                        <!-- Calculate Button -->
+                        <Button x:Name="CalculateButton"
+                                Content="Calculate Encryption ID"
+                                Click="CalculateButton_Click"
+                                Margin="0,8,0,0"
+                                HorizontalAlignment="Left"
+                                Padding="12,6"/>
+                    </StackPanel>
+                </Border>
+                
+                <!-- Log Section -->
+                <Border Style="{StaticResource SectionBlockStyle}"
+                        Margin="0,0,0,12">
+                    <StackPanel>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="LOG"
+                                       Style="{StaticResource CardTitleStyle}"/>
+                            <Button x:Name="ClearLogButton"
+                                    Grid.Column="1"
+                                    Content="Clear"
+                                    Click="ClearLogButton_Click"
+                                    Padding="8,4"
+                                    Margin="0,0,0,4"/>
+                        </Grid>
+                        
+                        <ScrollViewer MaxHeight="200"
+                                      VerticalScrollBarVisibility="Auto"
+                                      HorizontalScrollBarVisibility="Disabled">
+                            <TextBox x:Name="LogTextBox"
+                                     IsReadOnly="True"
+                                     TextWrapping="Wrap"
+                                     FontFamily="Consolas"
+                                     FontSize="10"
+                                     Background="{StaticResource SurfaceBrush}"
+                                     BorderThickness="0"
+                                     Padding="8"/>
+                        </ScrollViewer>
+                    </StackPanel>
+                </Border>
+                
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</UserControl>
+

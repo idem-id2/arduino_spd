@@ -692,6 +692,15 @@
                                           VerticalAlignment="Stretch"/>
                     </Grid>
                 </TabItem>
+                <TabItem Header="HPE SmartMemory">
+                    <Grid HorizontalAlignment="Stretch"
+                          VerticalAlignment="Stretch">
+                        <spd:HpeSmartMemoryPanel x:Name="HpeSmartMemoryPanel"
+                                                 Margin="12"
+                                                 HorizontalAlignment="Stretch"
+                                                 VerticalAlignment="Stretch"/>
+                    </Grid>
+                </TabItem>
                     </TabControl>
                 </Grid>
             </Border>

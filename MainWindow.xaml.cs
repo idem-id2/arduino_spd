@@ -621,6 +621,7 @@ namespace HexEditor
             if (HexEditor.DocumentLength == 0)
             {
                 SpdInfoPanel.Clear();
+                HpeSmartMemoryPanel?.Clear();
                 _lastSpdIsDdr4 = false;
                 _lastSpdIsDdr5 = false;
                 _lastCrcValid = true;
@@ -639,6 +640,9 @@ namespace HexEditor
                 _lastSpdHasData = data.Length >= 256;
                 var forcedType = GetForcedMemoryType();
                 SpdInfoPanel.UpdateSpdData(data, forcedType);
+                
+                // Update HPE SmartMemory panel
+                HpeSmartMemoryPanel?.UpdateSpdData(data);
                 
                 UpdateCrcState(data);
             }
