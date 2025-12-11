@@ -98,7 +98,7 @@ namespace HexEditor.SpdDecoder
                     Value = serial.ToString(),
                     Type = EditFieldType.TextBox,
                     MaxLength = 8,
-                    ToolTip = "Bytes 517-520: Module Serial Number (4 bytes hex)",
+                    ToolTip = "Bytes 517-520: Module Serial Number (HEX only, 4 bytes = 8 hex characters, JEDEC standard)",
                     Category = "MemoryModule"
                 });
             }
@@ -408,6 +408,21 @@ namespace HexEditor.SpdDecoder
                 if (!oldPartNumber.SequenceEqual(newPartNumber))
                 {
                     changes.Add(new SpdEditPanel.ByteChange { Offset = 521, NewData = newPartNumber });
+                }
+            }
+
+            // Module Serial Number (bytes 517-520, 4 bytes HEX)
+            // По стандарту JEDEC: только HEX данные (4 байта = 8 hex символов)
+            if (fieldValues.TryGetValue("ModuleSerialNumber", out string? serial) && Data.Length > 520)
+            {
+                byte[] oldSerial = new byte[4];
+                Array.Copy(Data, 517, oldSerial, 0, 4);
+                WriteSerialNumber(Data, 517, 520, serial);
+                byte[] newSerial = new byte[4];
+                Array.Copy(Data, 517, newSerial, 0, 4);
+                if (!oldSerial.SequenceEqual(newSerial))
+                {
+                    changes.Add(new SpdEditPanel.ByteChange { Offset = 517, NewData = newSerial });
                 }
             }
 

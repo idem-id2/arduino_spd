@@ -100,6 +100,7 @@ namespace HexEditor.SpdDecoder
             }
 
             // Module Serial Number (bytes 325-328)
+            // По стандарту JEDEC: только HEX данные (4 байта = 8 hex символов)
             if (Data.Length > 328)
             {
                 string serial = ReadSerialNumber(325, 328);
@@ -110,7 +111,7 @@ namespace HexEditor.SpdDecoder
                     Value = serial,
                     Type = EditFieldType.TextBox,
                     MaxLength = 8,
-                    ToolTip = "Bytes 325-328: Serial Number (hex or ASCII, 4 bytes)",
+                    ToolTip = "Bytes 325-328: Serial Number (HEX only, 4 bytes = 8 hex characters, JEDEC standard)",
                     Category = "MemoryModule"
                 });
             }
@@ -435,35 +436,8 @@ namespace HexEditor.SpdDecoder
             if (Data == null || start >= Data.Length || end >= Data.Length)
                 return "";
 
-            // Check if it's ASCII
-            bool isAscii = true;
-            for (int i = start; i <= end && i < Data.Length; i++)
-            {
-                byte b = Data[i];
-                if (b != 0 && (b < 0x20 || b > 0x7E))
-                {
-                    isAscii = false;
-                    break;
-                }
-            }
-
-            if (isAscii)
-            {
-                var asciiSb = new StringBuilder();
-                for (int i = start; i <= end && i < Data.Length; i++)
-                {
-                    byte b = Data[i];
-                    if (b == 0)
-                        break;
-                    if (b >= 0x20 && b <= 0x7E)
-                        asciiSb.Append((char)b);
-                }
-                string asciiResult = asciiSb.ToString().Trim();
-                if (!string.IsNullOrEmpty(asciiResult))
-                    return asciiResult;
-            }
-
-            // Return as hex
+            // По стандарту JEDEC: Serial Number всегда HEX (4 байта = 8 hex символов)
+            // Читаем байты и преобразуем в HEX строку
             var hexSb = new StringBuilder();
             for (int i = start; i <= end && i < Data.Length; i++)
             {
@@ -512,24 +486,32 @@ namespace HexEditor.SpdDecoder
             if (string.IsNullOrWhiteSpace(text))
                 return;
 
-            // Try to parse as hex first
-            if (Regex.IsMatch(text, @"^[0-9A-Fa-f]+$") && text.Length % 2 == 0)
+            // По стандарту JEDEC: Serial Number всегда HEX (4 байта = 8 hex символов)
+            // Убираем пробелы и префиксы (0x, 0X)
+            text = text.Trim().Replace(" ", "").Replace("0x", "").Replace("0X", "");
+            
+            // Проверяем, что это валидная HEX строка
+            if (!Regex.IsMatch(text, @"^[0-9A-Fa-f]+$") || text.Length % 2 != 0)
             {
-                // Hex format
-                int byteCount = Math.Min(text.Length / 2, end - start + 1);
-                for (int i = 0; i < byteCount && (start + i) < data.Length; i++)
+                // Невалидный HEX - не записываем
+                return;
+            }
+
+            // Записываем HEX байты
+            int byteCount = Math.Min(text.Length / 2, end - start + 1);
+            for (int i = 0; i < byteCount && (start + i) < data.Length; i++)
+            {
+                string hexByte = text.Substring(i * 2, 2);
+                if (byte.TryParse(hexByte, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out byte value))
                 {
-                    string hexByte = text.Substring(i * 2, 2);
-                    if (byte.TryParse(hexByte, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out byte value))
-                    {
-                        data[start + i] = value;
-                    }
+                    data[start + i] = value;
                 }
             }
-            else
+            
+            // Заполняем оставшиеся байты нулями (если HEX строка короче)
+            for (int i = byteCount; i <= (end - start) && (start + i) < data.Length; i++)
             {
-                // ASCII format
-                WriteAsciiString(data, start, end, text);
+                data[start + i] = 0x00;
             }
         }
 

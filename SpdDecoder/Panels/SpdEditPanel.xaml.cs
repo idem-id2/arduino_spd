@@ -334,6 +334,17 @@ namespace HexEditor.SpdDecoder
                     valueControl.PreviewKeyDown -= OnPartNumberPreviewKeyDown;
                     valueControl.PreviewKeyDown += OnPartNumberPreviewKeyDown;
                 }
+                
+                // Для Serial Number добавляем обработчики для валидации HEX ввода
+                if (field.Id == "ModuleSerialNumber")
+                {
+                    valueControl.PreviewTextInput -= OnSerialNumberPreviewTextInput;
+                    valueControl.PreviewTextInput += OnSerialNumberPreviewTextInput;
+                    
+                    // Обрабатываем вставку (Ctrl+V)
+                    valueControl.PreviewKeyDown -= OnSerialNumberPreviewKeyDown;
+                    valueControl.PreviewKeyDown += OnSerialNumberPreviewKeyDown;
+                }
             }
         }
         
@@ -396,6 +407,135 @@ namespace HexEditor.SpdDecoder
             // Устанавливаем курсор после вставленного текста
             textBox.SelectionStart = selectionStart + validInput.Length;
             textBox.SelectionLength = 0;
+        }
+        
+        /// <summary>
+        /// Обработчик для Serial Number: валидирует HEX ввод и вставляет символ в позицию курсора
+        /// По стандарту JEDEC: только HEX данные (0-9, A-F, a-f), максимум 8 символов (4 байта)
+        /// </summary>
+        private void OnSerialNumberPreviewTextInput(object sender, System.Windows.Input.TextCompositionEventArgs e)
+        {
+            var textBox = sender as TextBox;
+            if (textBox == null)
+                return;
+            
+            // Валидация: разрешены только HEX символы (0-9, A-F, a-f) по JEDEC стандарту
+            string validInput = "";
+            foreach (char c in e.Text)
+            {
+                // Разрешаем только HEX символы
+                if ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))
+                {
+                    // Преобразуем в верхний регистр для единообразия
+                    validInput += char.ToUpperInvariant(c);
+                }
+            }
+            
+            if (validInput.Length == 0)
+            {
+                // Нет валидных символов - блокируем ввод
+                e.Handled = true;
+                return;
+            }
+            
+            // Проверяем максимальную длину (8 символов = 4 байта)
+            int maxLength = 8;
+            int selectionStart = textBox.SelectionStart;
+            int selectionLength = textBox.SelectionLength;
+            int currentLength = textBox.Text.Length - selectionLength;
+            
+            // Ограничиваем длину вставляемого текста
+            int availableLength = maxLength - currentLength;
+            if (availableLength <= 0)
+            {
+                e.Handled = true;
+                return; // Достигнута максимальная длина
+            }
+            
+            if (validInput.Length > availableLength)
+            {
+                validInput = validInput.Substring(0, availableLength);
+            }
+            
+            e.Handled = true;
+            
+            // Вставляем текст в позицию курсора, удаляя выделенный текст (стандартное поведение)
+            string newText = textBox.Text.Substring(0, selectionStart) + 
+                           validInput + 
+                           textBox.Text.Substring(selectionStart + selectionLength);
+            
+            textBox.Text = newText;
+            // Устанавливаем курсор после вставленного текста
+            textBox.SelectionStart = selectionStart + validInput.Length;
+            textBox.SelectionLength = 0;
+        }
+        
+        /// <summary>
+        /// Обработчик для Serial Number: обрабатывает вставку (Ctrl+V) с валидацией HEX
+        /// По стандарту JEDEC: только HEX данные
+        /// </summary>
+        private void OnSerialNumberPreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+        {
+            // Обрабатываем вставку через Ctrl+V
+            if (e.Key == System.Windows.Input.Key.V && 
+                (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
+            {
+                var textBox = sender as TextBox;
+                if (textBox != null)
+                {
+                    // Получаем текст из буфера обмена
+                    if (Clipboard.ContainsText())
+                    {
+                        string clipboardText = Clipboard.GetText();
+                        
+                        // Валидация: разрешены только HEX символы (0-9, A-F, a-f)
+                        var validChars = new System.Text.StringBuilder();
+                        foreach (char c in clipboardText)
+                        {
+                            // Разрешаем только HEX символы
+                            if ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'))
+                            {
+                                // Преобразуем в верхний регистр для единообразия
+                                validChars.Append(char.ToUpperInvariant(c));
+                            }
+                        }
+                        
+                        string processedText = validChars.ToString();
+                        
+                        if (processedText.Length > 0)
+                        {
+                            e.Handled = true;
+                            
+                            // Проверяем максимальную длину (8 символов = 4 байта)
+                            int maxLength = 8;
+                            int selectionStart = textBox.SelectionStart;
+                            int selectionLength = textBox.SelectionLength;
+                            int currentLength = textBox.Text.Length - selectionLength;
+                            
+                            // Ограничиваем длину вставляемого текста
+                            int availableLength = maxLength - currentLength;
+                            if (availableLength > 0 && processedText.Length > availableLength)
+                            {
+                                processedText = processedText.Substring(0, availableLength);
+                            }
+                            else if (availableLength <= 0)
+                            {
+                                return; // Достигнута максимальная длина
+                            }
+                            
+                            // Вставляем текст в позицию курсора, удаляя выделенный текст
+                            string newText = textBox.Text.Substring(0, selectionStart) + 
+                                           processedText + 
+                                           textBox.Text.Substring(selectionStart + selectionLength);
+                            
+                            textBox.Text = newText;
+                            // Устанавливаем курсор после вставленного текста
+                            textBox.SelectionStart = selectionStart + processedText.Length;
+                            textBox.SelectionLength = 0;
+                        }
+                    }
+                }
+            }
         }
         
         /// <summary>
