@@ -4,7 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              mc:Ignorable="d"
-             d:DesignHeight="549" d:DesignWidth="600"
+             d:DesignHeight="672" d:DesignWidth="600"
              HorizontalAlignment="Stretch"
              VerticalAlignment="Stretch">
     <Grid HorizontalAlignment="Stretch"
@@ -178,6 +178,115 @@
                                      Text="—"
                                      IsReadOnly="True"
                                      FontFamily="Consolas"/>
+                        </Grid>
+                        
+                        <!-- Buttons -->
+                        <Grid MinHeight="36" Margin="0,8,0,2">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="8"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Button x:Name="ReadRegistersButton"
+                                    Grid.Column="0"
+                                    Content="Прочитать регистры"
+                                    Click="ReadRegistersButton_Click"
+                                    Margin="4,2,4,2"
+                                    Padding="8,4"
+                                    HorizontalAlignment="Stretch"/>
+                            <Button x:Name="AutoDetectButton"
+                                    Grid.Column="2"
+                                    Content="Подобрать автономно"
+                                    Click="AutoDetectButton_Click"
+                                    Margin="4,2,4,2"
+                                    Padding="8,4"
+                                    HorizontalAlignment="Stretch"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+                
+                <!-- Encryption ID -->
+                <Border Style="{StaticResource SectionBlockStyle}"
+                        Margin="0,0,0,12">
+                    <StackPanel>
+                        <TextBlock Text="ENCRYPTION ID"
+                                   Style="{StaticResource CardTitleStyle}"/>
+                        
+                        <!-- Secure ID from SPD -->
+                        <Grid MinHeight="28" Margin="0,2,0,2" Background="{StaticResource ZebraEvenBrush}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="200"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="80"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="SecureIdFromSpdLabel"
+                                     Grid.Column="0"
+                                     Style="{StaticResource SpdInfoLabelStyle}"
+                                     Text="Secure ID (SPD)"
+                                     IsReadOnly="True"/>
+                            <TextBox x:Name="SecureIdFromSpdValue"
+                                     Grid.Column="1"
+                                     Style="{StaticResource SpdInfoValueStyle}"
+                                     Text="—"
+                                     IsReadOnly="True"
+                                     FontFamily="Consolas"/>
+                            <TextBox x:Name="SecureIdMatchValue"
+                                     Grid.Column="2"
+                                     Style="{StaticResource SpdInfoValueStyle}"
+                                     Text="—"
+                                     IsReadOnly="True"
+                                     HorizontalContentAlignment="Center"
+                                     FontWeight="Bold"/>
+                        </Grid>
+                        
+                        <!-- Calculated Encryption ID -->
+                        <Grid MinHeight="28" Margin="0,2,0,2" Background="{StaticResource ZebraOddBrush}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="200"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="80"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="CalculatedEncryptionIdLabel"
+                                     Grid.Column="0"
+                                     Style="{StaticResource SpdInfoLabelStyle}"
+                                     Text="Calculated Encryption ID"
+                                     IsReadOnly="True"/>
+                            <TextBox x:Name="CalculatedEncryptionIdValue"
+                                     Grid.Column="1"
+                                     Style="{StaticResource SpdInfoValueStyle}"
+                                     Text="—"
+                                     IsReadOnly="True"
+                                     FontFamily="Consolas"/>
+                            <TextBox x:Name="CalculatedIdMatchValue"
+                                     Grid.Column="2"
+                                     Style="{StaticResource SpdInfoValueStyle}"
+                                     Text="—"
+                                     IsReadOnly="True"
+                                     HorizontalContentAlignment="Center"
+                                     FontWeight="Bold"/>
+                        </Grid>
+                        
+                        <!-- Buttons -->
+                        <Grid MinHeight="36" Margin="0,8,0,2">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="8"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Button x:Name="CalculateButton"
+                                    Grid.Column="0"
+                                    Content="Рассчитать"
+                                    Click="CalculateButton_Click"
+                                    Margin="4,2,4,2"
+                                    Padding="8,4"
+                                    HorizontalAlignment="Stretch"/>
+                            <Button x:Name="FixSecureIdButton"
+                                    Grid.Column="2"
+                                    Content="Fix Secure ID"
+                                    Click="FixSecureIdButton_Click"
+                                    Margin="4,2,4,2"
+                                    Padding="8,4"
+                                    HorizontalAlignment="Stretch"/>
                         </Grid>
                     </StackPanel>
                 </Border>

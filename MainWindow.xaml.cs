@@ -20,6 +20,7 @@ using HexEditor.Arduino.Services;
 using HexEditor.Arduino.Hardware;
 using HexEditor.Constants;
 using HexEditor.SpdDecoder;
+using HexEditor.SpdDecoder.HpeSmartMemory;
 using ArduinoHardware = HexEditor.Arduino.Hardware.Arduino;
 
 namespace HexEditor
@@ -119,6 +120,12 @@ namespace HexEditor
             if (SpdEditPanel != null)
             {
                 SpdEditPanel.ChangesApplied += OnSpdEditChangesApplied;
+            }
+            
+            // Подписываемся на события изменения данных в HPE SmartMemory Panel
+            if (HpeSmartMemoryPanel != null)
+            {
+                HpeSmartMemoryPanel.ChangesApplied += OnHpeSmartMemoryChangesApplied;
             }
 
             HideProgress();
@@ -531,6 +538,11 @@ namespace HexEditor
                 if (SpdEditPanel != null)
                 {
                     SpdEditPanel.ChangesApplied -= OnSpdEditChangesApplied;
+                }
+                
+                if (HpeSmartMemoryPanel != null)
+                {
+                    HpeSmartMemoryPanel.ChangesApplied -= OnHpeSmartMemoryChangesApplied;
                 }
             }
             catch (Exception ex)
@@ -2097,6 +2109,31 @@ namespace HexEditor
                 ScheduleSpdInfoUpdate(immediate: true);
                 
                 AppendLog("Info", $"SPD data modified via Edit Panel: {changes.Count} byte range(s) changed.");
+            }
+            catch (Exception ex)
+            {
+                AppendLog("Error", $"Error applying SPD Edit changes: {ex.Message}");
+            }
+        }
+        
+        private void OnHpeSmartMemoryChangesApplied(List<HpeSmartMemoryPanel.ByteChange> changes)
+        {
+            try
+            {
+                // Применяем каждое изменение через ReplaceData для сохранения истории undo/redo
+                foreach (var change in changes)
+                {
+                    if (change.Offset >= 0 && change.Offset < HexEditor.DocumentLength && 
+                        change.NewData != null && change.NewData.Length > 0)
+                    {
+                        HexEditor.ReplaceData(change.Offset, change.NewData);
+                    }
+                }
+                
+                // Обновляем панель информации
+                ScheduleSpdInfoUpdate(immediate: true);
+                
+                AppendLog("Info", $"SPD data modified via HPE SmartMemory Panel: {changes.Count} byte range(s) changed.");
             }
             catch (Exception ex)
             {

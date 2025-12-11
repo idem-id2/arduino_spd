@@ -267,10 +267,12 @@ namespace HexEditor.SpdDecoder.HpeSmartMemory
             buffer[offset++] = 0x20;
             buffer[offset++] = 0;
             buffer[offset++] = 0x20;
-            offset += 8;
+            // offset уже увеличился 8 раз выше, не нужно добавлять еще раз
 
             // ШАГ 6: Секретный ключ
-            Array.Copy(COPYRIGHT_STRING, 0, buffer, offset, Math.Min(COPYRIGHT_STRING.Length, BUFFER_V69_SIZE - offset));
+            // Копируем первые 35 байт секретного ключа (как в Python: secret_key[:35])
+            int keyLength = Math.Min(35, COPYRIGHT_STRING.Length);
+            Array.Copy(COPYRIGHT_STRING, 0, buffer, offset, keyLength);
 
             return buffer;
         }
