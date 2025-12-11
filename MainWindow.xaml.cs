@@ -2133,13 +2133,23 @@ namespace HexEditor
                 // Обновляем панель информации
                 ScheduleSpdInfoUpdate(immediate: true);
                 
-                AppendLog("Info", $"SPD data modified via HPE SmartMemory Panel: {changes.Count} byte range(s) changed.");
+                // Формируем детальное сообщение о изменениях
+                if (changes.Count == 3 && 
+                    changes[0].Offset == 0x18E && changes[0].NewData.Length == 2 &&
+                    changes[1].Offset == 0x190 && changes[1].NewData.Length == 2 &&
+                    changes[2].Offset == 0x19C && changes[2].NewData.Length == 100)
+                {
+                    // Это обнуление информации о работе в сервере
+                    AppendLog("Info", "Информация о работе в сервере успешно обнулена (байты 0x18E-0x18F, 0x190-0x191, 0x19C-0x1FF).");
+                }
+                else
+                {
+                    AppendLog("Info", $"SPD data modified via HPE SmartMemory Panel: {changes.Count} byte range(s) changed.");
+                }
             }
             catch (Exception ex)
             {
-                AppendLog("Error", $"Error applying SPD changes: {ex.Message}");
-                MessageBox.Show($"Error applying SPD changes: {ex.Message}", "Error",
-                    MessageBoxButton.OK, MessageBoxImage.Error);
+                AppendLog("Error", $"Error applying HPE SmartMemory changes: {ex.Message}");
             }
         }
 

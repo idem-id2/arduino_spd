@@ -4,7 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              mc:Ignorable="d"
-             d:DesignHeight="672" d:DesignWidth="600"
+             d:DesignHeight="752" d:DesignWidth="600"
              HorizontalAlignment="Stretch"
              VerticalAlignment="Stretch">
     <Grid HorizontalAlignment="Stretch"
@@ -89,6 +89,51 @@
                                      Text="—"
                                      IsReadOnly="True"
                                      FontFamily="Consolas"/>
+                        </Grid>
+                        
+                        <!-- Buttons -->
+                        <Grid MinHeight="36" Margin="0,12,0,2">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="8"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="8"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <!-- Обнулить информацию о работе в сервере -->
+                            <Button x:Name="ClearServerInfoButton"
+                                    Grid.Row="0"
+                                    Grid.Column="0"
+                                    Grid.ColumnSpan="3"
+                                    Content="Обнулить информацию о работе в сервере"
+                                    Click="ClearServerInfoButton_Click"
+                                    Margin="4,2,4,2"
+                                    Padding="8,4"
+                                    HorizontalAlignment="Stretch"/>
+                            
+                            <!-- Удалить ошибки -->
+                            <Button x:Name="ClearErrorsButton"
+                                    Grid.Row="2"
+                                    Grid.Column="0"
+                                    Content="Удалить ошибки"
+                                    Click="ClearErrorsButton_Click"
+                                    Margin="4,2,4,2"
+                                    Padding="8,4"
+                                    HorizontalAlignment="Stretch"/>
+                            
+                            <!-- Удалить дату инсталляции -->
+                            <Button x:Name="ClearInstallDateButton"
+                                    Grid.Row="2"
+                                    Grid.Column="2"
+                                    Content="Удалить дату инсталляции"
+                                    Click="ClearInstallDateButton_Click"
+                                    Margin="4,2,4,2"
+                                    Padding="8,4"
+                                    HorizontalAlignment="Stretch"/>
                         </Grid>
                     </StackPanel>
                 </Border>

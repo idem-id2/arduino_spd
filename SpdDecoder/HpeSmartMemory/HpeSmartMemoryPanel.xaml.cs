@@ -32,6 +32,9 @@ namespace HexEditor.SpdDecoder.HpeSmartMemory
         private uint? _currentSecureIdFromSpd;
         private uint? _currentCalculatedEncryptionId;
         
+        // Флаг для предотвращения рекурсивных обновлений при программном выборе пресета
+        private bool _isUpdatingPresetProgrammatically = false;
+        
         /// <summary>
         /// Структура для передачи изменений байтов
         /// </summary>
@@ -212,6 +215,12 @@ namespace HexEditor.SpdDecoder.HpeSmartMemory
         /// </summary>
         private void PresetComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
+            // Игнорируем события при программном обновлении
+            if (_isUpdatingPresetProgrammatically)
+            {
+                return;
+            }
+            
             if (PresetComboBox?.SelectedItem == null)
             {
                 return;
@@ -254,10 +263,9 @@ namespace HexEditor.SpdDecoder.HpeSmartMemory
                     
                     UpdateSensorRegistersFromPreset(reg6, reg7);
                 }
-                catch (Exception ex)
+                catch
                 {
                     // В случае ошибки парсинга просто очищаем
-                    System.Diagnostics.Debug.WriteLine($"Error parsing preset values: {ex.Message}");
                     UpdateSensorRegistersFromPreset(null, null);
                 }
             }
@@ -466,13 +474,7 @@ namespace HexEditor.SpdDecoder.HpeSmartMemory
                 var result = HpeEncryptionIdCalculator.AutoDetectSensorRegisters(
                     _currentSpdData,
                     secureIdFromSpd.Value,
-                    (presetName, reg6, reg7, encryptionId, secureId, isMatch) =>
-                    {
-                        // Логирование процесса (можно добавить в лог, если нужно)
-                        System.Diagnostics.Debug.WriteLine(
-                            $"[AutoDetect] {presetName}: Reg6=0x{reg6:X4}, Reg7=0x{reg7:X4}, " +
-                            $"EncryptionID=0x{encryptionId:X8}, SecureID=0x{secureId:X8}, Match={isMatch}");
-                    });
+                    logCallback: null);
                 
                 if (result != null)
                 {
@@ -481,42 +483,75 @@ namespace HexEditor.SpdDecoder.HpeSmartMemory
                     _currentSensorReg6 = result.Reg6;
                     _currentSensorReg7 = result.Reg7;
                     
-                    // Обновляем ComboBox - выбираем соответствующий пресет
+                    // ВАЖНО: Сначала обновляем текстовые поля напрямую, независимо от ComboBox
+                    UpdateSensorRegistersFromPreset(result.Reg6, result.Reg7);
+                    
+                    // Затем обновляем ComboBox - выбираем соответствующий пресет
+                    // Используем простой и надежный способ: маппинг пресетов на индексы
                     if (PresetComboBox != null)
                     {
-                        foreach (var item in PresetComboBox.Items)
+                        // Временно отключаем обработчик SelectionChanged
+                        _isUpdatingPresetProgrammatically = true;
+                        
+                        try
                         {
-                            if (item is ComboBoxItem comboItem)
+                            // Маппинг имен пресетов на индексы в ComboBox (соответствует порядку в XAML)
+                            // Индекс 0: "—" (пустое значение)
+                            // Индекс 1: "S34TS04A - Ablic (1C85, 2221)"
+                            // Индекс 2: "STTS2004 - STMicroelectronics (104A, 2201)"
+                            // Индекс 3: "MCP98244 - Microchip (0054, 2201)"
+                            // Индекс 4: "TSE2004GB2B0 - Renesas (00F8, EE25)"
+                            int targetIndex = -1;
+                            string presetName = result.PresetName;
+                            
+                            if (presetName == "S34TS04A - Ablic (1C85, 2221)")
                             {
-                                string? tagValue = comboItem.Tag?.ToString();
-                                if (!string.IsNullOrEmpty(tagValue))
+                                targetIndex = 1;
+                            }
+                            else if (presetName == "STTS2004 - STMicroelectronics (104A, 2201)")
+                            {
+                                targetIndex = 2;
+                            }
+                            else if (presetName == "MCP98244 - Microchip (0054, 2201)")
+                            {
+                                targetIndex = 3;
+                            }
+                            else if (presetName == "TSE2004GB2B0 - Renesas (00F8, EE25)")
+                            {
+                                targetIndex = 4;
+                            }
+                            
+                            // Устанавливаем выбранный элемент по индексу
+                            if (targetIndex >= 0 && targetIndex < PresetComboBox.Items.Count)
+                            {
+                                PresetComboBox.SelectedIndex = targetIndex;
+                            }
+                            else
+                            {
+                                // Fallback: ищем по Tag если индекс не найден
+                                string searchTag = $"{result.Reg6:X4},{result.Reg7:X4}";
+                                for (int i = 0; i < PresetComboBox.Items.Count; i++)
                                 {
-                                    string[] parts = tagValue.Split(',');
-                                    if (parts.Length == 2)
+                                    var item = PresetComboBox.Items[i];
+                                    if (item is ComboBoxItem comboItem)
                                     {
-                                        try
+                                        string? tagValue = comboItem.Tag?.ToString();
+                                        if (!string.IsNullOrEmpty(tagValue) && 
+                                            string.Equals(tagValue, searchTag, StringComparison.OrdinalIgnoreCase))
                                         {
-                                            ushort reg6 = ushort.Parse(parts[0].Trim(), NumberStyles.HexNumber, CultureInfo.InvariantCulture);
-                                            ushort reg7 = ushort.Parse(parts[1].Trim(), NumberStyles.HexNumber, CultureInfo.InvariantCulture);
-                                            
-                                            if (reg6 == result.Reg6 && reg7 == result.Reg7)
-                                            {
-                                                PresetComboBox.SelectedItem = comboItem;
-                                                break;
-                                            }
-                                        }
-                                        catch
-                                        {
-                                            // Пропускаем некорректные значения
+                                            PresetComboBox.SelectedIndex = i;
+                                            break;
                                         }
                                     }
                                 }
                             }
                         }
+                        finally
+                        {
+                            // Включаем обработчик обратно
+                            _isUpdatingPresetProgrammatically = false;
+                        }
                     }
-                    
-                    // Обновляем отображение Sensor Registers
-                    UpdateSensorRegistersFromPreset(result.Reg6, result.Reg7);
                     
                     // Автоматически рассчитываем Encryption ID с найденными значениями
                     _currentCalculatedEncryptionId = result.CalculatedEncryptionId;
@@ -631,6 +666,161 @@ namespace HexEditor.SpdDecoder.HpeSmartMemory
             }
         }
 
+        /// <summary>
+        /// Обработчик кнопки "Обнулить информацию о работе в сервере"
+        /// </summary>
+        private void ClearServerInfoButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_currentSpdData == null)
+            {
+                return;
+            }
+            
+            // Проверяем, что SPD данные достаточной длины
+            if (_currentSpdData.Length < 512)
+            {
+                return;
+            }
+            
+            try
+            {
+                var changes = new List<ByteChange>();
+                
+                // Диапазон 1: 0x18E-0x18F (2 байта)
+                changes.Add(new ByteChange
+                {
+                    Offset = 0x18E,
+                    NewData = new byte[] { 0x00, 0x00 }
+                });
+                
+                // Диапазон 2: 0x190-0x191 (2 байта)
+                changes.Add(new ByteChange
+                {
+                    Offset = 0x190,
+                    NewData = new byte[] { 0x00, 0x00 }
+                });
+                
+                // Диапазон 3: 0x19C-0x1FF (100 байт)
+                byte[] zeros100 = new byte[100];
+                Array.Clear(zeros100, 0, 100);
+                changes.Add(new ByteChange
+                {
+                    Offset = 0x19C,
+                    NewData = zeros100
+                });
+                
+                // Применяем изменения
+                ChangesApplied?.Invoke(changes);
+            }
+            catch
+            {
+                // Ошибка будет залогирована в OnHpeSmartMemoryChangesApplied
+            }
+        }
+        
+        /// <summary>
+        /// Обработчик кнопки "Удалить ошибки"
+        /// </summary>
+        private void ClearErrorsButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_currentSpdData == null)
+            {
+                MessageBox.Show("SPD данные не загружены.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+            
+            // TODO: Уточнить адреса для счетчиков ошибок
+            // Обычно это ECC Error Count, Uncorrectable Error Count и т.д.
+            
+            var result = MessageBox.Show(
+                "Вы уверены, что хотите удалить информацию об ошибках?\n\n" +
+                "Это действие обнулит счетчики ошибок ECC и других типов.",
+                "Подтверждение",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question);
+            
+            if (result != MessageBoxResult.Yes)
+            {
+                return;
+            }
+            
+            try
+            {
+                // TODO: Определить точные адреса и размер области
+                var changes = new List<ByteChange>();
+                
+                // Пример (нужно уточнить):
+                // ECC Error Count (4 байта): адреса 0xXXX-0xXXX
+                // Uncorrectable Error Count (4 байта): адреса 0xXXX-0xXXX
+                // и т.д.
+                
+                if (changes.Count > 0)
+                {
+                    ChangesApplied?.Invoke(changes);
+                    MessageBox.Show("Информация об ошибках успешно удалена.", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                else
+                {
+                    MessageBox.Show("Функция пока не реализована. Необходимо уточнить адреса байтов.", "Информация", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка при удалении ошибок: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        
+        /// <summary>
+        /// Обработчик кнопки "Удалить дату инсталляции"
+        /// </summary>
+        private void ClearInstallDateButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_currentSpdData == null)
+            {
+                MessageBox.Show("SPD данные не загружены.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+            
+            // TODO: Уточнить адреса для даты инсталляции
+            // Обычно это дата в формате BCD или Unix timestamp
+            
+            var result = MessageBox.Show(
+                "Вы уверены, что хотите удалить дату инсталляции?\n\n" +
+                "Это действие обнулит дату установки модуля в сервер.",
+                "Подтверждение",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question);
+            
+            if (result != MessageBoxResult.Yes)
+            {
+                return;
+            }
+            
+            try
+            {
+                // TODO: Определить точные адреса и размер области
+                var changes = new List<ByteChange>();
+                
+                // Пример (нужно уточнить):
+                // Installation Date (4 байта): адреса 0xXXX-0xXXX
+                // или в формате BCD: адреса 0xXXX-0xXXX
+                
+                if (changes.Count > 0)
+                {
+                    ChangesApplied?.Invoke(changes);
+                    MessageBox.Show("Дата инсталляции успешно удалена.", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                else
+                {
+                    MessageBox.Show("Функция пока не реализована. Необходимо уточнить адреса байтов.", "Информация", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка при удалении даты инсталляции: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        
         /// <summary>
         /// Чтение HPE Part Number из SPD данных
         /// </summary>
