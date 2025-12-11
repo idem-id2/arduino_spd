@@ -3,10 +3,11 @@
     "commands": [
       {
         "match": "\\.(cs|xaml|json|csproj|sln|md|txt|ino|h|ps1|psm1)$",
-        "notMatch": "(?i)(^|/)(bin|obj|debug|release)(/|$)|(\\.user$|\\.suo$)",
+        "notMatch": "(?i)(^|/)(bin|obj|debug|release)(/|$)|(\\.user$|\\.suo$)|(\\.git/)",
         "cmd": "powershell.exe -ExecutionPolicy Bypass -NoProfile -File \"${workspaceFolder}\\.vscode\\auto-commit.ps1\" \"${file}\"",
         "runIn": "backend",
-        "runOn": "onSave"
+        "runOn": "onSave",
+        "delay": 2000
       }
     ],
     "shell": true
