@@ -16,6 +16,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
+using System.Windows.Documents;
 using HexEditor.Arduino.Services;
 using HexEditor.Arduino.Hardware;
 using HexEditor.Constants;
@@ -35,6 +36,21 @@ namespace HexEditor
         public DateTime Timestamp { get; set; }
         public string FormattedText { get; set; } = string.Empty;
         public string FormattedTimestamp { get; set; } = string.Empty;
+        
+        public Brush LevelBrush
+        {
+            get
+            {
+                return Level switch
+                {
+                    "Error" => (Brush)Application.Current.FindResource("ErrorBrush") ?? Brushes.Red,
+                    "Warn" => (Brush)Application.Current.FindResource("WarningBrush") ?? Brushes.Orange,
+                    "Info" => (Brush)Application.Current.FindResource("InfoBrush") ?? Brushes.Blue,
+                    "Debug" => (Brush)Application.Current.FindResource("MutedTextBrush") ?? Brushes.Gray,
+                    _ => (Brush)Application.Current.FindResource("PrimaryTextBrush") ?? Brushes.Black
+                };
+            }
+        }
     }
 
     public partial class MainWindow : Window
@@ -1992,6 +2008,26 @@ namespace HexEditor
             catch (Exception ex)
             {
                 AppendLog("Warn", $"Clipboard error: {ex.Message}");
+            }
+        }
+
+        private void LogTextBlock_Loaded(object sender, RoutedEventArgs e)
+        {
+            if (sender is TextBlock textBlock && textBlock.DataContext is LogEntry entry)
+            {
+                textBlock.Inlines.Clear();
+                
+                // Создаем Inlines напрямую в TextBlock, без Span
+                // Это должно предотвратить добавление пробелов между Run элементами
+                textBlock.Inlines.Add(new Run("["));
+                textBlock.Inlines.Add(new Run(entry.Level) { Foreground = entry.LevelBrush });
+                textBlock.Inlines.Add(new Run("] "));
+                textBlock.Inlines.Add(new Run(entry.FormattedTimestamp) 
+                { 
+                    Foreground = (Brush)FindResource("MutedTextBrush") 
+                });
+                textBlock.Inlines.Add(new Run(": "));
+                textBlock.Inlines.Add(new Run(entry.Message));
             }
         }
 

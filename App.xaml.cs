@@ -42,8 +42,8 @@ namespace HexEditor
         }
 
         /// <summary>
-        /// Загружает шрифт JetBrainsMonoNL-Regular.ttf и добавляет его в ресурсы приложения.
-        /// Если шрифт не найден, используется fallback на распространённые моноширинные шрифты.
+        /// Загружает шрифты JetBrainsMono-Regular.ttf и JetBrainsMono-Bold.ttf и добавляет их в ресурсы приложения.
+        /// Если шрифты не найдены, используется fallback на распространённые моноширинные шрифты.
         /// </summary>
         private void LoadApplicationFont()
         {
@@ -52,18 +52,31 @@ namespace HexEditor
             try
             {
                 string exeDirectory = AppDomain.CurrentDomain.BaseDirectory;
-                string ttfPath = Path.Combine(exeDirectory, "JetBrainsMonoNL-Regular.ttf");
+                string regularPath = Path.Combine(exeDirectory, "JetBrainsMono-Regular.ttf");
+                string boldPath = Path.Combine(exeDirectory, "JetBrainsMono-Bold.ttf");
 
-                if (File.Exists(ttfPath))
+                if (File.Exists(regularPath))
                 {
-                    var fontUri = new Uri(ttfPath, UriKind.Absolute);
-                    // Создаём FontFamily с fallback на распространённые моноширинные шрифты
-                    appFontFamily = new FontFamily(fontUri, "./#JetBrains Mono NL, Consolas, 'Courier New', monospace");
-                    System.Diagnostics.Debug.WriteLine("Loaded JetBrainsMonoNL-Regular.ttf for application-wide use");
+                    var regularUri = new Uri(regularPath, UriKind.Absolute);
+                    
+                    // Загружаем Regular как основной шрифт
+                    // WPF автоматически будет использовать Bold файл для FontWeight.Bold и FontWeight.SemiBold, если он доступен
+                    if (File.Exists(boldPath))
+                    {
+                        // Создаём FontFamily с Regular файлом
+                        // WPF автоматически выберет правильный файл в зависимости от FontWeight
+                        appFontFamily = new FontFamily(regularUri, "./#JetBrains Mono, Consolas, 'Courier New', monospace");
+                        System.Diagnostics.Debug.WriteLine("Loaded JetBrainsMono-Regular.ttf and JetBrainsMono-Bold.ttf for application-wide use");
+                    }
+                    else
+                    {
+                        appFontFamily = new FontFamily(regularUri, "./#JetBrains Mono, Consolas, 'Courier New', monospace");
+                        System.Diagnostics.Debug.WriteLine("Loaded JetBrainsMono-Regular.ttf for application-wide use (Bold version not found, will use system fallback)");
+                    }
                 }
                 else
                 {
-                    System.Diagnostics.Debug.WriteLine("JetBrainsMonoNL-Regular.ttf not found, using Consolas fallback");
+                    System.Diagnostics.Debug.WriteLine("JetBrainsMono-Regular.ttf not found, using Consolas fallback");
                     // Используем fallback на распространённые моноширинные шрифты
                     appFontFamily = new FontFamily("Consolas, 'Courier New', monospace");
                 }

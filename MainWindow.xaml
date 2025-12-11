@@ -21,6 +21,13 @@
         TextOptions.TextHintingMode="Fixed"
         UseLayoutRounding="True"
         SnapsToDevicePixels="True">
+    <Window.Resources>
+        <DataTemplate x:Key="LogEntryTemplate">
+            <TextBlock TextWrapping="Wrap" Margin="4,2" 
+                       FontFamily="{DynamicResource ApplicationFontFamily}"
+                       Loaded="LogTextBlock_Loaded"/>
+        </DataTemplate>
+    </Window.Resources>
     <DockPanel Background="{DynamicResource AppWindowBackground}">
         <!-- Menu Bar -->
         <Menu DockPanel.Dock="Top"
@@ -540,7 +547,7 @@
                                                 VerticalAlignment="Center"
                                                 Margin="0,0,0,6">
                                         <TextBlock Text="Device Logs"
-                                                   FontWeight="SemiBold"
+                                                   FontWeight="Bold"
                                                    Foreground="{StaticResource PrimaryTextBrush}"
                                                    FontSize="12"/>
                                         <TextBlock Text=" · Arduino COM activity"
@@ -554,46 +561,13 @@
                                              Foreground="{StaticResource PrimaryTextBrush}"
                                              BorderBrush="{StaticResource SurfaceBorderBrush}"
                                              BorderThickness="1"
-                                             FontFamily="Segoe UI"
                                              FontSize="11"
                                              HorizontalContentAlignment="Stretch"
                                              ScrollViewer.VerticalScrollBarVisibility="Auto"
                                              ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                                              SelectionMode="Single">
                                         <ListBox.ItemTemplate>
-                                            <DataTemplate>
-                                                <TextBlock TextWrapping="Wrap" Margin="4,2">
-                                                    <TextBlock.Inlines>
-                                                        <Run Text="["/>
-                                                        <Run Text="{Binding Level}">
-                                                            <Run.Style>
-                                                                <Style TargetType="Run">
-                                                                    <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}"/>
-                                                                    <Style.Triggers>
-                                                                        <DataTrigger Binding="{Binding Level}" Value="Error">
-                                                                            <Setter Property="Foreground" Value="{StaticResource ErrorBrush}"/>
-                                                                        </DataTrigger>
-                                                                        <DataTrigger Binding="{Binding Level}" Value="Warn">
-                                                                            <Setter Property="Foreground" Value="{StaticResource WarningBrush}"/>
-                                                                        </DataTrigger>
-                                                                        <DataTrigger Binding="{Binding Level}" Value="Info">
-                                                                            <Setter Property="Foreground" Value="{StaticResource InfoBrush}"/>
-                                                                        </DataTrigger>
-                                                                        <DataTrigger Binding="{Binding Level}" Value="Debug">
-                                                                            <Setter Property="Foreground" Value="{StaticResource MutedTextBrush}"/>
-                                                                        </DataTrigger>
-                                                                    </Style.Triggers>
-                                                                </Style>
-                                                            </Run.Style>
-                                                        </Run>
-                                                        <Run Text="] "/>
-                                                        <Run Text="{Binding FormattedTimestamp}" 
-                                                             Foreground="{StaticResource MutedTextBrush}"/>
-                                                        <Run Text=": "/>
-                                                        <Run Text="{Binding Message}"/>
-                                                    </TextBlock.Inlines>
-                                                </TextBlock>
-                                            </DataTemplate>
+                                            <StaticResource ResourceKey="LogEntryTemplate"/>
                                         </ListBox.ItemTemplate>
                                         <ListBox.ContextMenu>
                                             <ContextMenu>
@@ -618,7 +592,7 @@
                                 <DockPanel DockPanel.Dock="Top" Margin="0,0,0,6">
                                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                         <TextBlock Text="Device Logs"
-                                                   FontWeight="SemiBold"
+                                                   FontWeight="Bold"
                                                    Foreground="{StaticResource PrimaryTextBrush}"
                                                    FontSize="12"/>
                                         <TextBlock Text=" · Arduino COM activity"
@@ -633,46 +607,13 @@
                                          Foreground="{StaticResource PrimaryTextBrush}"
                                          BorderBrush="{StaticResource SurfaceBorderBrush}"
                                          BorderThickness="1"
-                                         FontFamily="Segoe UI"
                                          FontSize="11"
                                          HorizontalContentAlignment="Stretch"
                                          ScrollViewer.VerticalScrollBarVisibility="Auto"
                                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                                          SelectionMode="Single">
                                         <ListBox.ItemTemplate>
-                                            <DataTemplate>
-                                                <TextBlock TextWrapping="Wrap" Margin="4,2">
-                                                    <TextBlock.Inlines>
-                                                        <Run Text="["/>
-                                                        <Run Text="{Binding Level}">
-                                                            <Run.Style>
-                                                                <Style TargetType="Run">
-                                                                    <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}"/>
-                                                                    <Style.Triggers>
-                                                                        <DataTrigger Binding="{Binding Level}" Value="Error">
-                                                                            <Setter Property="Foreground" Value="{StaticResource ErrorBrush}"/>
-                                                                        </DataTrigger>
-                                                                        <DataTrigger Binding="{Binding Level}" Value="Warn">
-                                                                            <Setter Property="Foreground" Value="{StaticResource WarningBrush}"/>
-                                                                        </DataTrigger>
-                                                                        <DataTrigger Binding="{Binding Level}" Value="Info">
-                                                                            <Setter Property="Foreground" Value="{StaticResource InfoBrush}"/>
-                                                                        </DataTrigger>
-                                                                        <DataTrigger Binding="{Binding Level}" Value="Debug">
-                                                                            <Setter Property="Foreground" Value="{StaticResource MutedTextBrush}"/>
-                                                                        </DataTrigger>
-                                                                    </Style.Triggers>
-                                                                </Style>
-                                                            </Run.Style>
-                                                        </Run>
-                                                        <Run Text="] "/>
-                                                        <Run Text="{Binding FormattedTimestamp}" 
-                                                             Foreground="{StaticResource MutedTextBrush}"/>
-                                                        <Run Text=": "/>
-                                                        <Run Text="{Binding Message}"/>
-                                                    </TextBlock.Inlines>
-                                                </TextBlock>
-                                            </DataTemplate>
+                                            <StaticResource ResourceKey="LogEntryTemplate"/>
                                         </ListBox.ItemTemplate>
                                     <ListBox.ContextMenu>
                                         <ContextMenu>
