@@ -560,6 +560,13 @@
                                              ScrollViewer.VerticalScrollBarVisibility="Auto"
                                              ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                                              SelectionMode="Single">
+                                        <ListBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding}"
+                                                           TextWrapping="Wrap"
+                                                           Margin="4,2"/>
+                                            </DataTemplate>
+                                        </ListBox.ItemTemplate>
                                         <ListBox.ContextMenu>
                                             <ContextMenu>
                                                 <MenuItem Header="Скопировать строку"
@@ -604,6 +611,13 @@
                                          ScrollViewer.VerticalScrollBarVisibility="Auto"
                                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                                          SelectionMode="Single">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding}"
+                                                       TextWrapping="Wrap"
+                                                       Margin="4,2"/>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
                                     <ListBox.ContextMenu>
                                         <ContextMenu>
                                             <MenuItem Header="Скопировать строку"

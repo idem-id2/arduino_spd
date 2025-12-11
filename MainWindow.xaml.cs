@@ -25,9 +25,20 @@ using ArduinoHardware = HexEditor.Arduino.Hardware.Arduino;
 
 namespace HexEditor
 {
+    /// <summary>
+    /// Класс для представления записи в логе с поддержкой цветов
+    /// </summary>
+    public class LogEntry
+    {
+        public string Level { get; set; } = string.Empty;
+        public string Message { get; set; } = string.Empty;
+        public DateTime Timestamp { get; set; }
+        public string FormattedText { get; set; } = string.Empty;
+    }
+
     public partial class MainWindow : Window
     {
-        private readonly ObservableCollection<string> _logEntries = new();
+        private readonly ObservableCollection<LogEntry> _logEntries = new();
         private readonly ObservableCollection<string> _i2cAddresses = new();
         private readonly ArduinoService _arduinoService;
         private byte[]? _lastLoggedAddresses;
@@ -1990,7 +2001,15 @@ namespace HexEditor
 
             Dispatcher.Invoke(() =>
             {
-                string entry = $"[{level}] {DateTime.Now:dd.MM.yyyy HH:mm:ss}: {message}";
+                var timestamp = DateTime.Now;
+                var entry = new LogEntry
+                {
+                    Level = level,
+                    Message = message,
+                    Timestamp = timestamp,
+                    FormattedText = $"[{level}] {timestamp:dd.MM.yyyy HH:mm:ss}: {message}"
+                };
+                
                 _logEntries.Add(entry);
 
                 while (_logEntries.Count > MaxLogEntries)
