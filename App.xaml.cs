@@ -42,8 +42,9 @@ namespace HexEditor
         }
 
         /// <summary>
-        /// Загружает шрифты JetBrainsMono-Regular.ttf и JetBrainsMono-Bold.ttf и добавляет их в ресурсы приложения.
-        /// Если шрифты не найдены, используется fallback на распространённые моноширинные шрифты.
+        /// Загружает шрифт для всего приложения.
+        /// Использует системные шрифты, оптимизированные для WPF (Consolas, Segoe UI Mono),
+        /// так как JetBrains Mono может плохо рендериться в WPF.
         /// </summary>
         private void LoadApplicationFont()
         {
@@ -51,39 +52,30 @@ namespace HexEditor
             
             try
             {
-                string exeDirectory = AppDomain.CurrentDomain.BaseDirectory;
-                string regularPath = Path.Combine(exeDirectory, "JetBrainsMono-Regular.ttf");
-                string boldPath = Path.Combine(exeDirectory, "JetBrainsMono-Bold.ttf");
-
-                if (File.Exists(regularPath))
+                // Пробуем использовать системные шрифты, которые отлично работают в WPF
+                // Порядок приоритета:
+                // 1. Segoe UI Mono (Windows 10+, современный и красивый)
+                // 2. Consolas (классический моноширинный от Microsoft, отлично работает в WPF)
+                // 3. Courier New (универсальный fallback)
+                
+                // Проверяем доступность Segoe UI Mono
+                try
                 {
-                    var regularUri = new Uri(regularPath, UriKind.Absolute);
-                    
-                    // Загружаем Regular как основной шрифт
-                    // WPF автоматически будет использовать Bold файл для FontWeight.Bold и FontWeight.SemiBold, если он доступен
-                    if (File.Exists(boldPath))
-                    {
-                        // Создаём FontFamily с Regular файлом
-                        // WPF автоматически выберет правильный файл в зависимости от FontWeight
-                        appFontFamily = new FontFamily(regularUri, "./#JetBrains Mono, Consolas, 'Courier New', monospace");
-                        System.Diagnostics.Debug.WriteLine("Loaded JetBrainsMono-Regular.ttf and JetBrainsMono-Bold.ttf for application-wide use");
-                    }
-                    else
-                    {
-                        appFontFamily = new FontFamily(regularUri, "./#JetBrains Mono, Consolas, 'Courier New', monospace");
-                        System.Diagnostics.Debug.WriteLine("Loaded JetBrainsMono-Regular.ttf for application-wide use (Bold version not found, will use system fallback)");
-                    }
+                    var testFont = new FontFamily("Segoe UI Mono");
+                    // Если шрифт доступен, используем его
+                    appFontFamily = testFont;
+                    System.Diagnostics.Debug.WriteLine("Using Segoe UI Mono (system font, optimized for WPF)");
                 }
-                else
+                catch
                 {
-                    System.Diagnostics.Debug.WriteLine("JetBrainsMono-Regular.ttf not found, using Consolas fallback");
-                    // Используем fallback на распространённые моноширинные шрифты
+                    // Segoe UI Mono не доступен, используем Consolas
                     appFontFamily = new FontFamily("Consolas, 'Courier New', monospace");
+                    System.Diagnostics.Debug.WriteLine("Using Consolas (system font, excellent WPF rendering)");
                 }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Failed to load custom font: {ex.Message}, using Consolas fallback");
+                System.Diagnostics.Debug.WriteLine($"Failed to load system fonts: {ex.Message}, using Consolas fallback");
                 // Используем fallback на распространённые моноширинные шрифты
                 appFontFamily = new FontFamily("Consolas, 'Courier New', monospace");
             }
@@ -92,6 +84,10 @@ namespace HexEditor
             if (appFontFamily != null)
             {
                 Resources["ApplicationFontFamily"] = appFontFamily;
+                
+                // Выводим информацию о загруженном шрифте для отладки
+                System.Diagnostics.Debug.WriteLine($"ApplicationFontFamily set to: {appFontFamily.Source}");
+                System.Diagnostics.Debug.WriteLine($"FontFamily.FamilyNames: {string.Join(", ", appFontFamily.FamilyNames.Values)}");
             }
         }
 
