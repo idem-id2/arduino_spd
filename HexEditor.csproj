@@ -85,13 +85,14 @@
     </None>
     <!-- Font files as Resources for WPF to properly link Regular and Bold -->
     <!-- Using Resource (not None) allows WPF to automatically link Regular and Bold files -->
-    <Resource Include="JetBrainsMono-Regular.ttf" />
-    <Resource Include="JetBrainsMono-Bold.ttf" />
+    <!-- JetBrains Mono NL (No Ligatures) - better rendering in WPF -->
+    <Resource Include="JetBrainsMonoNL-Regular.ttf" />
+    <Resource Include="JetBrainsMonoNL-Bold.ttf" />
     <!-- Also copy to output directory for fallback file:// URI loading -->
-    <None Include="JetBrainsMono-Regular.ttf">
+    <None Include="JetBrainsMonoNL-Regular.ttf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="JetBrainsMono-Bold.ttf">
+    <None Include="JetBrainsMonoNL-Bold.ttf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>

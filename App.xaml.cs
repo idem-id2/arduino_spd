@@ -26,7 +26,7 @@ namespace HexEditor
         {
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
             
-            // Загружаем шрифт JetBrainsMono для всего приложения
+            // Загружаем шрифт JetBrainsMono NL (No Ligatures) для всего приложения
             LoadApplicationFont();
             
             // Настройка Dependency Injection
@@ -42,9 +42,16 @@ namespace HexEditor
         }
 
         /// <summary>
-        /// Загружает шрифт JetBrainsMono для всего приложения.
-        /// Ищет файлы JetBrainsMono-Regular.ttf и JetBrainsMono-Bold.ttf в директории исполняемого файла.
+        /// Загружает шрифт JetBrainsMono NL (No Ligatures) для всего приложения.
+        /// Ищет файлы JetBrainsMonoNL-Regular.ttf и JetBrainsMonoNL-Bold.ttf в директории исполняемого файла.
         /// Если файлы не найдены, использует системные шрифты как fallback.
+        /// 
+        /// СОВЕТЫ ПО УЛУЧШЕНИЮ РЕНДЕРИНГА JETBRAINS MONO В WPF:
+        /// 1. Используйте pack:// URI для загрузки шрифтов (уже реализовано)
+        /// 2. Создавайте отдельный ресурс для Bold шрифта (ApplicationFontFamilyBold)
+        /// 3. Используйте стандартные настройки WPF (без TextOptions) для естественного вида
+        /// 4. Оптимальный размер шрифта: 12-16px
+        /// 5. JetBrains Mono NL (No Ligatures) часто лучше работает в WPF, чем обычный JetBrains Mono
         /// </summary>
         private void LoadApplicationFont()
         {
@@ -55,9 +62,9 @@ namespace HexEditor
                 // Получаем путь к директории исполняемого файла
                 string exeDirectory = AppDomain.CurrentDomain.BaseDirectory;
                 
-                // Пути к файлам шрифтов
-                string regularFontPath = Path.Combine(exeDirectory, "JetBrainsMono-Regular.ttf");
-                string boldFontPath = Path.Combine(exeDirectory, "JetBrainsMono-Bold.ttf");
+                // Пути к файлам шрифтов (JetBrains Mono NL - No Ligatures)
+                string regularFontPath = Path.Combine(exeDirectory, "JetBrainsMonoNL-Regular.ttf");
+                string boldFontPath = Path.Combine(exeDirectory, "JetBrainsMonoNL-Bold.ttf");
                 
                 // Проверяем наличие файлов
                 bool regularExists = File.Exists(regularFontPath);
@@ -76,8 +83,9 @@ namespace HexEditor
                         try
                         {
                             // Используем pack:// URI с указанием имени семейства в фрагменте
-                            fontUri = new Uri("pack://application:,,,/JetBrainsMono-Regular.ttf#JetBrains Mono", UriKind.Absolute);
-                            System.Diagnostics.Debug.WriteLine("Using pack:// URI for font resource with family name");
+                            // JetBrains Mono NL имеет имя семейства "JetBrains Mono NL"
+                            fontUri = new Uri("pack://application:,,,/JetBrainsMonoNL-Regular.ttf#JetBrains Mono NL", UriKind.Absolute);
+                            System.Diagnostics.Debug.WriteLine("Using pack:// URI for JetBrains Mono NL font resource with family name");
                         }
                         catch
                         {
@@ -90,25 +98,27 @@ namespace HexEditor
                         bool loaded = false;
                         try
                         {
-                            // Если URI содержит имя семейства в фрагменте (#JetBrains Mono), используем его напрямую
+                            // Если URI содержит имя семейства в фрагменте (#JetBrains Mono NL), используем его напрямую
                             if (fontUri.Fragment != null && fontUri.Fragment.Length > 1)
                             {
                                 // Имя семейства указано в фрагменте URI (после #)
                                 // Декодируем URL-encoded символы (например, %20 -> пробел)
                                 string familyNameFromUri = Uri.UnescapeDataString(fontUri.Fragment.Substring(1)); // Убираем # и декодируем
                                 System.Diagnostics.Debug.WriteLine($"Loading font with family name from URI fragment: '{familyNameFromUri}'");
-                                // Используем правильное имя семейства без URL-encoding
-                                appFontFamily = new FontFamily(fontUri, "./#JetBrains Mono");
+                                // Используем правильное имя семейства для JetBrains Mono NL
+                                appFontFamily = new FontFamily(fontUri, "./#JetBrains Mono NL");
                             }
                             else
                             {
-                                // Пробуем разные варианты имени семейства
+                                // Пробуем разные варианты имени семейства для JetBrains Mono NL
                                 string[] fontFamilyNames = new[]
                                 {
-                                    "./#JetBrains Mono",      // Стандартный формат
-                                    "./#JetBrainsMono",        // Без пробела
-                                    "JetBrains Mono",          // Прямое имя
-                                    "JetBrainsMono"            // Без пробела
+                                    "./#JetBrains Mono NL",      // Стандартный формат для NL версии
+                                    "./#JetBrains Mono",          // Альтернативный формат
+                                    "./#JetBrainsMonoNL",         // Без пробелов
+                                    "JetBrains Mono NL",          // Прямое имя
+                                    "JetBrains Mono",             // Альтернативное имя
+                                    "JetBrainsMonoNL"            // Без пробелов
                                 };
                                 
                                 foreach (string familyName in fontFamilyNames)
@@ -138,7 +148,7 @@ namespace HexEditor
                                 if (testTypeface.TryGetGlyphTypeface(out _))
                                 {
                                     var actualFamilyName = string.Join(", ", appFontFamily.FamilyNames.Values);
-                                    System.Diagnostics.Debug.WriteLine($"✓ Successfully loaded JetBrainsMono-Regular.ttf");
+                                    System.Diagnostics.Debug.WriteLine($"✓ Successfully loaded JetBrainsMonoNL-Regular.ttf");
                                     System.Diagnostics.Debug.WriteLine($"  Actual family name: '{actualFamilyName}'");
                                     System.Diagnostics.Debug.WriteLine($"  Font URI: {fontUri}");
                                     loaded = true;
@@ -181,26 +191,22 @@ namespace HexEditor
                                     if (mainBoldTypeface.TryGetGlyphTypeface(out var mainBoldGlyph))
                                     {
                                         // Проверяем, используется ли реальный Bold файл или синтетический
-                                        // Для этого проверяем, что GlyphTypeface действительно загружен из Bold.ttf
-                                        // К сожалению, нет прямого способа проверить это, но мы можем попробовать
-                                        // загрузить Bold файл отдельно и сравнить
-                                        
                                         Uri boldFontUri;
                                         try
                                         {
-                                            boldFontUri = new Uri("pack://application:,,,/JetBrainsMono-Bold.ttf#JetBrains Mono", UriKind.Absolute);
+                                            boldFontUri = new Uri("pack://application:,,,/JetBrainsMonoNL-Bold.ttf#JetBrains Mono NL", UriKind.Absolute);
                                         }
                                         catch
                                         {
                                             boldFontUri = new Uri(boldFontPath, UriKind.Absolute);
                                         }
                                         
-                                        var boldFontFamily = new FontFamily(boldFontUri, "./#JetBrains Mono");
+                                        var boldFontFamily = new FontFamily(boldFontUri, "./#JetBrains Mono NL");
                                         var boldTypeface = new Typeface(boldFontFamily, FontStyles.Normal, FontWeights.Bold, FontStretches.Normal);
                                         
                                         if (boldTypeface.TryGetGlyphTypeface(out var boldGlyph))
                                         {
-                                            System.Diagnostics.Debug.WriteLine("✓ JetBrainsMono-Bold.ttf is available");
+                                            System.Diagnostics.Debug.WriteLine("✓ JetBrainsMonoNL-Bold.ttf is available");
                                             System.Diagnostics.Debug.WriteLine("⚠ NOTE: WPF may still use synthetic bold if files are not properly linked");
                                             System.Diagnostics.Debug.WriteLine("  To ensure real Bold is used, verify that both files are in the same resource location");
                                             System.Diagnostics.Debug.WriteLine("  and that FontFamily name matches exactly in both TTF files");
@@ -218,7 +224,7 @@ namespace HexEditor
                             }
                             else
                             {
-                                System.Diagnostics.Debug.WriteLine("⚠ JetBrainsMono-Bold.ttf not found - Bold text will use regular font (synthetic bold)");
+                                System.Diagnostics.Debug.WriteLine("⚠ JetBrainsMonoNL-Bold.ttf not found - Bold text will use regular font (synthetic bold)");
                                 
                                 // Проверяем, что хотя бы синтетический Bold работает
                                 try
@@ -237,28 +243,28 @@ namespace HexEditor
                         }
                         else
                         {
-                            System.Diagnostics.Debug.WriteLine("✗ Failed to load JetBrainsMono-Regular.ttf with all methods");
+                            System.Diagnostics.Debug.WriteLine("✗ Failed to load JetBrainsMonoNL-Regular.ttf with all methods");
                         }
                     }
                     catch (Exception ex)
                     {
-                        System.Diagnostics.Debug.WriteLine($"✗ Exception loading JetBrainsMono-Regular.ttf: {ex.Message}");
+                        System.Diagnostics.Debug.WriteLine($"✗ Exception loading JetBrainsMonoNL-Regular.ttf: {ex.Message}");
                         System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
                         appFontFamily = null;
                     }
                 }
-                else
-                {
-                    System.Diagnostics.Debug.WriteLine($"✗ JetBrainsMono-Regular.ttf not found in: {exeDirectory}");
-                    System.Diagnostics.Debug.WriteLine($"Looking for: {regularFontPath}");
-                }
+                        else
+                        {
+                            System.Diagnostics.Debug.WriteLine($"✗ JetBrainsMonoNL-Regular.ttf not found in: {exeDirectory}");
+                            System.Diagnostics.Debug.WriteLine($"Looking for: {regularFontPath}");
+                        }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error loading JetBrainsMono fonts: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Error loading JetBrainsMono NL fonts: {ex.Message}");
             }
             
-            // Если JetBrainsMono не загружен, используем системные шрифты как fallback
+            // Если JetBrainsMono NL не загружен, используем системные шрифты как fallback
             if (appFontFamily == null)
             {
                 // Список системных шрифтов в порядке приоритета (моноширинные с поддержкой кириллицы):
@@ -317,7 +323,7 @@ namespace HexEditor
                 
                 // КРИТИЧНО: WPF не может автоматически связать два файла шрифтов через pack:// URI
                 // Создаем отдельный ресурс для Bold FontFamily, чтобы гарантировать использование реального Bold.ttf
-                string boldFontPathCheck = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "JetBrainsMono-Bold.ttf");
+                string boldFontPathCheck = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "JetBrainsMonoNL-Bold.ttf");
                 if (File.Exists(boldFontPathCheck))
                 {
                     try
@@ -325,14 +331,14 @@ namespace HexEditor
                         Uri boldFontUri;
                         try
                         {
-                            boldFontUri = new Uri("pack://application:,,,/JetBrainsMono-Bold.ttf#JetBrains Mono", UriKind.Absolute);
+                            boldFontUri = new Uri("pack://application:,,,/JetBrainsMonoNL-Bold.ttf#JetBrains Mono NL", UriKind.Absolute);
                         }
                         catch
                         {
                             boldFontUri = new Uri(boldFontPathCheck, UriKind.Absolute);
                         }
                         
-                        var boldFontFamily = new FontFamily(boldFontUri, "./#JetBrains Mono");
+                        var boldFontFamily = new FontFamily(boldFontUri, "./#JetBrains Mono NL");
                         
                         // Проверяем, что Bold FontFamily работает
                         var boldTypeface = new Typeface(boldFontFamily, FontStyles.Normal, FontWeights.Bold, FontStretches.Normal);
@@ -354,7 +360,7 @@ namespace HexEditor
                 {
                     // Fallback: если Bold файл не найден, используем основной FontFamily
                     Current.Resources["ApplicationFontFamilyBold"] = appFontFamily;
-                    System.Diagnostics.Debug.WriteLine("⚠ JetBrainsMono-Bold.ttf not found - ApplicationFontFamilyBold will use regular font");
+                    System.Diagnostics.Debug.WriteLine("⚠ JetBrainsMonoNL-Bold.ttf not found - ApplicationFontFamilyBold will use regular font");
                 }
                 
                 // Выводим подробную информацию о загруженном шрифте для отладки
