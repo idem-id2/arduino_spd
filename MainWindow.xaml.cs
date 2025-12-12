@@ -2056,6 +2056,16 @@ namespace HexEditor
 
         private void CopyAllLogsMenuItem_Click(object sender, RoutedEventArgs e)
         {
+            CopyAllLogs();
+        }
+
+        private void CopyAllLogsButton_Click(object sender, RoutedEventArgs e)
+        {
+            CopyAllLogs();
+        }
+
+        private void CopyAllLogs()
+        {
             if (_logEntries.Count == 0)
             {
                 return;
@@ -2069,6 +2079,11 @@ namespace HexEditor
             {
                 AppendLog("Warn", $"Clipboard error: {ex.Message}");
             }
+        }
+
+        private void ClearLogsButton_Click(object sender, RoutedEventArgs e)
+        {
+            _logEntries.Clear();
         }
 
         private void LogTextBlock_Loaded(object sender, RoutedEventArgs e)

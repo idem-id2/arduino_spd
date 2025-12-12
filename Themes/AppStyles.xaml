@@ -215,6 +215,11 @@
         </Style.Triggers>
     </Style>
     
+    <!-- Default Button style - все кнопки используют общую тему -->
+    <Style TargetType="Button" BasedOn="{StaticResource CommandButtonStyle}">
+        <Setter Property="FontFamily" Value="{DynamicResource ApplicationFontFamily}"/>
+    </Style>
+    
     <!-- ========================================= -->
     <!-- Input Field Styles - Clean, Sharp -->
     <!-- ========================================= -->
@@ -448,6 +453,7 @@
         <Setter Property="Padding" Value="16,10"/>
         <Setter Property="FontSize" Value="13"/>
         <Setter Property="FontWeight" Value="Medium"/>
+        <Setter Property="FontFamily" Value="{DynamicResource ApplicationFontFamily}"/>
         <Setter Property="BorderThickness" Value="0"/>
         <Setter Property="BorderBrush" Value="Transparent"/>
         <Setter Property="Margin" Value="0,0,8,0"/>
@@ -511,12 +517,14 @@
         <Setter Property="BorderBrush" Value="{StaticResource SeparatorBrush}"/>
         <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}"/>
         <Setter Property="FontSize" Value="13"/>
+        <Setter Property="FontFamily" Value="{DynamicResource ApplicationFontFamily}"/>
     </Style>
     
     <Style TargetType="MenuItem">
         <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}"/>
         <Setter Property="Background" Value="Transparent"/>
         <Setter Property="FontSize" Value="13"/>
+        <Setter Property="FontFamily" Value="{DynamicResource ApplicationFontFamily}"/>
         <Style.Triggers>
             <Trigger Property="IsHighlighted" Value="True">
                 <Setter Property="Background" Value="{StaticResource ButtonHoverBackground}"/>
@@ -525,6 +533,13 @@
                 <Setter Property="Opacity" Value="0.4"/>
             </Trigger>
         </Style.Triggers>
+    </Style>
+    
+    <Style TargetType="ContextMenu">
+        <Setter Property="Background" Value="{StaticResource SurfaceBrush}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource SurfaceBorderBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="FontFamily" Value="{DynamicResource ApplicationFontFamily}"/>
     </Style>
     
     <!-- ========================================= -->
