@@ -43,41 +43,58 @@ namespace HexEditor
 
         /// <summary>
         /// Загружает шрифт для всего приложения.
-        /// Использует системные шрифты, оптимизированные для WPF (Consolas, Segoe UI Mono),
-        /// так как JetBrains Mono может плохо рендериться в WPF.
+        /// Использует системные шрифты, оптимизированные для WPF с поддержкой кириллицы.
         /// </summary>
         private void LoadApplicationFont()
         {
             FontFamily? appFontFamily = null;
             
-            try
+            // Список шрифтов в порядке приоритета (моноширинные с поддержкой кириллицы):
+            // 1. Segoe UI Mono - современный моноширинный от Microsoft (Windows 10+), отличная кириллица
+            // 2. Consolas - классический моноширинный от Microsoft, отлично работает в WPF (кириллица ограничена)
+            // 3. Lucida Console - хорошая поддержка кириллицы, моноширинный
+            // 4. Courier New - универсальный моноширинный, базовая поддержка кириллицы
+            // 5. Arial - пропорциональный, отличная кириллица (fallback)
+            
+            string[] fontCandidates = new[]
             {
-                // Пробуем использовать системные шрифты, которые отлично работают в WPF
-                // Порядок приоритета:
-                // 1. Segoe UI Mono (Windows 10+, современный и красивый)
-                // 2. Consolas (классический моноширинный от Microsoft, отлично работает в WPF)
-                // 3. Courier New (универсальный fallback)
-                
-                // Проверяем доступность Segoe UI Mono
+                "Segoe UI Mono",           // Windows 10+ - лучший выбор для моноширинного с кириллицей
+                "Consolas",                // Отлично работает в WPF, но кириллица может быть ограничена
+                "Lucida Console",          // Хорошая поддержка кириллицы
+                "Courier New",             // Универсальный fallback
+                "Arial"                    // Пропорциональный fallback с отличной кириллицей
+            };
+            
+            foreach (string fontName in fontCandidates)
+            {
                 try
                 {
-                    var testFont = new FontFamily("Segoe UI Mono");
-                    // Если шрифт доступен, используем его
+                    var testFont = new FontFamily(fontName);
                     appFontFamily = testFont;
-                    System.Diagnostics.Debug.WriteLine("Using Segoe UI Mono (system font, optimized for WPF)");
+                    System.Diagnostics.Debug.WriteLine($"Using {fontName} (system font, optimized for WPF with Cyrillic support)");
+                    break; // Успешно загружен, выходим из цикла
                 }
                 catch
                 {
-                    // Segoe UI Mono не доступен, используем Consolas
-                    appFontFamily = new FontFamily("Consolas, 'Courier New', monospace");
-                    System.Diagnostics.Debug.WriteLine("Using Consolas (system font, excellent WPF rendering)");
+                    // Шрифт не доступен, пробуем следующий
+                    continue;
                 }
             }
-            catch (Exception ex)
+            
+            // Если ни один шрифт не загрузился, используем безопасный fallback
+            if (appFontFamily == null)
             {
-                System.Diagnostics.Debug.WriteLine($"Failed to load system fonts: {ex.Message}, using Consolas fallback");
-                // Используем fallback на распространённые моноширинные шрифты
-                appFontFamily = new FontFamily("Consolas, 'Courier New', monospace");
+                try
+                {
+                    appFontFamily = new FontFamily("Arial, 'Courier New', monospace");
+                    System.Diagnostics.Debug.WriteLine("Using Arial fallback (guaranteed to be available)");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Failed to load any font: {ex.Message}");
+                    // Последний резерв - системный шрифт по умолчанию
+                    appFontFamily = SystemFonts.MessageFontFamily;
+                }
             }
 
             // Добавляем FontFamily в ресурсы приложения
