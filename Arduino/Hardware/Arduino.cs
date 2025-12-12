@@ -552,11 +552,12 @@ internal sealed class Arduino : IDisposable
 
     /// <summary>
     /// Читает регистр термодатчика по I2C адресу
+    /// По стандарту JC-42.4 регистры 6 и 7 - это 16-битные значения (2 байта)
     /// </summary>
     /// <param name="sensorAddress">I2C адрес термодатчика (например, 0x18-0x1F)</param>
     /// <param name="register">Адрес регистра (обычно 6 или 7)</param>
-    /// <returns>Значение регистра или null при ошибке</returns>
-    public byte? ReadSensorRegister(byte sensorAddress, byte register)
+    /// <returns>16-битное значение регистра или null при ошибке</returns>
+    public ushort? ReadSensorRegister(byte sensorAddress, byte register)
     {
         lock (_portLock)
         {
@@ -567,14 +568,24 @@ internal sealed class Arduino : IDisposable
 
             try
             {
-                var result = ExecuteCommand<byte>(
+                var result = ExecuteCommand<byte[]>(
                     new[]
                     {
                         Command.READSENSORREG,
                         sensorAddress,
                         register
                     });
-                return result;
+                
+                // Проверяем, что получили 2 байта
+                if (result == null || result.Length < 2)
+                {
+                    return null;
+                }
+                
+                // Объединяем байты в 16-битное значение (big-endian: MSB первый, LSB второй)
+                // По стандарту JC-42.4 регистры читаются в формате big-endian
+                ushort value = (ushort)((result[0] << 8) | result[1]);
+                return value;
             }
             catch
             {

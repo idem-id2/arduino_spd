@@ -2337,9 +2337,9 @@ namespace HexEditor
 
                     Dispatcher.Invoke(() => AppendLog("Info", $"Найден термодатчик на адресе 0x{foundSensorAddress.Value:X2}, читаем регистры..."));
 
-                    // Читаем регистры 6 и 7
-                    byte? reg6 = device.ReadSensorRegister(foundSensorAddress.Value, 6);
-                    byte? reg7 = device.ReadSensorRegister(foundSensorAddress.Value, 7);
+                    // Читаем регистры 6 и 7 (16-битные значения по стандарту JC-42.4)
+                    ushort? reg6 = device.ReadSensorRegister(foundSensorAddress.Value, 6);
+                    ushort? reg7 = device.ReadSensorRegister(foundSensorAddress.Value, 7);
 
                     if (reg6.HasValue && reg7.HasValue)
                     {
@@ -2348,7 +2348,7 @@ namespace HexEditor
                         
                         Dispatcher.Invoke(() =>
                         {
-                            AppendLog("Info", $"Прочитаны регистры термодатчика: Reg6=0x{reg6Value:X2}, Reg7=0x{reg7Value:X2}");
+                            AppendLog("Info", $"Прочитаны регистры термодатчика: Reg6=0x{reg6Value:X4}, Reg7=0x{reg7Value:X4}");
                             
                             // Обновляем HPE SmartMemory Panel с прочитанными регистрами
                             var spdData = HexEditor.ReadBytes(0, (int)Math.Min(HexEditor.DocumentLength, 512));

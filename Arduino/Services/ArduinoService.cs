@@ -1267,18 +1267,22 @@ internal sealed partial class ArduinoService
                     }
 
                     currentDevice.I2CAddress = _activeI2cAddress;
-                    System.Diagnostics.Debug.WriteLine($"[RefreshMemoryTypeAsync] {currentDevice.PortName}: Вызов DetectDdr5()");
-                    if (currentDevice.DetectDdr5())
-                    {
-                        System.Diagnostics.Debug.WriteLine($"[RefreshMemoryTypeAsync] {currentDevice.PortName}: DetectDdr5() = true");
-                        return SpdMemoryType.Ddr5;
-                    }
-
+                    
+                    // ВАЖНО: Сначала проверяем DDR4, потом DDR5
+                    // Это предотвращает ложное определение DDR4 как DDR5
+                    // (ddr5Detect может давать ложные срабатывания на некоторых модулях)
                     System.Diagnostics.Debug.WriteLine($"[RefreshMemoryTypeAsync] {currentDevice.PortName}: Вызов DetectDdr4()");
                     if (currentDevice.DetectDdr4())
                     {
                         System.Diagnostics.Debug.WriteLine($"[RefreshMemoryTypeAsync] {currentDevice.PortName}: DetectDdr4() = true");
                         return SpdMemoryType.Ddr4;
+                    }
+
+                    System.Diagnostics.Debug.WriteLine($"[RefreshMemoryTypeAsync] {currentDevice.PortName}: Вызов DetectDdr5()");
+                    if (currentDevice.DetectDdr5())
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[RefreshMemoryTypeAsync] {currentDevice.PortName}: DetectDdr5() = true");
+                        return SpdMemoryType.Ddr5;
                     }
 
                     System.Diagnostics.Debug.WriteLine($"[RefreshMemoryTypeAsync] {currentDevice.PortName}: Тип памяти Unknown");

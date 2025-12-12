@@ -3,10 +3,18 @@
    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
    
    ============================================================================
-   Версия - Исправление для Samsung S34TS04A (build 2)
+   Версия - 20251212 (build 4)
    ============================================================================
-   Изменения:
-   - Строка 34: Обновлена версия прошивки до 20251127 build 2
+   
+   Изменения в build 4:
+   - Добавлена команда READSENSORREG ('R') для чтения регистров термодатчика
+   - Регистры 6 и 7 читаются как 16-битные значения (2 байта) по стандарту JC-42.4
+   - Исправлен порядок определения типа памяти: сначала DDR4, потом DDR5
+   - Исправлена функция ddr5Detect(): проверка PMIC теперь ДО записи в регистр
+   - Это предотвращает ложное определение DDR4 модулей как DDR5
+   
+   Изменения в build 3:
+   - Строка 40: Обновлена версия прошивки до 20251127 build 3
    - Строки 1435-1450: Исправлена функция ddr4Detect() с двойным методом
    - Строки 1452-1469: Добавлена функция ddr4DetectBySpdByte()
    - Строка 1076: КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ - кэширование isDdr4 ДО включения HV
@@ -37,7 +45,7 @@
 
 // ===========================================================
 
-#define FW_VER 20251127  // Версия прошивки (ГГГГММДД) - build 3
+#define FW_VER 20251212  // Версия прошивки (ГГГГММДД) - build 4
 
 // Маски поддержки RSWP для разных типов памяти
 #define DDR5 _BV(5)  // Режим Offline
@@ -643,6 +651,7 @@ void cmdReadSensorRegister() {
   uint8_t regAddr = buffer[1];   // Адрес регистра (обычно 6 или 7)
 
   // Чтение регистра термодатчика через стандартный I2C протокол
+  // По стандарту JC-42.4 регистры 6 и 7 - это 16-битные значения (2 байта)
   Wire.beginTransmission(address);
   Wire.write(regAddr);
   uint8_t status = Wire.endTransmission(false);
@@ -652,18 +661,25 @@ void cmdReadSensorRegister() {
     return;
   }
 
-  Wire.requestFrom(address, (uint8_t)1);
+  // Читаем 2 байта (16-битное значение)
+  Wire.requestFrom(address, (uint8_t)2);
   
   // Ожидание данных
   uint8_t timeout = 10;
-  while (!Wire.available() && timeout > 0) {
+  while (Wire.available() < 2 && timeout > 0) {
     delay(1);
     timeout--;
   }
 
-  if (Wire.available()) {
-    uint8_t value = Wire.read();
-    Respond(value);
+  if (Wire.available() >= 2) {
+    // Читаем байты из термодатчика
+    // По стандарту JC-42.4: MSB первый, LSB второй (big-endian)
+    uint8_t msb = Wire.read();  // Старший байт (первый)
+    uint8_t lsb = Wire.read();  // Младший байт (второй)
+    
+    // Отправляем как 2 байта (MSB, LSB) - big-endian формат
+    uint8_t response[2] = { msb, lsb };
+    Respond(response, 2);
   } else {
     Respond(false);
   }
@@ -1526,10 +1542,18 @@ bool ddr5Detect(uint8_t address) {
     return false;
   }
 
+  // ВАЖНО: Проверяем наличие PMIC ДО записи в регистр
+  // Это предотвращает ложные срабатывания на DDR4 модулях
+  // (на DDR4 нет PMIC, поэтому проверка должна быть первой)
+  if (!probeBusAddress((address & 0b111) | PMIC)) {
+    return false;
+  }
+
   // Сброс страницы в 0 (фикс для SPD5118-Y1B000NCG)
+  // Выполняется только если PMIC найден (значит это DDR5)
   writeReg(address, MR11, 0);
 
-  if (probeBusAddress((address & 0b111) | PMIC) && readReg(address, MR0) == highByte(SPD5_TS)) {
+  if (readReg(address, MR0) == highByte(SPD5_TS)) {
     uint8_t mr1 = readReg(address, MR1);
     return mr1 == lowByte(SPD5_TS) || mr1 == lowByte(SPD5_NO);
   }

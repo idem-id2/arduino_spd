@@ -241,16 +241,17 @@ namespace HexEditor.SpdDecoder.HpeSmartMemory
             buffer[offset++] = 0x20; // Пробел (ASCII 0x20)
 
             // ШАГ 3: Sensor Register 6 (Manufacturer ID)
-            // Порядок байтов: Low byte, High byte (из I2C интерфейса)
-            buffer[offset++] = (byte)(sensorReg6 & 0xFF);        // Low byte
-            buffer[offset++] = (byte)((sensorReg6 >> 8) & 0xFF); // High byte
+            // Порядок байтов: Low byte, High byte (little-endian, как в Python скрипте)
+            // Это соответствует порядку байтов из I2C интерфейса
+            buffer[offset++] = (byte)(sensorReg6 & 0xFF);        // Low byte (LSB)
+            buffer[offset++] = (byte)((sensorReg6 >> 8) & 0xFF); // High byte (MSB)
 
             // Разделитель
             buffer[offset++] = 0x20;
 
             // ШАГ 4: Sensor Register 7 (Device ID/Revision)
-            buffer[offset++] = (byte)(sensorReg7 & 0xFF);        // Low byte
-            buffer[offset++] = (byte)((sensorReg7 >> 8) & 0xFF); // High byte
+            buffer[offset++] = (byte)(sensorReg7 & 0xFF);        // Low byte (LSB)
+            buffer[offset++] = (byte)((sensorReg7 >> 8) & 0xFF); // High byte (MSB)
 
             // Разделитель
             buffer[offset++] = 0x20;
