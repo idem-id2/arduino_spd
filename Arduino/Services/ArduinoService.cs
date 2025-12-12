@@ -141,7 +141,7 @@ internal sealed partial class ArduinoService
                 System.Diagnostics.Debug.WriteLine($"[ScanAsync] Вызов ProbePortWithTimeoutAsync для {port}");
                 var portCheckStart = Stopwatch.StartNew();
                 
-                var info = await ProbePortWithTimeoutAsync(port, token).ConfigureAwait(true);
+                var info = await ProbePortWithTimeoutAsync(port, token).ConfigureAwait(false);
                 
                 portCheckStart.Stop();
                 System.Diagnostics.Debug.WriteLine($"[ScanAsync] ProbePortWithTimeoutAsync для {port} завершен за {portCheckStart.ElapsedMilliseconds} мс, результат: {(info != null ? "найдено" : "не найдено")}");
@@ -1390,30 +1390,51 @@ internal sealed partial class ArduinoService
             if (completedTask == probeTask)
             {
                 System.Diagnostics.Debug.WriteLine($"[ProbePortWithTimeoutAsync] {portName}: probeTask завершился первым");
-                var info = await probeTask.ConfigureAwait(false);
-                probeStopwatch.Stop();
-                if (info != null)
+                try
                 {
-                    info.ProbeDurationMs = probeStopwatch.ElapsedMilliseconds;
-                    System.Diagnostics.Debug.WriteLine($"[ProbePortWithTimeoutAsync] {portName}: Arduino найден за {info.ProbeDurationMs} мс");
+                    var info = await probeTask.ConfigureAwait(false);
+                    probeStopwatch.Stop();
+                    if (info != null)
+                    {
+                        info.ProbeDurationMs = probeStopwatch.ElapsedMilliseconds;
+                        System.Diagnostics.Debug.WriteLine($"[ProbePortWithTimeoutAsync] {portName}: Arduino найден за {info.ProbeDurationMs} мс");
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[ProbePortWithTimeoutAsync] {portName}: Arduino не найден");
+                    }
+                    return info;
                 }
-                else
+                catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[ProbePortWithTimeoutAsync] {portName}: Arduino не найден");
+                    // Обрабатываем исключения из probeTask
+                    System.Diagnostics.Debug.WriteLine($"[ProbePortWithTimeoutAsync] {portName}: Ошибка в probeTask: {ex.GetType().Name} - {ex.Message}");
+                    LogWarn($"{portName}: Ошибка проверки ({ex.Message}).");
+                    return null;
                 }
-                return info;
             }
 
+            // Таймаут - delayTask завершился первым
             System.Diagnostics.Debug.WriteLine($"[ProbePortWithTimeoutAsync] {portName}: delayTask завершился первым - таймаут");
             LogWarn($"{portName}: Тайм-аут проверки.");
+            
+            // Пытаемся отменить probeTask, но не ждем его завершения, чтобы не зависнуть
+            // probeTask может продолжать выполняться в фоне, но мы уже вернули null
+            if (!probeTask.IsCompleted)
+            {
+                System.Diagnostics.Debug.WriteLine($"[ProbePortWithTimeoutAsync] {portName}: probeTask еще выполняется, но мы возвращаем null из-за таймаута");
+            }
+            
             return null;
         }
         catch (OperationCanceledException)
         {
+            System.Diagnostics.Debug.WriteLine($"[ProbePortWithTimeoutAsync] {portName}: OperationCanceledException");
             return null;
         }
         catch (Exception ex)
         {
+            System.Diagnostics.Debug.WriteLine($"[ProbePortWithTimeoutAsync] {portName}: Неожиданная ошибка: {ex.GetType().Name} - {ex.Message}");
             LogWarn($"{portName}: probe failed ({ex.Message}).");
             return null;
         }
@@ -1435,11 +1456,12 @@ internal sealed partial class ArduinoService
         System.Diagnostics.Debug.WriteLine($"[ProbePort] {portName}: Создание SerialPortSettings: BaudRate={scanPortSettings.BaudRate}, Timeout={scanPortSettings.Timeout} с");
         LogInfo($"{portName}: Проверка сигнатуры устройства...");
 
-        System.Diagnostics.Debug.WriteLine($"[ProbePort] {portName}: Создание экземпляра Hardware.Arduino");
-        using var device = new Hardware.Arduino(scanPortSettings, portName);
-        
+        Hardware.Arduino? device = null;
         try
         {
+            System.Diagnostics.Debug.WriteLine($"[ProbePort] {portName}: Создание экземпляра Hardware.Arduino");
+            device = new Hardware.Arduino(scanPortSettings, portName);
+            
             System.Diagnostics.Debug.WriteLine($"[ProbePort] {portName}: Вызов device.Connect()");
             var connectStart = Stopwatch.StartNew();
             
@@ -1478,6 +1500,24 @@ internal sealed partial class ArduinoService
             System.Diagnostics.Debug.WriteLine($"[ProbePort] {portName}: TimeoutException - {ex.Message}");
             return null;
         }
+        catch (UnauthorizedAccessException ex)
+        {
+            // Порт занят другим процессом
+            System.Diagnostics.Debug.WriteLine($"[ProbePort] {portName}: UnauthorizedAccessException - {ex.Message}");
+            return null;
+        }
+        catch (InvalidOperationException ex)
+        {
+            // Порт уже открыт или другие проблемы с состоянием
+            System.Diagnostics.Debug.WriteLine($"[ProbePort] {portName}: InvalidOperationException - {ex.Message}");
+            return null;
+        }
+        catch (IOException ex)
+        {
+            // Проблемы с I/O порта
+            System.Diagnostics.Debug.WriteLine($"[ProbePort] {portName}: IOException - {ex.Message}");
+            return null;
+        }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"[ProbePort] {portName}: Ошибка: {ex.GetType().Name} - {ex.Message}");
@@ -1489,17 +1529,22 @@ internal sealed partial class ArduinoService
             System.Diagnostics.Debug.WriteLine($"[ProbePort] {portName}: finally блок - начало отключения");
             try
             {
-                if (device.IsConnected)
+                if (device != null)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[ProbePort] {portName}: Вызов device.Disconnect()");
-                    var disconnectStart = Stopwatch.StartNew();
-                    device.Disconnect();
-                    disconnectStart.Stop();
-                    System.Diagnostics.Debug.WriteLine($"[ProbePort] {portName}: device.Disconnect() завершен за {disconnectStart.ElapsedMilliseconds} мс");
-                }
-                else
-                {
-                    System.Diagnostics.Debug.WriteLine($"[ProbePort] {portName}: Устройство не подключено, Disconnect() не вызывается");
+                    if (device.IsConnected)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[ProbePort] {portName}: Вызов device.Disconnect()");
+                        var disconnectStart = Stopwatch.StartNew();
+                        device.Disconnect();
+                        disconnectStart.Stop();
+                        System.Diagnostics.Debug.WriteLine($"[ProbePort] {portName}: device.Disconnect() завершен за {disconnectStart.ElapsedMilliseconds} мс");
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[ProbePort] {portName}: Устройство не подключено, Disconnect() не вызывается");
+                    }
+                    
+                    device.Dispose();
                 }
             }
             catch (Exception ex)
