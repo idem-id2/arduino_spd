@@ -538,20 +538,60 @@ namespace HexEditor.SpdDecoder.HpeSmartMemory
                     // Обновляем UI
                     UpdateSensorRegisters(isArduinoMode: true, reg6Value, reg7Value);
                     
-                    // Пытаемся найти соответствующий пресет
+                    // Пытаемся найти соответствующий пресет (как в кнопке "Подобрать автономно")
                     if (PresetComboBox != null)
                     {
                         _isUpdatingPresetProgrammatically = true;
                         try
                         {
-                            // Ищем пресет по значениям регистров
+                            // Маппинг значений регистров на индексы в ComboBox (соответствует порядку в XAML)
+                            // Индекс 0: "—" (пустое значение)
+                            // Индекс 1: "S34TS04A - Ablic (1C85, 2221)"
+                            // Индекс 2: "STTS2004 - STMicroelectronics (104A, 2201)"
+                            // Индекс 3: "MCP98244 - Microchip (0054, 2201)"
+                            // Индекс 4: "TSE2004GB2B0 - Renesas (00F8, EE25)"
+                            int targetIndex = -1;
                             string regValue = $"{reg6Value:X4},{reg7Value:X4}";
-                            for (int i = 0; i < PresetComboBox.Items.Count; i++)
+                            
+                            // Проверяем по известным значениям регистров
+                            if (regValue == "1C85,2221")
                             {
-                                if (PresetComboBox.Items[i] is ComboBoxItem item && item.Tag?.ToString() == regValue)
+                                targetIndex = 1;
+                            }
+                            else if (regValue == "104A,2201")
+                            {
+                                targetIndex = 2;
+                            }
+                            else if (regValue == "0054,2201")
+                            {
+                                targetIndex = 3;
+                            }
+                            else if (regValue == "00F8,EE25")
+                            {
+                                targetIndex = 4;
+                            }
+                            
+                            // Устанавливаем выбранный элемент по индексу
+                            if (targetIndex >= 0 && targetIndex < PresetComboBox.Items.Count)
+                            {
+                                PresetComboBox.SelectedIndex = targetIndex;
+                            }
+                            else
+                            {
+                                // Fallback: ищем по Tag если индекс не найден
+                                for (int i = 0; i < PresetComboBox.Items.Count; i++)
                                 {
-                                    PresetComboBox.SelectedIndex = i;
-                                    break;
+                                    var item = PresetComboBox.Items[i];
+                                    if (item is ComboBoxItem comboItem)
+                                    {
+                                        string? tagValue = comboItem.Tag?.ToString();
+                                        if (!string.IsNullOrEmpty(tagValue) && 
+                                            string.Equals(tagValue, regValue, StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            PresetComboBox.SelectedIndex = i;
+                                            break;
+                                        }
+                                    }
                                 }
                             }
                         }
