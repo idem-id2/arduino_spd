@@ -29,8 +29,8 @@
     <SolidColorBrush x:Key="AccentBrush" Color="#0969DA"/>
     
     <!-- Zebra Stripes (for tables/lists) -->
-    <SolidColorBrush x:Key="ZebraEvenBrush" Color="#FFFFFF"/>
-    <SolidColorBrush x:Key="ZebraOddBrush" Color="#F6F8FA"/>
+    <SolidColorBrush x:Key="ZebraEvenBrush" Color="#FAFAFA"/>
+    <SolidColorBrush x:Key="ZebraOddBrush" Color="#E8EBED"/>
     
     <!-- State Colors - Modern, Vibrant -->
     <SolidColorBrush x:Key="SuccessBrush" Color="#1A7F37"/>
