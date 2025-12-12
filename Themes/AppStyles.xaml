@@ -92,7 +92,8 @@
     
     <!-- FontFamily для всего приложения: JetBrains Mono NL с fallback на Consolas, Courier New, monospace -->
     <!-- Загружается программно в App.xaml.cs, здесь используется как ресурс -->
-    <FontFamily x:Key="ApplicationFontFamily">Consolas, 'Courier New', monospace</FontFamily>
+    <!-- ApplicationFontFamily устанавливается программно в App.xaml.cs -->
+    <!-- Удалено статическое определение, чтобы не перекрывать программно установленный шрифт -->
     
     <!-- Стиль по умолчанию для TextBlock - использует ApplicationFontFamily -->
     <Style TargetType="TextBlock">
@@ -110,7 +111,9 @@
     </Style>
     
     <Style TargetType="TextBlock" x:Key="CardTitleStyle">
-        <Setter Property="FontWeight" Value="SemiBold"/>
+        <!-- Используем ApplicationFontFamilyBold для явного использования Bold.ttf файла -->
+        <Setter Property="FontFamily" Value="{DynamicResource ApplicationFontFamilyBold}"/>
+        <Setter Property="FontWeight" Value="Bold"/>
         <Setter Property="FontSize" Value="14"/>
         <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}"/>
         <Setter Property="Margin" Value="0,0,0,16"/>
@@ -196,7 +199,7 @@
         <Setter Property="Background" Value="{StaticResource SuccessButtonBackground}"/>
         <Setter Property="Foreground" Value="White"/>
         <Setter Property="BorderBrush" Value="{StaticResource SuccessButtonBackground}"/>
-        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="FontWeight" Value="Bold"/>
         <Style.Triggers>
             <Trigger Property="IsEnabled" Value="False">
                 <Setter Property="Opacity" Value="0.5"/>
@@ -474,7 +477,7 @@
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsSelected" Value="True">
                             <Setter TargetName="ContentSite" Property="TextElement.Foreground" Value="{StaticResource PrimaryBrush}"/>
-                            <Setter TargetName="ContentSite" Property="TextElement.FontWeight" Value="SemiBold"/>
+                            <Setter TargetName="ContentSite" Property="TextElement.FontWeight" Value="Bold"/>
                             <Setter TargetName="Indicator" Property="Background" Value="{StaticResource PrimaryBrush}"/>
                         </Trigger>
                         <Trigger Property="IsMouseOver" Value="True">

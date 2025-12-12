@@ -1330,7 +1330,7 @@ namespace HexEditor.SpdDecoder
             {
                 Text = $"Manufacturer: {result.Manufacturer}",
                 FontSize = 14,
-                FontWeight = FontWeights.SemiBold,
+                FontWeight = FontWeights.Bold,
                 Foreground = (Brush)TryFindResource("PrimaryTextBrush"),
                 Background = Brushes.Transparent,
                 BorderThickness = new Thickness(0),
@@ -1455,7 +1455,7 @@ namespace HexEditor.SpdDecoder
                             Text = item.Value,
                             FontSize = 11,
                             FontFamily = (FontFamily)TryFindResource("ApplicationFontFamily") ?? new FontFamily("Consolas"),
-                            FontWeight = FontWeights.SemiBold,
+                            FontWeight = FontWeights.Bold,
                             Foreground = (Brush)TryFindResource("PrimaryTextBrush"),
                             Background = Brushes.Transparent,
                             BorderThickness = new Thickness(0),

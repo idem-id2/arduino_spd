@@ -83,6 +83,17 @@
     <None Update="Database\part_number_decoder.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <!-- Font files as Resources for WPF to properly link Regular and Bold -->
+    <!-- Using Resource (not None) allows WPF to automatically link Regular and Bold files -->
+    <Resource Include="JetBrainsMono-Regular.ttf" />
+    <Resource Include="JetBrainsMono-Bold.ttf" />
+    <!-- Also copy to output directory for fallback file:// URI loading -->
+    <None Include="JetBrainsMono-Regular.ttf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="JetBrainsMono-Bold.ttf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>

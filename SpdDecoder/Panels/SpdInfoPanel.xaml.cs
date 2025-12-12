@@ -427,7 +427,7 @@ namespace HexEditor.SpdDecoder
             {
                 string valueText = string.IsNullOrWhiteSpace(item.Value) ? "—" : item.Value;
                 valueControl.Text = valueText;
-                valueControl.FontWeight = (isHighlighted || item.IsHighlighted) ? FontWeights.SemiBold : FontWeights.Normal;
+                valueControl.FontWeight = (isHighlighted || item.IsHighlighted) ? FontWeights.Bold : FontWeights.Normal;
                 valueControl.Foreground = (isHighlighted || item.IsHighlighted) 
                     ? (_cachedHighlightForeground ?? _cachedPrimaryTextBrush) 
                     : _cachedPrimaryTextBrush;

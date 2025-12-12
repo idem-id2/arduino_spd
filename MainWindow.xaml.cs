@@ -75,6 +75,66 @@ namespace HexEditor
         {
             InitializeComponent();
             
+            // Проверяем доступность ApplicationFontFamily после инициализации
+            if (TryFindResource("ApplicationFontFamily") is FontFamily fontFamily)
+            {
+                System.Diagnostics.Debug.WriteLine($"MainWindow: ApplicationFontFamily resource found: {fontFamily.Source}");
+                System.Diagnostics.Debug.WriteLine($"MainWindow: FontFamily.FamilyNames: {string.Join(", ", fontFamily.FamilyNames.Values)}");
+                
+                // Проверяем доступность Bold шрифта
+                try
+                {
+                    var boldTypeface = new Typeface(fontFamily, FontStyles.Normal, FontWeights.Bold, FontStretches.Normal);
+                    if (boldTypeface.TryGetGlyphTypeface(out _))
+                    {
+                        System.Diagnostics.Debug.WriteLine($"MainWindow: ✓ Bold font (FontWeights.Bold) is available");
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine($"MainWindow: ✗ Bold font GlyphTypeface creation failed");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"MainWindow: ✗ Error testing Bold font: {ex.Message}");
+                }
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine("MainWindow: WARNING - ApplicationFontFamily resource NOT found!");
+            }
+            
+            // Проверяем доступность ApplicationFontFamilyBold (явный Bold ресурс)
+            if (TryFindResource("ApplicationFontFamilyBold") is FontFamily boldFontFamily)
+            {
+                System.Diagnostics.Debug.WriteLine($"MainWindow: ✓ ApplicationFontFamilyBold resource found: {boldFontFamily.Source}");
+                System.Diagnostics.Debug.WriteLine($"MainWindow: Bold FontFamily.FamilyNames: {string.Join(", ", boldFontFamily.FamilyNames.Values)}");
+                
+                // Проверяем, что Bold FontFamily действительно работает
+                try
+                {
+                    var boldTypeface = new Typeface(boldFontFamily, FontStyles.Normal, FontWeights.Bold, FontStretches.Normal);
+                    if (boldTypeface.TryGetGlyphTypeface(out _))
+                    {
+                        System.Diagnostics.Debug.WriteLine($"MainWindow: ✓ ApplicationFontFamilyBold is working correctly");
+                        System.Diagnostics.Debug.WriteLine($"MainWindow:   TextBlocks with CardTitleStyle will use JetBrainsMono-Bold.ttf");
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine($"MainWindow: ✗ ApplicationFontFamilyBold GlyphTypeface creation failed");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"MainWindow: ✗ Error testing ApplicationFontFamilyBold: {ex.Message}");
+                }
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine("MainWindow: WARNING - ApplicationFontFamilyBold resource NOT found!");
+                System.Diagnostics.Debug.WriteLine("MainWindow:   Bold text will use ApplicationFontFamily (may be synthetic bold)");
+            }
+            
             // Устанавливаем версию в заголовке окна
             var assembly = Assembly.GetExecutingAssembly();
             var version = assembly.GetName().Version;

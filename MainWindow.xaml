@@ -16,9 +16,6 @@
         MinHeight="840"
         Background="{DynamicResource AppWindowBackground}"
         FontFamily="{DynamicResource ApplicationFontFamily}"
-        TextOptions.TextFormattingMode="Display"
-        TextOptions.TextRenderingMode="ClearType"
-        TextOptions.TextHintingMode="Fixed"
         UseLayoutRounding="True"
         SnapsToDevicePixels="True">
     <Window.Resources>
@@ -227,7 +224,7 @@
                                Text="—"
                                Foreground="{StaticResource PrimaryTextBrush}"
                                FontSize="11"
-                               FontWeight="SemiBold"
+                               FontWeight="Bold"
                                HorizontalAlignment="Center"
                                VerticalAlignment="Center"
                                IsHitTestVisible="False"/>

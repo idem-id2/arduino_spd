@@ -118,7 +118,7 @@
                                      Grid.Column="1"
                                      Style="{StaticResource SpdInfoValueStyle}"
                                      Text="—"
-                                     FontWeight="SemiBold"
+                                     FontWeight="Bold"
                                      IsReadOnly="True"/>
                         </Grid>
 
