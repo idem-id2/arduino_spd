@@ -1534,6 +1534,9 @@ namespace HexEditor
                     UpdateSpdEditPanel();
                     UpdateReadButtonState();
                     StatusText.Text = $"Прочитано {data.Length} байт за {elapsedMs} мс";
+                    
+                    // Автоматическое чтение Sensor Register после чтения SPD, если найдены адреса термодатчиков
+                    await TryReadSensorRegistersAfterSpdRead();
                 }
                 else
                 {
@@ -2086,6 +2089,11 @@ namespace HexEditor
             _logEntries.Clear();
         }
 
+        /// <summary>
+        /// Получить ссылку на ArduinoService (для использования в других панелях)
+        /// </summary>
+        internal ArduinoService? GetArduinoService() => _arduinoService;
+
         private void LogTextBlock_Loaded(object sender, RoutedEventArgs e)
         {
             if (sender is TextBlock textBlock && textBlock.DataContext is LogEntry entry)
@@ -2279,6 +2287,89 @@ namespace HexEditor
             }
         }
 
+        /// <summary>
+        /// Попытка автоматического чтения Sensor Register после чтения SPD
+        /// </summary>
+        private Task TryReadSensorRegistersAfterSpdRead()
+        {
+            return Task.Run(() =>
+            {
+                if (!_arduinoService.IsConnected)
+                {
+                    return;
+                }
+
+                // Получаем адреса из полного сканирования I2C
+                var fullScanAddresses = _arduinoService.GetFullScanAddresses();
+                if (fullScanAddresses == null || fullScanAddresses.Length == 0)
+                {
+                    return;
+                }
+
+                // Типичные адреса термодатчиков для HPE SmartMemory
+                // Термодатчики обычно находятся в диапазоне 0x18-0x1F (JEDEC JC-42.4 стандарт)
+                // Наиболее распространенные адреса: 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F
+                byte[] sensorAddresses = { 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F };
+                
+                // Ищем адрес термодатчика среди найденных устройств
+                byte? foundSensorAddress = null;
+                foreach (var sensorAddr in sensorAddresses)
+                {
+                    if (fullScanAddresses.Contains(sensorAddr))
+                    {
+                        foundSensorAddress = sensorAddr;
+                        break;
+                    }
+                }
+
+                if (!foundSensorAddress.HasValue)
+                {
+                    return;
+                }
+
+                try
+                {
+                    var device = _arduinoService.GetActiveDevice();
+                    if (device == null)
+                    {
+                        return;
+                    }
+
+                    Dispatcher.Invoke(() => AppendLog("Info", $"Найден термодатчик на адресе 0x{foundSensorAddress.Value:X2}, читаем регистры..."));
+
+                    // Читаем регистры 6 и 7
+                    byte? reg6 = device.ReadSensorRegister(foundSensorAddress.Value, 6);
+                    byte? reg7 = device.ReadSensorRegister(foundSensorAddress.Value, 7);
+
+                    if (reg6.HasValue && reg7.HasValue)
+                    {
+                        ushort reg6Value = reg6.Value;
+                        ushort reg7Value = reg7.Value;
+                        
+                        Dispatcher.Invoke(() =>
+                        {
+                            AppendLog("Info", $"Прочитаны регистры термодатчика: Reg6=0x{reg6Value:X2}, Reg7=0x{reg7Value:X2}");
+                            
+                            // Обновляем HPE SmartMemory Panel с прочитанными регистрами
+                            var spdData = HexEditor.ReadBytes(0, (int)Math.Min(HexEditor.DocumentLength, 512));
+                            HpeSmartMemoryPanel?.UpdateSpdData(
+                                spdData,
+                                isArduinoMode: true,
+                                sensorReg6: reg6Value,
+                                sensorReg7: reg7Value);
+                        });
+                    }
+                    else
+                    {
+                        Dispatcher.Invoke(() => AppendLog("Warn", "Не удалось прочитать регистры термодатчика"));
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Dispatcher.Invoke(() => AppendLog("Error", $"Ошибка при чтении регистров термодатчика: {ex.Message}"));
+                }
+            });
+        }
 
     }
 

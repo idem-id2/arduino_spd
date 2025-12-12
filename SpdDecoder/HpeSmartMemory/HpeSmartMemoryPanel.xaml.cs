@@ -337,14 +337,15 @@ namespace HexEditor.SpdDecoder.HpeSmartMemory
             }
             else
             {
-                // Очищаем индикаторы совпадения
-                if (FindName("SecureIdMatchValue") is TextBox secureIdMatchValue)
+                // Очищаем строку валидности Secure ID
+                if (FindName("SecureIdValidGrid") is System.Windows.Controls.Grid secureIdValidGrid)
                 {
-                    secureIdMatchValue.Text = "—";
+                    // Возвращаем цвет фона из стиля (ZebraEvenBrush)
+                    secureIdValidGrid.Background = (System.Windows.Media.Brush)FindResource("ZebraEvenBrush");
                 }
-                if (FindName("CalculatedIdMatchValue") is TextBox calculatedIdMatchValue)
+                if (FindName("SecureIdValidValue") is TextBox secureIdValidValue)
                 {
-                    calculatedIdMatchValue.Text = "—";
+                    secureIdValidValue.Text = "—";
                 }
             }
         }
@@ -354,21 +355,43 @@ namespace HexEditor.SpdDecoder.HpeSmartMemory
         /// </summary>
         private void UpdateMatchIndicators(bool isMatch)
         {
-            var matchText = isMatch ? "YES" : "NO";
-            var matchColor = isMatch 
-                ? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Colors.Green)
-                : new System.Windows.Media.SolidColorBrush(System.Windows.Media.Colors.Red);
+            // Обновляем строку валидности Secure ID
+            UpdateSecureIdValid(isMatch);
+        }
+        
+        /// <summary>
+        /// Обновление строки валидности Secure ID
+        /// </summary>
+        private void UpdateSecureIdValid(bool isValid)
+        {
+            var validText = isValid ? "да" : "нет";
             
-            if (FindName("SecureIdMatchValue") is TextBox secureIdMatchValue)
+            // Используем цвета фона из темы
+            System.Windows.Media.Brush backgroundColor;
+            try
             {
-                secureIdMatchValue.Text = matchText;
-                secureIdMatchValue.Foreground = matchColor;
+                backgroundColor = isValid 
+                    ? (System.Windows.Media.Brush)FindResource("SuccessLightBrush")
+                    : (System.Windows.Media.Brush)FindResource("ErrorLightBrush");
+            }
+            catch
+            {
+                // Если ресурсы не найдены, используем стандартные цвета
+                backgroundColor = isValid 
+                    ? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(0x40, 0x90, 0xEE, 0x90)) // Светло-зелёный
+                    : new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(0x40, 0xFF, 0x6B, 0x6B)); // Светло-красный
             }
             
-            if (FindName("CalculatedIdMatchValue") is TextBox calculatedIdMatchValue)
+            // Меняем цвет фона всей строки (Grid)
+            if (FindName("SecureIdValidGrid") is System.Windows.Controls.Grid secureIdValidGrid)
             {
-                calculatedIdMatchValue.Text = matchText;
-                calculatedIdMatchValue.Foreground = matchColor;
+                secureIdValidGrid.Background = backgroundColor;
+            }
+            
+            // Обновляем текст значения
+            if (FindName("SecureIdValidValue") is TextBox secureIdValidValue)
+            {
+                secureIdValidValue.Text = validText;
             }
         }
         
@@ -435,13 +458,131 @@ namespace HexEditor.SpdDecoder.HpeSmartMemory
         /// </summary>
         private void ReadRegistersButton_Click(object sender, RoutedEventArgs e)
         {
-            // TODO: Реализовать чтение регистров термодатчика через Arduino
-            MessageBox.Show(
-                "Функция чтения регистров термодатчика через Arduino пока не реализована.\n\n" +
-                "Эта функция будет доступна в будущих версиях.",
-                "Информация",
-                MessageBoxButton.OK,
-                MessageBoxImage.Information);
+            // Получаем ссылку на MainWindow для доступа к ArduinoService
+            var mainWindow = Application.Current.MainWindow as MainWindow;
+            if (mainWindow == null)
+            {
+                MessageBox.Show("Не удалось получить доступ к главному окну.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            var arduinoService = mainWindow.GetArduinoService();
+            if (arduinoService == null || !arduinoService.IsConnected)
+            {
+                MessageBox.Show("Arduino не подключен.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            // Получаем адреса из полного сканирования I2C
+            var fullScanAddresses = arduinoService.GetFullScanAddresses();
+            if (fullScanAddresses == null || fullScanAddresses.Length == 0)
+            {
+                MessageBox.Show(
+                    "Не найдены устройства на I2C шине.\n\n" +
+                    "Выполните подключение к Arduino и дождитесь завершения сканирования.",
+                    "Ошибка",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+                return;
+            }
+
+            // Типичные адреса термодатчиков для HPE SmartMemory
+            // Термодатчики обычно находятся в диапазоне 0x18-0x1F (JEDEC JC-42.4 стандарт)
+            // Наиболее распространенные адреса: 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F
+            byte[] sensorAddresses = { 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F };
+            
+            // Ищем адрес термодатчика среди найденных устройств
+            byte? foundSensorAddress = null;
+            foreach (var sensorAddr in sensorAddresses)
+            {
+                if (fullScanAddresses.Contains(sensorAddr))
+                {
+                    foundSensorAddress = sensorAddr;
+                    break;
+                }
+            }
+
+            if (!foundSensorAddress.HasValue)
+            {
+                MessageBox.Show(
+                    $"Термодатчик не найден на известных адресах (0x18-0x1F).\n\n" +
+                    $"Найдены устройства: {string.Join(", ", fullScanAddresses.Select(a => $"0x{a:X2}"))}",
+                    "Ошибка",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+                return;
+            }
+
+            try
+            {
+                var device = arduinoService.GetActiveDevice();
+                if (device == null)
+                {
+                    MessageBox.Show("Не удалось получить доступ к устройству Arduino.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+                // Читаем регистры 6 и 7
+                byte? reg6 = device.ReadSensorRegister(foundSensorAddress.Value, 6);
+                byte? reg7 = device.ReadSensorRegister(foundSensorAddress.Value, 7);
+
+                if (reg6.HasValue && reg7.HasValue)
+                {
+                    ushort reg6Value = reg6.Value;
+                    ushort reg7Value = reg7.Value;
+                    
+                    // Обновляем значения Sensor Registers
+                    _currentSensorReg6 = reg6Value;
+                    _currentSensorReg7 = reg7Value;
+                    
+                    // Обновляем UI
+                    UpdateSensorRegisters(isArduinoMode: true, reg6Value, reg7Value);
+                    
+                    // Пытаемся найти соответствующий пресет
+                    if (PresetComboBox != null)
+                    {
+                        _isUpdatingPresetProgrammatically = true;
+                        try
+                        {
+                            // Ищем пресет по значениям регистров
+                            string regValue = $"{reg6Value:X4},{reg7Value:X4}";
+                            for (int i = 0; i < PresetComboBox.Items.Count; i++)
+                            {
+                                if (PresetComboBox.Items[i] is ComboBoxItem item && item.Tag?.ToString() == regValue)
+                                {
+                                    PresetComboBox.SelectedIndex = i;
+                                    break;
+                                }
+                            }
+                        }
+                        finally
+                        {
+                            _isUpdatingPresetProgrammatically = false;
+                        }
+                    }
+                    
+                    // Логируем успех - создаем событие через внутренний метод Log
+                    // Используем отражение для вызова приватного метода Log
+                    var logMethod = arduinoService.GetType().GetMethod("Log", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                    logMethod?.Invoke(arduinoService, new object[] { "Info", $"Прочитаны регистры термодатчика (0x{foundSensorAddress.Value:X2}): Reg6=0x{reg6Value:X2}, Reg7=0x{reg7Value:X2}" });
+                }
+                else
+                {
+                    MessageBox.Show(
+                        "Не удалось прочитать регистры термодатчика.",
+                        "Ошибка",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    $"Ошибка при чтении регистров термодатчика: {ex.Message}",
+                    "Ошибка",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
         }
         
         /// <summary>

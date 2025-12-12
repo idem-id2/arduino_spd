@@ -550,6 +550,39 @@ internal sealed class Arduino : IDisposable
         }
     }
 
+    /// <summary>
+    /// Читает регистр термодатчика по I2C адресу
+    /// </summary>
+    /// <param name="sensorAddress">I2C адрес термодатчика (например, 0x18-0x1F)</param>
+    /// <param name="register">Адрес регистра (обычно 6 или 7)</param>
+    /// <returns>Значение регистра или null при ошибке</returns>
+    public byte? ReadSensorRegister(byte sensorAddress, byte register)
+    {
+        lock (_portLock)
+        {
+            if (!IsConnected)
+            {
+                throw new InvalidOperationException("Device is not connected.");
+            }
+
+            try
+            {
+                var result = ExecuteCommand<byte>(
+                    new[]
+                    {
+                        Command.READSENSORREG,
+                        sensorAddress,
+                        register
+                    });
+                return result;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+    }
+
     private void ClearBuffer()
     {
         if (_serialPort == null)
@@ -865,6 +898,7 @@ internal sealed class Arduino : IDisposable
         public const byte DDR4DETECT = (byte)'4';
         public const byte DDR5DETECT = (byte)'5';
         public const byte PROBEADDRESS = (byte)'a';
+        public const byte READSENSORREG = (byte)'R';
     }
 
     public struct RswpSupport

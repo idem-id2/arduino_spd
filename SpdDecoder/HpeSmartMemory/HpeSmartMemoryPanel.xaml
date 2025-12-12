@@ -4,7 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              mc:Ignorable="d"
-             d:DesignHeight="752" d:DesignWidth="600"
+             d:DesignHeight="849.623" d:DesignWidth="600"
              HorizontalAlignment="Stretch"
              VerticalAlignment="Stretch">
     <Grid HorizontalAlignment="Stretch"
@@ -12,7 +12,7 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
-        
+
         <ScrollViewer Grid.Row="0"
                       VerticalScrollBarVisibility="Auto"
                       HorizontalScrollBarVisibility="Disabled"
@@ -21,25 +21,27 @@
             <StackPanel x:Name="MainContainer"
                         HorizontalAlignment="Stretch"
                         Margin="12">
-                
+
                 <!-- Заголовок -->
                 <TextBlock Text="HPE SmartMemory Information"
                            FontSize="16"
                            FontWeight="Bold"
                            Margin="0,0,0,16"
                            Foreground="{StaticResource PrimaryTextBrush}"/>
-                
+
                 <!-- Информация о модуле -->
                 <Border Style="{StaticResource SectionBlockStyle}"
                         Margin="0,0,0,12">
                     <StackPanel>
                         <TextBlock Text="MODULE INFORMATION"
                                    Style="{StaticResource CardTitleStyle}"/>
-                        
-                        <!-- HPT Marker -->
+
+                        <!-- HPT Marker and Secure ID -->
                         <Grid MinHeight="28" Margin="0,2,0,2" Background="{StaticResource ZebraEvenBrush}">
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="200"/>
+                                <ColumnDefinition Width="100"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="100"/>
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
                             <TextBox x:Name="HptMarkerLabel"
@@ -52,28 +54,20 @@
                                      Style="{StaticResource SpdInfoValueStyle}"
                                      Text="—"
                                      IsReadOnly="True"/>
-                        </Grid>
-                        
-                        <!-- Secure ID -->
-                        <Grid MinHeight="28" Margin="0,2,0,2" Background="{StaticResource ZebraOddBrush}">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="200"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
                             <TextBox x:Name="SecureIdLabel"
-                                     Grid.Column="0"
+                                     Grid.Column="2"
                                      Style="{StaticResource SpdInfoLabelStyle}"
                                      Text="Secure ID"
                                      IsReadOnly="True"/>
                             <TextBox x:Name="SecureIdValue"
-                                     Grid.Column="1"
+                                     Grid.Column="3"
                                      Style="{StaticResource SpdInfoValueStyle}"
                                      Text="—"
                                      IsReadOnly="True"/>
                         </Grid>
-                        
+
                         <!-- HPE Part Number -->
-                        <Grid MinHeight="28" Margin="0,2,0,2" Background="{StaticResource ZebraEvenBrush}">
+                        <Grid MinHeight="28" Margin="0,2,0,2" Background="{StaticResource ZebraOddBrush}">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="200"/>
                                 <ColumnDefinition Width="*"/>
@@ -90,7 +84,7 @@
                                      IsReadOnly="True"
                                      FontFamily="Consolas"/>
                         </Grid>
-                        
+
                         <!-- Buttons -->
                         <Grid MinHeight="36" Margin="0,12,0,2">
                             <Grid.RowDefinitions>
@@ -103,7 +97,7 @@
                                 <ColumnDefinition Width="8"/>
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
-                            
+
                             <!-- Обнулить информацию о работе в сервере -->
                             <Button x:Name="ClearServerInfoButton"
                                     Grid.Row="0"
@@ -114,7 +108,7 @@
                                     Margin="4,2,4,2"
                                     Padding="8,4"
                                     HorizontalAlignment="Stretch"/>
-                            
+
                             <!-- Удалить ошибки -->
                             <Button x:Name="ClearErrorsButton"
                                     Grid.Row="2"
@@ -124,7 +118,7 @@
                                     Margin="4,2,4,2"
                                     Padding="8,4"
                                     HorizontalAlignment="Stretch"/>
-                            
+
                             <!-- Удалить дату инсталляции -->
                             <Button x:Name="ClearInstallDateButton"
                                     Grid.Row="2"
@@ -137,14 +131,14 @@
                         </Grid>
                     </StackPanel>
                 </Border>
-                
+
                 <!-- Sensor Registers -->
                 <Border Style="{StaticResource SectionBlockStyle}"
                         Margin="0,0,0,12">
                     <StackPanel>
                         <TextBlock Text="SENSOR REGISTERS"
                                    Style="{StaticResource CardTitleStyle}"/>
-                        
+
                         <!-- Режим -->
                         <Grid MinHeight="28" Margin="0,2,0,2" Background="{StaticResource ZebraEvenBrush}">
                             <Grid.ColumnDefinitions>
@@ -162,7 +156,7 @@
                                      Text="—"
                                      IsReadOnly="True"/>
                         </Grid>
-                        
+
                         <!-- Модель -->
                         <Grid MinHeight="28" Margin="0,2,0,2" Background="{StaticResource ZebraOddBrush}">
                             <Grid.ColumnDefinitions>
@@ -186,7 +180,7 @@
                                 <ComboBoxItem Content="TSE2004GB2B0 - Renesas (00F8, EE25)" Tag="00F8,EE25"/>
                             </ComboBox>
                         </Grid>
-                        
+
                         <!-- Sensor Register 6 -->
                         <Grid MinHeight="28" Margin="0,2,0,2" Background="{StaticResource ZebraEvenBrush}">
                             <Grid.ColumnDefinitions>
@@ -205,7 +199,7 @@
                                      IsReadOnly="True"
                                      FontFamily="Consolas"/>
                         </Grid>
-                        
+
                         <!-- Sensor Register 7 -->
                         <Grid MinHeight="28" Margin="0,2,0,2" Background="{StaticResource ZebraOddBrush}">
                             <Grid.ColumnDefinitions>
@@ -224,7 +218,7 @@
                                      IsReadOnly="True"
                                      FontFamily="Consolas"/>
                         </Grid>
-                        
+
                         <!-- Buttons -->
                         <Grid MinHeight="36" Margin="0,8,0,2">
                             <Grid.ColumnDefinitions>
@@ -249,20 +243,19 @@
                         </Grid>
                     </StackPanel>
                 </Border>
-                
+
                 <!-- Encryption ID -->
                 <Border Style="{StaticResource SectionBlockStyle}"
                         Margin="0,0,0,12">
                     <StackPanel>
                         <TextBlock Text="ENCRYPTION ID"
                                    Style="{StaticResource CardTitleStyle}"/>
-                        
+
                         <!-- Secure ID from SPD -->
                         <Grid MinHeight="28" Margin="0,2,0,2" Background="{StaticResource ZebraEvenBrush}">
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="200"/>
+                                <ColumnDefinition Width="240"/>
                                 <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="80"/>
                             </Grid.ColumnDefinitions>
                             <TextBox x:Name="SecureIdFromSpdLabel"
                                      Grid.Column="0"
@@ -275,21 +268,13 @@
                                      Text="—"
                                      IsReadOnly="True"
                                      FontFamily="Consolas"/>
-                            <TextBox x:Name="SecureIdMatchValue"
-                                     Grid.Column="2"
-                                     Style="{StaticResource SpdInfoValueStyle}"
-                                     Text="—"
-                                     IsReadOnly="True"
-                                     HorizontalContentAlignment="Center"
-                                     FontWeight="Bold"/>
                         </Grid>
                         
                         <!-- Calculated Encryption ID -->
                         <Grid MinHeight="28" Margin="0,2,0,2" Background="{StaticResource ZebraOddBrush}">
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="200"/>
+                                <ColumnDefinition Width="240"/>
                                 <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="80"/>
                             </Grid.ColumnDefinitions>
                             <TextBox x:Name="CalculatedEncryptionIdLabel"
                                      Grid.Column="0"
@@ -302,15 +287,35 @@
                                      Text="—"
                                      IsReadOnly="True"
                                      FontFamily="Consolas"/>
-                            <TextBox x:Name="CalculatedIdMatchValue"
-                                     Grid.Column="2"
-                                     Style="{StaticResource SpdInfoValueStyle}"
+                        </Grid>
+
+                        <!-- Secure ID Valid -->
+                        <Grid x:Name="SecureIdValidGrid" MinHeight="28" Margin="0,2,0,2" Background="{StaticResource ZebraEvenBrush}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="240"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="SecureIdValidLabel"
+                                     Grid.Column="0"
+                                     Style="{StaticResource SpdInfoLabelStyle}"
+                                     Text="Secure ID валидный"
+                                     IsReadOnly="True"/>
+                            <TextBox x:Name="SecureIdValidValue"
+                                     Grid.Column="1"
+                                     FontSize="13"
+                                     TextWrapping="Wrap"
+                                     VerticalAlignment="Center"
                                      Text="—"
                                      IsReadOnly="True"
-                                     HorizontalContentAlignment="Center"
+                                     BorderThickness="0"
+                                     Background="Transparent"
+                                     Padding="0"
+                                     VerticalScrollBarVisibility="Disabled"
+                                     HorizontalScrollBarVisibility="Disabled"
+                                     HorizontalContentAlignment="Left"
                                      FontWeight="Bold"/>
                         </Grid>
-                        
+
                         <!-- Buttons -->
                         <Grid MinHeight="36" Margin="0,8,0,2">
                             <Grid.ColumnDefinitions>
@@ -335,7 +340,7 @@
                         </Grid>
                     </StackPanel>
                 </Border>
-                
+
             </StackPanel>
         </ScrollViewer>
     </Grid>

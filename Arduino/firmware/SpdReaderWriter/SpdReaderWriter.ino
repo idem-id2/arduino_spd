@@ -97,6 +97,7 @@
 #define PINCONTROL   'p'  // Управление пинами
 #define PINRESET     'd'  // Сброс пинов в состояние по умолчанию
 #define RSWP         'b'  // Управление обратимой защитой записи
+#define READSENSORREG 'R'  // Чтение регистра термодатчика
 #define PSWP         'l'  // Управление постоянной защитой записи
 #define OVERWRITE    'o'  // Тест защиты записи по смещению
 #define NAME         'n'  // Управление именем устройства
@@ -267,6 +268,11 @@ void parseCommand() {
     // Проверка наличия адреса I2C
     case PROBEADDRESS:
       cmdProbeBusAddress();
+      break;
+
+    // Чтение регистра термодатчика
+    case READSENSORREG:
+      cmdReadSensorRegister();
       break;
 
     // Настройки шины I2C
@@ -626,6 +632,41 @@ void cmdProbeBusAddress() {
 
   uint8_t address = buffer[0];  // Адрес I2C
   Respond(probeBusAddress(address));
+}
+
+void cmdReadSensorRegister() {
+  // Буфер данных: адрес устройства, адрес регистра
+  uint8_t buffer[2] = { 0 };
+  PORT.readBytes(buffer, sizeof(buffer));
+
+  uint8_t address = buffer[0];  // Адрес I2C термодатчика
+  uint8_t regAddr = buffer[1];   // Адрес регистра (обычно 6 или 7)
+
+  // Чтение регистра термодатчика через стандартный I2C протокол
+  Wire.beginTransmission(address);
+  Wire.write(regAddr);
+  uint8_t status = Wire.endTransmission(false);
+
+  if (status != 0) {
+    Respond(false);
+    return;
+  }
+
+  Wire.requestFrom(address, (uint8_t)1);
+  
+  // Ожидание данных
+  uint8_t timeout = 10;
+  while (!Wire.available() && timeout > 0) {
+    delay(1);
+    timeout--;
+  }
+
+  if (Wire.available()) {
+    uint8_t value = Wire.read();
+    Respond(value);
+  } else {
+    Respond(false);
+  }
 }
 
 void cmdI2CClock() {
