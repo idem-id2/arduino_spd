@@ -2077,17 +2077,11 @@ namespace HexEditor
             {
                 textBlock.Inlines.Clear();
                 
-                // Создаем Inlines напрямую в TextBlock, без Span
-                // Это должно предотвратить добавление пробелов между Run элементами
-                textBlock.Inlines.Add(new Run("["));
-                textBlock.Inlines.Add(new Run(entry.Level) { Foreground = entry.LevelBrush });
-                textBlock.Inlines.Add(new Run("] "));
-                textBlock.Inlines.Add(new Run(entry.FormattedTimestamp) 
-                { 
-                    Foreground = (Brush)FindResource("MutedTextBrush") 
-                });
-                textBlock.Inlines.Add(new Run(": "));
-                textBlock.Inlines.Add(new Run(entry.Message));
+                // Для моноширинных шрифтов WPF добавляет визуальные пробелы между Run элементами
+                // Используем один Run для всей строки, чтобы избежать пробелов
+                // Применяем цвет уровня ко всей строке (компромисс для компактности)
+                string fullText = $"[{entry.Level}] {entry.FormattedTimestamp}: {entry.Message}";
+                textBlock.Inlines.Add(new Run(fullText) { Foreground = entry.LevelBrush });
             }
         }
 
